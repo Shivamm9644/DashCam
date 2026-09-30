@@ -1,0 +1,59 @@
+{
+  "tripId": "TRIP-20260929-VEH-5678",
+  "vehicleId": "VEH-5678",
+  "terminalId": "013812345678",
+  "startTime": "2026-09-29T22:53:05.000Z",
+  "endTime": null,
+  "startAddress": "93, Vijay Nagar Square, Indore, Madhya Pradesh 452010",
+  "endAddress": null,
+  "metrics": {
+    "totalDistanceKm": 0.0014279644615995887,
+    "drivingTimeSec": 20,
+    "stoppedTimeSec": 0,
+    "maxSpeed": 0.5
+  },
+  "stops": [],
+  "route": [
+    {
+      "lat": 22.747543,
+      "lng": 75.896348,
+      "speed": 0,
+      "time": "2026-09-29T22:53:05.000Z"
+    },
+    {
+      "lat": 22.747543,
+      "lng": 75.896341,
+      "speed": 0.5,
+      "time": "2026-09-29T22:53:13.000Z"
+    },
+    {
+      "lat": 22.747545,
+      "lng": 75.896346,
+      "speed": 0.2,
+      "time": "2026-09-29T22:53:20.000Z"
+    },
+    {
+      "lat": 22.747544,
+      "lng": 75.896347,
+      "speed": 0.1,
+      "time": "2026-09-29T22:53:25.000Z"
+    }
+  ],
+  "isSimulated": false,
+  "_lastPoint": {
+    "terminalId": "013812345678",
+    "vehicleId": "VEH-5678",
+    "latitude": 22.747544,
+    "longitude": 75.896347,
+    "speed": 0.1,
+    "heading": 0,
+    "ignition": true,
+    "timestamp": "2026-09-29T22:53:25.000Z",
+    "alarmType": null,
+    "eventType": "NORMAL",
+    "impactGForce": null
+  },
+  "_currentStopStart": null,
+  "_currentStopDuration": 0,
+  "_zeroSpeedCount": 0
+}
