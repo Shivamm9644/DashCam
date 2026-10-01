@@ -21,6 +21,7 @@ const config = {
     API_PORT: parseInt(process.env.API_PORT || process.env.PORT || '3000', 10),
     JT808_PORT: parseInt(process.env.JT808_PORT || '7800', 10),
     JT1078_PORT: parseInt(process.env.JT1078_PORT || '10780', 10),
+    MEDIA_SERVER_IP: process.env.MEDIA_SERVER_IP || '100.31.90.51',
 
     // Timezone Profiles
     DEVICE_TIMEZONE: process.env.DEVICE_TIMEZONE || 'Asia/Shanghai', // Device sends BCD in UTC+8

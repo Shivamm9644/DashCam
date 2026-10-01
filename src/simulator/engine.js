@@ -65,7 +65,8 @@ class SimulatorEngine {
             segmentSeconds: params.segmentSeconds || 3,
             playbackRate: params.playbackRate || 1,
             seed: params.seed || 1078,
-            videoPath: params.videoPath || null
+            videoPath: params.videoPath || null,
+            serverHost: params.serverHost || '127.0.0.1'
         };
 
         this.rng = mulberry32(this.params.seed);
@@ -205,8 +206,9 @@ class SimulatorEngine {
     connect808() {
         return new Promise((resolve, reject) => {
             this.socket808 = new net.Socket();
-            this.socket808.connect(config.JT808_PORT, '127.0.0.1', () => {
-                console.log(`[Simulator] Connected to JT808 on 127.0.0.1:${config.JT808_PORT}`);
+            const host = this.params.serverHost || '127.0.0.1';
+            this.socket808.connect(config.JT808_PORT, host, () => {
+                console.log(`[Simulator] Connected to JT808 on ${host}:${config.JT808_PORT}`);
                 resolve();
             });
             this.socket808.on('error', err => {
@@ -219,8 +221,9 @@ class SimulatorEngine {
     connect1078() {
         return new Promise((resolve, reject) => {
             this.socket1078 = new net.Socket();
-            this.socket1078.connect(config.JT1078_PORT, '127.0.0.1', () => {
-                console.log(`[Simulator] Connected to JT1078 on 127.0.0.1:${config.JT1078_PORT}`);
+            const host = this.params.serverHost || '127.0.0.1';
+            this.socket1078.connect(config.JT1078_PORT, host, () => {
+                console.log(`[Simulator] Connected to JT1078 on ${host}:${config.JT1078_PORT}`);
                 resolve();
             });
             this.socket1078.on('error', err => {

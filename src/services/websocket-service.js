@@ -5,7 +5,12 @@ class WebSocketService {
 
     init(server) {
         const { Server } = require('socket.io');
-        this.io = new Server(server);
+        this.io = new Server(server, {
+            cors: {
+                origin: "*",
+                methods: ["GET", "POST"]
+            }
+        });
 
         this.io.on('connection', (socket) => {
             console.log(`[Web] Dashboard connected: ${socket.id}`);

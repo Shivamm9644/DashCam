@@ -27,6 +27,8 @@ const simulator = require('./simulator/engine');
 // 1. Express API & WebSocket Server
 // ==========================================
 const app = express();
+const cors = require('cors');
+app.use(cors());
 const server = http.createServer(app);
 
 app.use(express.json());
@@ -142,7 +144,8 @@ app.post('/api/video/upload-frame', express.raw({ type: '*/*', limit: '10mb' }),
 
 // --- Media Segments for Reels ---
 app.get('/api/media/segments', (req, res) => {
-    const terminalId = req.query.terminalId || '013812345678';
+    const terminalId = req.query.terminalId;
+    if (!terminalId) return res.status(400).json({ error: "terminalId required" });
     const channel = parseInt(req.query.channel || '1', 10);
     const segments = db.getSegmentsForReels(terminalId, channel);
     res.json(segments);
@@ -164,7 +167,8 @@ const upload = multer({ storage: storage });
 app.post('/api/video/upload-clip', upload.single('video'), (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
     
-    const terminalId = req.query.terminalId || '013812345678';
+    const terminalId = req.query.terminalId;
+    if (!terminalId) return res.status(400).json({ error: "terminalId required" });
     const sessionId = req.query.sessionId || `session_${Date.now()}`;
     const startUtcMs = parseInt(req.query.startUtcMs || Date.now(), 10);
     const durationSec = parseInt(req.query.durationSec || 3, 10);
@@ -205,7 +209,8 @@ app.get('/api/media/recordings', (req,res)=>{
 
 // --- Dashcam Video & Audio String Data in JSON ---
 app.get('/api/media/string-data', (req, res) => {
-    const terminalId = req.query.terminalId || '013812345678';
+    const terminalId = req.query.terminalId;
+    if (!terminalId) return res.status(400).json({ error: "terminalId required" });
     const channel = parseInt(req.query.channel || '1', 10);
     const format = (req.query.format || 'base64').toLowerCase(); // 'base64' or 'hex'
     const fs = require('fs');
@@ -497,6 +502,26 @@ const server808 = net.createServer((socket) => {
                             frame.messageId,
                             0 // Success
                         );
+
+                        // Issue 0x9101 Real-Time Video Request after auth
+                        const videoRequest = binaryEncoder.buildLiveStartRequest(
+                            frame.terminalPhone,
+                            {
+                                serverIp: config.MEDIA_SERVER_IP,
+                                tcpPort: config.JT1078_PORT,
+                                udpPort: 0,
+                                channel: 1,
+                                dataType: 0, // Audio & Video
+                                streamType: 0 // Main stream
+                            }
+                        );
+
+                        setTimeout(() => {
+                            if (!socket.destroyed) {
+                                console.log(`[JT808] Sending 0x9101 Video Request to ${frame.terminalPhone}`);
+                                socket.write(videoRequest);
+                            }
+                        }, 500);
                     } else {
                         responsePacket = binaryEncoder.buildPlatformResponse(
                             frame.terminalPhone,
