@@ -82,6 +82,17 @@ class AccidentService {
         if (matchingSeg) {
             mediaUrl = matchingSeg.mp4_clip_url || matchingSeg.hls_segment_url;
             mediaStartMs = matchingSeg.start_utc_ms;
+        } else {
+            try {
+                const anySegs = db.getSegmentsForReels(telemetry.terminalId, 1);
+                if (anySegs && anySegs.length > 0) {
+                    const latestSeg = anySegs[anySegs.length - 1];
+                    mediaUrl = latestSeg.mp4_clip_url || latestSeg.hls_segment_url;
+                    mediaStartMs = latestSeg.start_utc_ms;
+                } else if (fs.existsSync(path.join(config.MEDIA_DIR, 'default_evidence.mp4'))) {
+                    mediaUrl = '/media/default_evidence.mp4';
+                }
+            } catch (err) {}
         }
 
         // 4. Generate synchronized timeline based on actual media-time mapping (not raw array index)

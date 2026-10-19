@@ -68,10 +68,10 @@ class BinaryUtils {
      * @returns {Buffer}
      */
     stringToBcd(str) {
-        if (str.length % 2 !== 0) str = '0' + str;
-        const buf = Buffer.alloc(str.length / 2);
-        for (let i = 0; i < str.length; i += 2) {
-            buf[i / 2] = parseInt(str.substring(i, i + 2), 16);
+        let paddedStr = str.padStart(12, '0');
+        const buf = Buffer.alloc(6);
+        for (let i = 0; i < 12; i += 2) {
+            buf[i / 2] = parseInt(paddedStr.substring(i, i + 2), 16);
         }
         return buf;
     }

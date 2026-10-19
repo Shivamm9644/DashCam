@@ -19,7 +19,7 @@ class TsMuxer {
   packets.push(...this.table(0,Buffer.from([0,0xb0,13,0,1,0xc1,0,0,0,1,0xf0,0])));
   const audio=frames.some(f=>f.audio),length=13+(audio?10:5);
   packets.push(...this.table(4096,Buffer.from([2,0xb0,length,0,1,0xc1,0,0,0xe1,0,0xf0,0,0x1b,0xe1,0,0xf0,0,...(audio?[0x0f,0xe1,1,0xf0,0]:[])])));
-  for(const f of frames){const clock=(f.ptsMs-anchor)*90+90000;const h=Buffer.alloc(14);h.set([0,0,1,f.audio?0xc0:0xe0]);h.writeUInt16BE(f.audio?f.data.length+8:0,4);h.set([0x80,0x80,5],6);pts(clock).copy(h,9);
+  for(const f of frames){const clock=Math.max(0,f.ptsMs-anchor)*90+90000;const h=Buffer.alloc(14);h.set([0,0,1,f.audio?0xc0:0xe0]);h.writeUInt16BE(f.audio?f.data.length+8:0,4);h.set([0x80,0x80,5],6);pts(clock).copy(h,9);
    packets.push(...this.packetize(f.audio?257:256,Buffer.concat([h,f.data]),f.audio?null:clock));
   }return Buffer.concat(packets);
  }

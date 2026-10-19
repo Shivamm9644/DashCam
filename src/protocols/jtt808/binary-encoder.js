@@ -91,7 +91,7 @@ class BinaryEncoder {
     _buildPacket(messageId, terminalId, bodyBuf) {
         const headerBuf = Buffer.alloc(12);
         headerBuf.writeUInt16BE(messageId, 0);
-        headerBuf.writeUInt16BE(bodyBuf.length, 2); // Body Attribute (no encryption, no sub-package)
+        headerBuf.writeUInt16BE(bodyBuf.length & 0x03FF, 2); // Body Attribute (no encryption, no sub-package)
         
         // Terminal Phone (BCD)
         const phoneBuf = binaryUtils.stringToBcd(terminalId);

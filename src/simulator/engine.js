@@ -400,8 +400,8 @@ class SimulatorEngine {
         // Magic 0x30 0x31 0x63 0x64
         buf.writeUInt32BE(0x30316364, 0);
 
-        // Byte 4: V=2, P=0, X=0, CC=0 (0x80)
-        buf.writeUInt8(0x80, 4);
+        // Byte 4: V=2, P=0, X=0, CG=1 (0x81)
+        buf.writeUInt8(0x81, 4);
 
         // Byte 5: M(1), PT(7)
         const marker = (subpackage === 0 || subpackage === 2) ? 0x80 : 0x00;
@@ -444,7 +444,7 @@ class SimulatorEngine {
     build808Packet(messageId, bodyBuf) {
         const headerBuf = Buffer.alloc(12);
         headerBuf.writeUInt16BE(messageId, 0);
-        headerBuf.writeUInt16BE(bodyBuf.length, 2);
+        headerBuf.writeUInt16BE(bodyBuf.length & 0x03FF, 2);
 
         const phoneBuf = binaryUtils.stringToBcd(this.params.terminalId);
         phoneBuf.copy(headerBuf, 4);

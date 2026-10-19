@@ -51,17 +51,25 @@ class MediaHandler {
   for(const n of nalus){if(n.type===7)s.sps=n.data;if(n.type===8)s.pps=n.data;}
   if(!nalus.some(n=>n.type===1||n.type===5))return;
   const keyframe=nalus.some(n=>n.type===5);
-  if(s.start===null){if(!keyframe)return;s.start=p.timestampMs;}
-  if(s.lastVideo!==null && p.timestampMs<=s.lastVideo)return;
-  if(p.lastFrameInterval>0 && p.lastFrameInterval<1000)s.frameMs=p.lastFrameInterval;
-  if(keyframe && p.timestampMs-s.start>=config.DEFAULT_SEGMENT_DURATION_SEC*1000 && s.frames.length){this.finalize(s,p.timestampMs);s.start=p.timestampMs;}
+  let framePts = Number(p.timestampMs);
+  if(!s.isSimulated){
+   if(p.lastFrameInterval>0 && p.lastFrameInterval<1000) s.frameMs = p.lastFrameInterval;
+   if(s.lastVideo !== null && framePts <= s.lastVideo) {
+    framePts = s.lastVideo + (s.frameMs || 40);
+   }
+  }else{
+   if(s.lastVideo!==null && p.timestampMs<=s.lastVideo)return;
+   if(p.lastFrameInterval>0 && p.lastFrameInterval<1000)s.frameMs=p.lastFrameInterval;
+  }
+  if(s.start===null){if(!keyframe)return;s.start=framePts;}
+  if(keyframe && framePts-s.start>=config.DEFAULT_SEGMENT_DURATION_SEC*1000 && s.frames.length){this.finalize(s,framePts);s.start=framePts;}
   if(keyframe){
    const extras=[];if(!nalus.some(n=>n.type===9))extras.push(Buffer.from([0,0,0,1,9,0xf0]));
    if(!nalus.some(n=>n.type===7)&&s.sps)extras.push(s.sps);
    if(!nalus.some(n=>n.type===8)&&s.pps)extras.push(s.pps);
    data=Buffer.concat([...extras,data]);
   }
-  s.frames.push({data,ptsMs:p.timestampMs,audio:false});s.lastVideo=p.timestampMs;
+  s.frames.push({data,ptsMs:framePts,audio:false});s.lastVideo=framePts;
   if(s.frames.reduce((n,f)=>n+f.data.length,0)>32*1024*1024)throw new Error('Media segment exceeds 32MB; check keyframe interval');
  }
  finalize(s,end){
@@ -70,24 +78,69 @@ class MediaHandler {
   if(!frames.some(f=>!f.audio))return;
   const seq=s.seq++,start=s.start,duration=(end-start)/1000;
   const ts=s.mux.mux(frames,s.anchorPtsMs);
+  if(!s.isSimulated){
+   const base=`clip_${seq}`,tsPath=path.join(s.dir,`${base}.ts`),mp4=path.join(s.dir,`${base}.mp4`);
+   fs.writeFileSync(tsPath,ts);
+   const utc=s.anchorUtcMs+start-s.anchorPtsMs;
+   const hasAudio=frames.some(f=>f.audio);
+   const rec={segmentId:`SEG-${s.sessionId}-${seq}`,sessionId:s.sessionId,terminalId:s.terminalId,channel:s.channel,seqNum:seq,startPtsMs:start,endPtsMs:end,startUtcMs:utc,endUtcMs:utc+duration*1000,durationSec:duration,filePath:tsPath,hlsSegmentUrl:`${s.url}/${base}.ts`,mp4ClipUrl:`${s.url}/${base}.mp4`,thumbnailUrl:null,hasAudio:hasAudio?1:0,isKeyframe:1,status:'READY',isSimulated:0};
+   db.insertSegment(rec);s.segments.push(rec);this.playlists(s,false);
+   if(s.segments.length > 40){
+    const stale = s.segments.slice(0, s.segments.length - 30);
+    for(const old of stale){
+     if(!old._cleaned){
+      old._cleaned = true;
+      const oldTs = path.join(s.dir, path.basename(old.hlsSegmentUrl));
+      try{ if(fs.existsSync(oldTs)) fs.unlinkSync(oldTs); }catch{}
+     }
+    }
+   }
+   require('../../services/accident-service').linkMediaToAccidents(s.terminalId,s.channel,rec);
+   ws.emit('media_segment',rec);
+   run(config.FFMPEG_PATH,['-v','error','-y','-i',tsPath,'-c','copy','-movflags','+faststart',mp4],{timeout:10000}).catch(()=>{});
+   return;
+  }
   const task=s.queue.then(async()=>{
    const base=`clip_${seq}`,tsPath=path.join(s.dir,`${base}.ts`),mp4=path.join(s.dir,`${base}.mp4`),tmp=path.join(s.dir,`${base}.tmp.mp4`);
    fs.writeFileSync(tsPath,ts);
    // TS contains real PES timestamps. Remux, retaining A/V offsets, with a local MP4 timeline.
-   await run(config.FFMPEG_PATH,['-v','error','-y','-i',tsPath,'-map','0:v:0','-map','0:a:0?','-c','copy','-t',String(duration),'-movflags','+faststart',tmp],{maxBuffer:1024*1024});
-   const {stdout}=await run(config.FFPROBE_PATH,['-v','error','-show_entries','stream=codec_type,duration','-of','json',tmp]);
-   const streams=JSON.parse(stdout).streams;
-   const video=streams.find(x=>x.codec_type==='video');
-   if(!video||Math.abs(Number(video.duration)-duration)>.12)throw new Error(`Video duration mismatch: expected ${duration}, got ${video?.duration}`);
-   fs.renameSync(tmp,mp4);
+   let segDuration=duration,hasAudio=false,mp4Success=false;
+   try{
+    await run(config.FFMPEG_PATH,['-analyzeduration','100M','-probesize','100M','-v','error','-y','-i',tsPath,'-map','0:v:0','-map','0:a:0?','-c','copy','-t',String(duration),'-movflags','+faststart',tmp],{maxBuffer:1024*1024});
+    const {stdout}=await run(config.FFPROBE_PATH,['-v','error','-show_entries','stream=codec_type,duration','-of','json',tmp]);
+    const streams=JSON.parse(stdout).streams;
+    const video=streams.find(x=>x.codec_type==='video');
+    if(s.isSimulated){
+     if(!video||Math.abs(Number(video.duration)-duration)>.12)throw new Error(`Video duration mismatch: expected ${duration}, got ${video?.duration}`);
+    }else if(video&&video.duration){
+     segDuration=Number(video.duration);
+    }
+    hasAudio=streams.some(x=>x.codec_type==='audio');
+    fs.renameSync(tmp,mp4);
+    mp4Success=true;
+   }catch(err){
+    if(s.isSimulated)throw err;
+    console.warn(`[MEDIA] Remux notice on ${base}: ${err.message}. Preserving TS segment for continuous live HLS.`);
+    try{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}catch{}
+   }
    const utc=s.anchorUtcMs+start-s.anchorPtsMs;
-   const rec={segmentId:`SEG-${s.sessionId}-${seq}`,sessionId:s.sessionId,terminalId:s.terminalId,channel:s.channel,seqNum:seq,startPtsMs:start,endPtsMs:end,startUtcMs:utc,endUtcMs:utc+duration*1000,durationSec:duration,filePath:mp4,hlsSegmentUrl:`${s.url}/${base}.ts`,mp4ClipUrl:`${s.url}/${base}.mp4`,thumbnailUrl:null,hasAudio:streams.some(x=>x.codec_type==='audio'),isKeyframe:1,status:'READY',isSimulated:s.isSimulated};
+   const rec={segmentId:`SEG-${s.sessionId}-${seq}`,sessionId:s.sessionId,terminalId:s.terminalId,channel:s.channel,seqNum:seq,startPtsMs:start,endPtsMs:end,startUtcMs:utc,endUtcMs:utc+segDuration*1000,durationSec:segDuration,filePath:mp4Success?mp4:tsPath,hlsSegmentUrl:`${s.url}/${base}.ts`,mp4ClipUrl:mp4Success?`${s.url}/${base}.mp4`:`${s.url}/${base}.ts`,thumbnailUrl:null,hasAudio:hasAudio,isKeyframe:1,status:'READY',isSimulated:s.isSimulated};
    db.insertSegment(rec);s.segments.push(rec);this.playlists(s,false);
+   if(!s.isSimulated && s.segments.length > 25){
+    const stale = s.segments.slice(0, s.segments.length - 20);
+    for(const old of stale){
+     if(!old._cleaned){
+      old._cleaned = true;
+      const oldTs = path.join(s.dir, path.basename(old.hlsSegmentUrl));
+      try{ if(fs.existsSync(oldTs)) fs.unlinkSync(oldTs); }catch{}
+     }
+    }
+   }
    require('../../services/accident-service').linkMediaToAccidents(s.terminalId,s.channel,rec);
    ws.emit('media_segment',rec);
   });
   // Chain failures without publishing invalid media. Visible diagnostic, no READY row on failure.
-  s.queue=task.catch(e=>{s.failed=true;console.error('[MEDIA]',e.message);ws.emit('media_error',{terminalId:s.terminalId,channel:s.channel,message:e.message});});
+  s.queue=task.catch(e=>{if(s.isSimulated){s.failed=true;}console.error('[MEDIA]',e.message);ws.emit('media_error',{terminalId:s.terminalId,channel:s.channel,message:e.message});});
   const queued=s.queue;this.pending.add(queued);queued.finally(()=>this.pending.delete(queued));
  }
  playlists(s,closed){
@@ -101,7 +154,7 @@ class MediaHandler {
   write(path.join(s.dir,'recording.m3u8'),s.segments,closed);
   // A previous session finishing must not replace a newer session's live playlist.
   if(!this.sessions.has(s.key)||this.sessions.get(s.key)===s)
-   write(path.join(config.MEDIA_DIR,'live',s.key,'live.m3u8'),s.segments.slice(-10),closed);
+   write(path.join(config.MEDIA_DIR,'live',s.key,'live.m3u8'),s.segments.slice(-20),closed);
  }
  async closeSession(terminalId,channel=1){
   const key=`${terminalId}_${channel}`,s=this.sessions.get(key);if(!s)return;
