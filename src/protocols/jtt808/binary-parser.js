@@ -88,6 +88,9 @@ class BinaryParser {
             const deviceTz = options.deviceTimeZone || config.DEVICE_TIMEZONE;
 
             switch (messageId) {
+                case 0x0001: // Terminal General Response
+                    decoded = this.parseGeneralResponse(msgBody);
+                    break;
                 case 0x0002: // Heartbeat
                     decoded = this.parseHeartbeat();
                     break;
@@ -137,6 +140,23 @@ class BinaryParser {
             0x9102: 'Real-time Video Control'
         };
         return names[id] || 'Unknown Message';
+    }
+
+    parseGeneralResponse(body) {
+        if (!body || body.length < 5) return { type: 'general_response', valid: false };
+        const replySerialNo = body.readUInt16BE(0);
+        const replyMessageId = body.readUInt16BE(2);
+        const result = body.readUInt8(4);
+        const resultText = ['Success/Confirm', 'Failure', 'Message Error', 'Not Supported'][result] || `Unknown (${result})`;
+        return {
+            type: 'general_response',
+            valid: true,
+            replySerialNo,
+            replyMessageId,
+            replyMessageHex: '0x' + replyMessageId.toString(16).padStart(4, '0').toUpperCase(),
+            result,
+            resultText
+        };
     }
 
     parseHeartbeat() {
@@ -272,6 +292,7 @@ class BinaryParser {
             alarmType: alarmType,
             eventType: eventType,
             impactGForce: sensorGForce, // Null unless actual sensor measurement is provided
+            positioning: positioning,
             _sourceSerialNo: serialNo
         });
 

@@ -308,6 +308,86 @@ runTest('Persistence: Telemetry and Trips Survive Database Re-init', () => {
     assert.strictEqual(found.stops.length, 1);
 });
 
+// -------------------------------------------------------------
+// Test 10: JT/T 808 0x0001 Terminal General Response Parsing
+// -------------------------------------------------------------
+runTest('JT808: Parse 0x0001 Terminal General Response (0x9101 ACK)', () => {
+    const bodyBuf = Buffer.alloc(5);
+    bodyBuf.writeUInt16BE(42, 0);     // replySerialNo = 42
+    bodyBuf.writeUInt16BE(0x9101, 2); // replyMessageId = 0x9101
+    bodyBuf.writeUInt8(0, 4);         // result = 0 (Success)
+
+    const encoder = binaryEncoder;
+    const packet = encoder._buildPacket(0x0001, "872312858278", bodyBuf);
+    const parsed = binaryParser.parse(packet);
+
+    assert(parsed && parsed.decoded);
+    assert.strictEqual(parsed.decoded.type, 'general_response');
+    assert.strictEqual(parsed.decoded.replySerialNo, 42);
+    assert.strictEqual(parsed.decoded.replyMessageId, 0x9101);
+    assert.strictEqual(parsed.decoded.result, 0);
+    assert.strictEqual(parsed.decoded.resultText, 'Success/Confirm');
+});
+
+// -------------------------------------------------------------
+// Test 11: JT/T 1078 SPS/PPS Caching and IDR Preservation
+// -------------------------------------------------------------
+runTest('JT1078: MediaHandler SPS/PPS Caching across packets', () => {
+    const mediaHandler = require('../src/protocols/jtt1078/media-handler');
+    const spsData = Buffer.from([0, 0, 0, 1, 0x67, 0x42, 0x00, 0x1f]); // SPS NAL (type 7)
+    const ppsData = Buffer.from([0, 0, 0, 1, 0x68, 0xce, 0x38, 0x80]); // PPS NAL (type 8)
+    const idrData = Buffer.from([0, 0, 0, 1, 0x65, 0x88, 0x84]);       // IDR NAL (type 5)
+
+    mediaHandler.spsCache.set('872312858278_1', spsData);
+    mediaHandler.ppsCache.set('872312858278_1', ppsData);
+
+    assert.strictEqual(mediaHandler.spsCache.get('872312858278_1'), spsData);
+    assert.strictEqual(mediaHandler.ppsCache.get('872312858278_1'), ppsData);
+
+    const stats = mediaHandler.getStreamStats('872312858278', 1);
+    assert.strictEqual(stats.hasSps, true);
+    assert.strictEqual(stats.hasPps, true);
+});
+
+// -------------------------------------------------------------
+// Test 12: JT/T 808 Reconnect and Stale Socket Isolation
+// -------------------------------------------------------------
+runTest('JT808: Socket replacement and unregister isolation', () => {
+    const activeMap = new Map();
+    function register(phone, sock) {
+        const existing = activeMap.get(phone);
+        if (existing && existing !== sock) existing.destroyed = true;
+        sock.phone = phone;
+        activeMap.set(phone, sock);
+    }
+    function unregister(sock) {
+        if (sock.phone && activeMap.get(sock.phone) === sock) {
+            activeMap.delete(sock.phone);
+        }
+    }
+
+    const sockOld = { id: 1, destroyed: false };
+    const sockNew = { id: 2, destroyed: false };
+
+    register('872312858278', sockOld);
+    assert.strictEqual(activeMap.get('872312858278'), sockOld);
+
+    // Device reconnects before old socket ends
+    register('872312858278', sockNew);
+    assert.strictEqual(activeMap.get('872312858278'), sockNew);
+    assert.strictEqual(sockOld.destroyed, true);
+
+    // Old socket fires end/close event later
+    unregister(sockOld);
+    // Verification: active socket mapping MUST NOT be deleted by old socket!
+    assert.strictEqual(activeMap.get('872312858278'), sockNew);
+
+    // When current socket closes, it is cleanly deleted
+    unregister(sockNew);
+    assert.strictEqual(activeMap.get('872312858278'), undefined);
+});
+
+
 console.log('\n============================================================');
 console.log(`TEST RUN SUMMARY: ${passedTests} / ${totalTests} PASSED`);
 console.log('============================================================\n');

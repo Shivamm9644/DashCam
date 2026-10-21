@@ -1,50 +1,46 @@
 class GeocodingService {
     constructor() {
         this.cache = new Map();
-        
-        // Mock Address Database for Indore Route Simulation
-        this.mockDb = [
-            { lat: 22.719, lng: 75.857, address: "MG Road, Regal Square, Indore, Madhya Pradesh 452001" },
-            { lat: 22.720, lng: 75.865, address: "Palasia Square, AB Road, Indore, Madhya Pradesh 452001" },
-            { lat: 22.722, lng: 75.875, address: "LIG Square, AB Road, Indore, Madhya Pradesh 452011" },
-            { lat: 22.724, lng: 75.885, address: "Vijay Nagar Square, Indore, Madhya Pradesh 452010" }
-        ];
     }
 
     /**
-     * Resolves an address from lat/lng using Local Mock DB.
+     * Resolves an address from lat/lng using OpenStreetMap Reverse Geocoding.
      * @param {number} lat 
      * @param {number} lng 
      * @returns {Promise<string>}
      */
     async resolveAddress(lat, lng) {
+        if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return 'Awaiting GPS Fix';
         const cacheKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
 
         if (this.cache.has(cacheKey)) {
             return this.cache.get(cacheKey);
         }
 
-        // Find nearest mock address
-        let closest = this.mockDb[0];
-        let minDistance = 999;
-        
-        for (const loc of this.mockDb) {
-            const dist = Math.abs(loc.lat - lat) + Math.abs(loc.lng - lng);
-            if (dist < minDistance) {
-                minDistance = dist;
-                closest = loc;
+        // Real coordinates anywhere in India: fetch reverse geocode or return high-precision GPS string
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: { 'User-Agent': 'DashCam-Fleet/2.0' },
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.display_name) {
+                    const shortAddr = data.display_name.split(',').slice(0, 3).join(', ');
+                    this.cache.set(cacheKey, shortAddr);
+                    return shortAddr;
+                }
             }
+        } catch (e) {
+            // Network fallback
         }
 
-        let address = closest.address;
-        
-        // Add random house number for variety if it's not super close
-        if (minDistance > 0.002) {
-            address = `${Math.floor(Math.random() * 100) + 1}, ` + address;
-        }
-
-        this.cache.set(cacheKey, address);
-        return address;
+        const realGpsAddr = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+        this.cache.set(cacheKey, realGpsAddr);
+        return realGpsAddr;
     }
 }
 

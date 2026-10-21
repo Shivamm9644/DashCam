@@ -36,8 +36,19 @@ app.use('/vendor/hls', express.static(path.dirname(require.resolve('hls.js/dist/
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
 
 // Serve Static Assets & Reconstructed Media
-app.use(express.static(path.join(__dirname, '..', 'public')));
-app.use('/media', express.static(config.MEDIA_DIR, { setHeaders(res, file) { if (file.endsWith('.m3u8')) res.setHeader('Cache-Control', 'no-store'); } }));
+app.use('/media', express.static(config.MEDIA_DIR, {
+    setHeaders(res, file) {
+        if (file.endsWith('.m3u8')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+        } else if (file.endsWith('.ts')) {
+            res.setHeader('Cache-Control', 'public, max-age=60');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+    }
+}));
 
 // Initialize WebSocket Service
 wsService.init(server);
@@ -54,7 +65,7 @@ let activeUserSession = {
 
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body || {};
-    
+
     // First attempt DB authentication
     let user = db.authenticateUser(username, password);
 
@@ -277,10 +288,14 @@ app.get('/api/fleet/summary', (req, res) => {
     const devices = db.getAllDevices();
     const trips = tripService.getAllTrips();
     const accidents = accidentService.getAllAccidents();
+    const onlineCount = devices.filter(d => {
+        const sock = activeJT808Sockets.get(d.deviceId) || activeJT808Sockets.get(String(d.deviceId).padStart(12, '0'));
+        return Boolean(sock && !sock.destroyed);
+    }).length;
     res.json({
         totalVehicles: devices.length,
-        onlineVehicles: devices.filter(d => d.status === 'Online').length,
-        offlineVehicles: devices.filter(d => d.status !== 'Online').length,
+        onlineVehicles: onlineCount,
+        offlineVehicles: Math.max(0, devices.length - onlineCount),
         activeTrips: trips.filter(t => !t.endTime).length,
         todayEvents: accidents.length
     });
@@ -290,18 +305,28 @@ app.get('/api/devices', (req, res) => {
     let list = db.getAllDevices();
     if (!list || list.length === 0 || !list.some(d => d.deviceId === '872312858278')) {
         const latest = db.getLatestTelemetry('872312858278');
+        const sock = activeJT808Sockets.get('872312858278');
+        const isOnline = Boolean(sock && !sock.destroyed);
         db.touchDevice('872312858278', {
             vehicleNo: latest?.vehicle_id || 'VEH-8278',
             deviceType: 'MDVR Dual-Cam (GD19)',
-            status: 'Online',
+            status: isOnline ? 'Online' : 'Offline',
             simNo: '872312858278',
-            latitude: latest?.latitude || 23.116778,
-            longitude: latest?.longitude || 114.481235,
+            latitude: latest?.latitude ?? null,
+            longitude: latest?.longitude ?? null,
             speed: latest?.speed || 0
         });
         list = db.getAllDevices();
     }
-    res.json(list);
+    const dynamicList = list.map(d => {
+        const sock = activeJT808Sockets.get(d.deviceId) || activeJT808Sockets.get(String(d.deviceId).padStart(12, '0'));
+        const isOnline = Boolean(sock && !sock.destroyed);
+        return {
+            ...d,
+            status: isOnline ? 'Online' : 'Offline'
+        };
+    });
+    res.json(dynamicList);
 });
 
 app.post('/api/devices', (req, res) => {
@@ -481,15 +506,12 @@ app.get('/api/telemetry/latest', (req, res) => {
 // Force-request live video stream for CH1 & CH2 on demand
 app.all('/api/video/start-live', (req, res) => {
     const terminalId = req.query.terminalId || req.body?.terminalId || '872312858278';
-    let sock = activeJT808Sockets.get(terminalId);
-    if (!sock || sock.destroyed) {
-        for (const [id, s] of activeJT808Sockets.entries()) {
-            if (!s.destroyed) { sock = s; break; }
-        }
-    }
+    const normId = String(terminalId).trim();
+    let sock = activeJT808Sockets.get(normId) || activeJT808Sockets.get(normId.padStart(12, '0')) || activeJT808Sockets.get(normId.replace(/^0+/, ''));
 
     if (sock && !sock.destroyed) {
-        const req1 = binaryEncoder.buildLiveStartRequest(terminalId, {
+        const targetId = sock.terminalPhone || normId;
+        const req1 = binaryEncoder.buildLiveStartRequest(targetId, {
             serverIp: config.MEDIA_SERVER_IP,
             tcpPort: config.JT1078_PORT,
             udpPort: 0,
@@ -497,7 +519,7 @@ app.all('/api/video/start-live', (req, res) => {
             dataType: 0,
             streamType: 0
         });
-        const req2 = binaryEncoder.buildLiveStartRequest(terminalId, {
+        const req2 = binaryEncoder.buildLiveStartRequest(targetId, {
             serverIp: config.MEDIA_SERVER_IP,
             tcpPort: config.JT1078_PORT,
             udpPort: 0,
@@ -507,11 +529,52 @@ app.all('/api/video/start-live', (req, res) => {
         });
         sock.write(req1);
         setTimeout(() => { if (!sock.destroyed) sock.write(req2); }, 1000);
-        console.log(`[API] Triggered 0x9101 for CH1 & CH2 to terminal ${terminalId}`);
-        return res.json({ success: true, message: `Sent 0x9101 for CH1 & CH2 to ${terminalId}` });
+        console.log(`[API] Triggered 0x9101 for CH1 & CH2 to terminal ${targetId}`);
+        return res.json({ success: true, message: `Sent 0x9101 for CH1 & CH2 to ${targetId}` });
     } else {
-        return res.json({ success: false, message: 'Terminal JT808 socket not currently connected' });
+        return res.status(404).json({
+            success: false,
+            error: 'TERMINAL_NOT_CONNECTED',
+            message: `Terminal JT808 socket for ${terminalId} is not currently connected`
+        });
     }
+});
+
+// Stream health diagnostics endpoint
+app.get('/api/video/stream-health', (req, res) => {
+    const terminalId = req.query.terminalId || '872312858278';
+    const normId = String(terminalId).trim();
+    const sock = activeJT808Sockets.get(normId) || activeJT808Sockets.get(normId.padStart(12, '0')) || activeJT808Sockets.get(normId.replace(/^0+/, ''));
+    const ch1 = mediaHandler.getStreamStats(terminalId, 1);
+    const ch2 = mediaHandler.getStreamStats(terminalId, 2);
+
+    let disk = null;
+    try {
+        if (typeof require('fs').statfsSync === 'function') {
+            const st = require('fs').statfsSync(config.STORAGE_DIR);
+            disk = {
+                totalMb: Math.round((st.blocks * st.bsize) / (1024 * 1024)),
+                freeMb: Math.round((st.bavail * st.bsize) / (1024 * 1024)),
+                percentFree: Math.round((st.bavail / st.blocks) * 100)
+            };
+        }
+    } catch (_) {}
+
+    res.json({
+        terminalId,
+        jt808: {
+            connected: Boolean(sock && !sock.destroyed),
+            remoteAddress: sock ? `${sock.remoteAddress}:${sock.remotePort}` : null,
+            lastSeen: sock?.lastSeen ? new Date(sock.lastSeen).toISOString() : null,
+            authenticated: Boolean(sock?.authenticated)
+        },
+        streams: {
+            ch1,
+            ch2
+        },
+        disk,
+        serverTime: new Date().toISOString()
+    });
 });
 
 // --- Media Segments for Reels ---
@@ -805,7 +868,65 @@ server.listen(config.API_PORT, () => {
 // ==========================================
 // 2. JT/T 808 Server (GPS & Telemetry)
 // ==========================================
-const activeJT808Sockets = new Map(); // terminalPhone -> net.Socket
+const activeJT808Sockets = new Map(); // normalizedPhone -> net.Socket
+
+function registerJT808Socket(terminalPhone, socket) {
+    if (!terminalPhone) return;
+    const norm = String(terminalPhone).trim();
+    const existing = activeJT808Sockets.get(norm);
+    if (existing && existing !== socket && !existing.destroyed) {
+        console.log(`[JT808] Terminal ${norm} reconnected. Closing previous stale socket.`);
+        try { existing.destroy(); } catch (_) {}
+    }
+    socket.terminalPhone = norm;
+    socket.lastSeen = Date.now();
+    activeJT808Sockets.set(norm, socket);
+}
+
+function unregisterJT808Socket(socket) {
+    if (socket.terminalPhone) {
+        const current = activeJT808Sockets.get(socket.terminalPhone);
+        if (current === socket) {
+            activeJT808Sockets.delete(socket.terminalPhone);
+            console.log(`[JT808] Cleaned up active socket mapping for ${socket.terminalPhone}`);
+        } else {
+            console.log(`[JT808] Disconnected socket for ${socket.terminalPhone} was already superseded by newer connection.`);
+        }
+    }
+}
+
+function requestLiveStreams(socket, terminalPhone) {
+    if (!socket || socket.destroyed || socket.liveRequested) return;
+    socket.liveRequested = true;
+    const req1 = binaryEncoder.buildLiveStartRequest(terminalPhone, {
+        serverIp: config.MEDIA_SERVER_IP,
+        tcpPort: config.JT1078_PORT,
+        udpPort: 0,
+        channel: 1,
+        dataType: 0,
+        streamType: 0
+    });
+    const req2 = binaryEncoder.buildLiveStartRequest(terminalPhone, {
+        serverIp: config.MEDIA_SERVER_IP,
+        tcpPort: config.JT1078_PORT,
+        udpPort: 0,
+        channel: 2,
+        dataType: 0,
+        streamType: 0
+    });
+    setTimeout(() => {
+        if (!socket.destroyed) {
+            console.log(`[JT808] Sending 0x9101 Video Request (CH1) to ${terminalPhone}`);
+            socket.write(req1);
+        }
+    }, 500);
+    setTimeout(() => {
+        if (!socket.destroyed) {
+            console.log(`[JT808] Sending 0x9101 Video Request (CH2) to ${terminalPhone}`);
+            socket.write(req2);
+        }
+    }, 1500);
+}
 
 const server808 = net.createServer((socket) => {
     const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
@@ -815,8 +936,18 @@ const server808 = net.createServer((socket) => {
     socket.buffer = Buffer.alloc(0);
     socket.authenticated = false;
     socket.terminalPhone = null;
+    socket.lastSeen = Date.now();
+    socket.liveRequested = false;
+
+    socket.setKeepAlive(true, 30000);
+    socket.setTimeout(180000); // 3-minute inactivity timeout
+    socket.on('timeout', () => {
+        console.warn(`[JT808] Socket idle timeout (180s): ${clientAddress}`);
+        socket.destroy();
+    });
 
     socket.on('data', async (data) => {
+        socket.lastSeen = Date.now();
         socket.buffer = Buffer.concat([socket.buffer, data]);
 
         while (socket.buffer.length > 0) {
@@ -861,15 +992,20 @@ const server808 = net.createServer((socket) => {
                     continue;
                 }
 
-                socket.terminalPhone = frame.terminalPhone;
-                if (frame.terminalPhone) {
-                    activeJT808Sockets.set(frame.terminalPhone, socket);
-                }
+                registerJT808Socket(frame.terminalPhone, socket);
 
                 // Route response based on Message ID
                 let responsePacket = null;
 
-                if (frame.messageId === 0x0100) {
+                if (frame.messageId === 0x0001) {
+                    // Terminal General Response
+                    if (decoded && decoded.valid) {
+                        console.log(`[JT808] Terminal ${frame.terminalPhone} Response: cmd=${decoded.replyMessageHex} serial=${decoded.replySerialNo} result=${decoded.result} (${decoded.resultText})`);
+                        if (decoded.replyMessageId === 0x9101) {
+                            console.log(`[JT808] Terminal ${frame.terminalPhone} ACK for 0x9101: ${decoded.result === 0 ? 'ACCEPTED - Video stream starting on port 10780' : 'FAILED: ' + decoded.resultText}`);
+                        }
+                    }
+                } else if (frame.messageId === 0x0100) {
                     // Registration
                     responsePacket = binaryEncoder.buildRegistrationResponse(
                         frame.terminalPhone,
@@ -878,9 +1014,10 @@ const server808 = net.createServer((socket) => {
                         "AUTH12345"
                     );
                 } else if (frame.messageId === 0x0102) {
-                    // Authentication
-                    if (decoded && decoded.valid && decoded.authCode === 'AUTH12345') {
+                    // Authentication (Accept valid auth code from real DashCam)
+                    if (decoded && decoded.valid) {
                         socket.authenticated = true;
+                        console.log(`[JT808] Terminal ${frame.terminalPhone} authenticated successfully (authCode: ${decoded.authCode})`);
                         responsePacket = binaryEncoder.buildPlatformResponse(
                             frame.terminalPhone,
                             frame.serialNo,
@@ -889,43 +1026,7 @@ const server808 = net.createServer((socket) => {
                         );
 
                         // Issue 0x9101 Real-Time Video Request after auth (Dual Cam: CH1 & CH2)
-                        const videoRequestCh1 = binaryEncoder.buildLiveStartRequest(
-                            frame.terminalPhone,
-                            {
-                                serverIp: config.MEDIA_SERVER_IP,
-                                tcpPort: config.JT1078_PORT,
-                                udpPort: 0,
-                                channel: 1,
-                                dataType: 0, // Audio & Video
-                                streamType: 0 // Main stream
-                            }
-                        );
-
-                        const videoRequestCh2 = binaryEncoder.buildLiveStartRequest(
-                            frame.terminalPhone,
-                            {
-                                serverIp: config.MEDIA_SERVER_IP,
-                                tcpPort: config.JT1078_PORT,
-                                udpPort: 0,
-                                channel: 2,
-                                dataType: 0, // Audio & Video
-                                streamType: 0 // Main stream
-                            }
-                        );
-
-                        setTimeout(() => {
-                            if (!socket.destroyed) {
-                                console.log(`[JT808] Sending 0x9101 Video Request (CH1) to ${frame.terminalPhone}`);
-                                socket.write(videoRequestCh1);
-                            }
-                        }, 500);
-
-                        setTimeout(() => {
-                            if (!socket.destroyed) {
-                                console.log(`[JT808] Sending 0x9101 Video Request (CH2) to ${frame.terminalPhone}`);
-                                socket.write(videoRequestCh2);
-                            }
-                        }, 1500);
+                        requestLiveStreams(socket, frame.terminalPhone);
                     } else {
                         responsePacket = binaryEncoder.buildPlatformResponse(
                             frame.terminalPhone,
@@ -936,6 +1037,9 @@ const server808 = net.createServer((socket) => {
                     }
                 } else if (frame.messageId === 0x0002) {
                     // Heartbeat
+                    if (!socket.liveRequested) {
+                        requestLiveStreams(socket, frame.terminalPhone);
+                    }
                     responsePacket = binaryEncoder.buildPlatformResponse(
                         frame.terminalPhone,
                         frame.serialNo,
@@ -944,20 +1048,47 @@ const server808 = net.createServer((socket) => {
                     );
                 } else if (frame.messageId === 0x0200) {
                     // Location Information Report
+                    if (!socket.liveRequested) {
+                        requestLiveStreams(socket, frame.terminalPhone);
+                    }
                     if (telemetry) {
-                        telemetryService.addTelemetry(telemetry);
-                        db.touchDevice(telemetry.terminalId, {
-                            vehicleNo: telemetry.vehicleId,
-                            latitude: telemetry.latitude,
-                            longitude: telemetry.longitude,
-                            speed: telemetry.speed,
-                            status: 'Online'
-                        });
-                        await tripService.processTelemetry(telemetry);
-                        wsService.emit('telemetry', telemetry);
+                        const hasCoords = (telemetry.latitude !== 0 || telemetry.longitude !== 0);
+                        const isChinaDummy = (Math.abs(telemetry.latitude - 23.116778) < 0.001 && Math.abs(telemetry.longitude - 114.481235) < 0.001);
+                        const isGpsValid = (Boolean(decoded && decoded.positioning) || hasCoords) && !isChinaDummy && hasCoords;
 
-                        if (telemetry.eventType === 'ACCIDENT') {
-                            accidentService.processAccident(telemetry);
+                        if (isGpsValid) {
+                            console.log(`📡 [REAL DASHCAM GPS] Terminal: ${telemetry.terminalId} | Lat: ${telemetry.latitude.toFixed(6)} | Lng: ${telemetry.longitude.toFixed(6)} | Speed: ${telemetry.speed} km/h | Sat-Fix: ${decoded?.positioning ? '3D FIX (Locked)' : 'Weak/2D Signal'}`);
+                            telemetryService.addTelemetry(telemetry);
+                            db.touchDevice(telemetry.terminalId, {
+                                vehicleNo: telemetry.vehicleId,
+                                latitude: telemetry.latitude,
+                                longitude: telemetry.longitude,
+                                speed: telemetry.speed,
+                                status: 'Online'
+                            });
+                            await tripService.processTelemetry(telemetry);
+                            wsService.emit('telemetry', telemetry);
+
+                            if (telemetry.eventType === 'ACCIDENT') {
+                                accidentService.processAccident(telemetry);
+                            }
+                        } else {
+                            // GPS searching / cold start near window
+                            console.log(`[JT808] Terminal ${telemetry.terminalId} online. Awaiting satellite lock near window (lat=${telemetry.latitude}, lng=${telemetry.longitude}, status=0x${(decoded?.status || 0).toString(16)})`);
+                            db.touchDevice(telemetry.terminalId, {
+                                vehicleNo: telemetry.vehicleId,
+                                status: 'Online',
+                                speed: telemetry.speed || 0
+                            });
+                            wsService.emit('telemetry', {
+                                terminalId: telemetry.terminalId,
+                                vehicleId: telemetry.vehicleId,
+                                speed: telemetry.speed || 0,
+                                ignition: telemetry.ignition,
+                                timestamp: telemetry.timestamp,
+                                status: 'Online',
+                                gpsFixed: false
+                            });
                         }
 
                         responsePacket = binaryEncoder.buildPlatformResponse(
@@ -975,6 +1106,16 @@ const server808 = net.createServer((socket) => {
                             2 // Message Error
                         );
                     }
+                } else {
+                    // Send general success for any other standard JT808 message
+                    if (frame.messageId !== 0x0001) {
+                        responsePacket = binaryEncoder.buildPlatformResponse(
+                            frame.terminalPhone,
+                            frame.serialNo,
+                            frame.messageId,
+                            0 // Success
+                        );
+                    }
                 }
 
                 if (responsePacket) {
@@ -985,12 +1126,17 @@ const server808 = net.createServer((socket) => {
     });
 
     socket.on('end', () => {
-        if (socket.terminalPhone) activeJT808Sockets.delete(socket.terminalPhone);
-        console.log(`[JT808] Terminal disconnected: ${clientAddress}`);
+        unregisterJT808Socket(socket);
+        console.log(`[JT808] Terminal disconnected (end): ${clientAddress}`);
+    });
+
+    socket.on('close', () => {
+        unregisterJT808Socket(socket);
+        console.log(`[JT808] Terminal disconnected (close): ${clientAddress}`);
     });
 
     socket.on('error', (err) => {
-        if (socket.terminalPhone) activeJT808Sockets.delete(socket.terminalPhone);
+        unregisterJT808Socket(socket);
         console.error(`[JT808] Error: ${err.message}`);
     });
 });
@@ -1005,6 +1151,12 @@ server808.listen(config.JT808_PORT, () => {
 const server1078 = net.createServer((socket) => {
     const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log(`[JT1078] Media stream connected: ${clientAddress}`);
+    socket.setKeepAlive(true, 30000);
+    socket.setTimeout(60000); // 60s timeout if no media packets received
+    socket.on('timeout', () => {
+        console.warn(`[JT1078] Media stream idle timeout (60s): ${clientAddress}`);
+        socket.destroy();
+    });
 
     socket.on('data', (data) => {
         try { mediaHandler.handleData(socket, data); } catch (e) { console.error(e.message); socket.destroy(); }

@@ -28,7 +28,9 @@
                 <p><strong>Impact G-Force:</strong> <span id="alertGForce">N/A</span> G</p>
             </div>
             <div class="alert-actions">
-                <button id="btnSilenceAlarm" class="btn-ctrl" style="background:#eab308;color:#000;font-weight:bold;padding:8px 16px;border-radius:6px;border:none;cursor:pointer;">🔕 Silence Alarm</button>
+                <button id="btnSilenceAlarm" class="btn-ctrl"
+                    style="background:#eab308;color:#000;font-weight:bold;padding:8px 16px;border-radius:6px;border:none;cursor:pointer;">🔕
+                    Silence Alarm</button>
                 <button id="btnAckAlert" class="btn-primary">Acknowledge</button>
                 <button id="btnViewAccident" class="btn-danger">View Evidence</button>
             </div>
@@ -44,22 +46,36 @@
             </div>
             <div class="modal-body" style="line-height: 1.6; font-size: 14px;">
                 <p style="margin-bottom: 12px; color: var(--text-secondary);">
-                    Real physical DashCam device, GPS terminal ya Smartphone ko live connect karne ke liye network parameters:
+                    Real physical DashCam device, GPS terminal ya Smartphone ko live connect karne ke liye network
+                    parameters:
                 </p>
-                <div style="background: rgba(0,0,0,0.5); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 8px;">
-                    <div><strong>🌐 Public / Cloud Server IP (4G SIM / Road):</strong> <span style="color: #38bdf8; font-family: monospace; font-size: 16px; font-weight: bold;" id="modalServerIp">100.31.90.51</span></div>
-                    <div><strong>🏠 Local Wi-Fi / LAN IP (Office testing):</strong> <span style="color: #94a3b8; font-family: monospace; font-size: 14px;" id="modalLocalIp">192.168.1.58</span></div>
-                    <div><strong>JT/T 808 TCP Port (GPS, Telemetry & Alarms):</strong> <span style="color: #4ade80; font-family: monospace; font-weight: bold;">7800</span></div>
-                    <div><strong>JT/T 1078 TCP Port (Live Video & Audio Voice Stream):</strong> <span style="color: #f43f5e; font-family: monospace; font-weight: bold;">10780</span></div>
-                    <div><strong>Web Dashboard URL:</strong> <span style="color: #a78bfa; font-family: monospace;" id="modalWebUrl">http://100.31.90.51:3000</span></div>
+                <div
+                    style="background: rgba(0,0,0,0.5); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 8px;">
+                    <div><strong>🌐 Public / Cloud Server IP (4G SIM / Road):</strong> <span
+                            style="color: #38bdf8; font-family: monospace; font-size: 16px; font-weight: bold;"
+                            id="modalServerIp">100.31.90.51</span></div>
+                    <div><strong>🏠 Local Wi-Fi / LAN IP (Office testing):</strong> <span
+                            style="color: #94a3b8; font-family: monospace; font-size: 14px;"
+                            id="modalLocalIp">192.168.1.58</span></div>
+                    <div><strong>JT/T 808 TCP Port (GPS, Telemetry & Alarms):</strong> <span
+                            style="color: #4ade80; font-family: monospace; font-weight: bold;">7800</span></div>
+                    <div><strong>JT/T 1078 TCP Port (Live Video & Audio Voice Stream):</strong> <span
+                            style="color: #f43f5e; font-family: monospace; font-weight: bold;">10780</span></div>
+                    <div><strong>Web Dashboard URL:</strong> <span style="color: #a78bfa; font-family: monospace;"
+                            id="modalWebUrl">http://100.31.90.51:3000</span></div>
                 </div>
-                <h4 style="margin-bottom: 6px; color: #f1f5f9;">📱 Phone / Real Camera se Stream karne ke Endpoints:</h4>
-                <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #cbd5e1; margin-bottom: 12px;">
+                <h4 style="margin-bottom: 6px; color: #f1f5f9;">📱 Phone / Real Camera se Stream karne ke Endpoints:
+                </h4>
+                <div
+                    style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #cbd5e1; margin-bottom: 12px;">
                     <div>POST /api/video/upload-frame?terminalId=013812345678&speed=60&lat=22.75&lng=75.89</div>
-                    <div style="margin-top: 4px;">POST /api/video/upload-clip?terminalId=013812345678 (MP4 video file)</div>
+                    <div style="margin-top: 4px;">POST /api/video/upload-clip?terminalId=013812345678 (MP4 video file)
+                    </div>
                 </div>
                 <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                    💡 Real DashCam ya 4G SIM tracker mein Server IP = <code>100.31.90.51</code> (ya same Wi-Fi par <code>192.168.1.58</code>) aur Port = <code>7800</code> set karein. Connect hote hi fleet monitor mein automatically live dikhega!
+                    💡 Real DashCam ya 4G SIM tracker mein Server IP = <code>100.31.90.51</code> (ya same Wi-Fi par
+                    <code>192.168.1.58</code>) aur Port = <code>7800</code> set karein. Connect hote hi fleet monitor
+                    mein automatically live dikhega!
                 </p>
             </div>
         </div>
@@ -71,7 +87,8 @@
             <div class="login-logo">
                 <span class="icon">📹</span>
                 <h2>INURUM DASHCAM</h2>
-                <p style="color: var(--text-secondary); font-size: 13px; margin-top: 6px;">Enterprise Fleet & Video Safety Platform</p>
+                <p style="color: var(--text-secondary); font-size: 13px; margin-top: 6px;">Enterprise Fleet & Video
+                    Safety Platform</p>
             </div>
             <form id="loginForm">
                 <div class="input-group">
@@ -85,12 +102,22 @@
                 <div id="loginError" style="color: var(--danger); font-size: 12px; margin-bottom: 12px; display: none;">
                     Invalid credentials</div>
                 <button type="submit" class="btn-primary" style="width: 100%;">Sign In</button>
-                <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
-                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; font-weight: 700; margin-bottom: 8px;">Select Role to Login:</div>
+                <div
+                    style="margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
+                    <div
+                        style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; font-weight: 700; margin-bottom: 8px;">
+                        Select Role to Login:</div>
                     <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-                        <button type="button" class="btn-role-quick" onclick="setLoginCredentials('superadmin', 'password')" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #facc15; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">👑 SuperAdmin</button>
-                        <button type="button" class="btn-role-quick" onclick="setLoginCredentials('admin', 'password')" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">🛡️ Admin</button>
-                        <button type="button" class="btn-role-quick" onclick="setLoginCredentials('user', 'password')" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #4ade80; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">👤 User</button>
+                        <button type="button" class="btn-role-quick"
+                            onclick="setLoginCredentials('superadmin', 'password')"
+                            style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #facc15; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">👑
+                            SuperAdmin</button>
+                        <button type="button" class="btn-role-quick" onclick="setLoginCredentials('admin', 'password')"
+                            style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">🛡️
+                            Admin</button>
+                        <button type="button" class="btn-role-quick" onclick="setLoginCredentials('user', 'password')"
+                            style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #4ade80; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-weight: 600;">👤
+                            User</button>
                     </div>
                 </div>
             </form>
@@ -101,7 +128,8 @@
     <div id="dashboardScreen" class="app-container" style="display: none;">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
-            <div class="sidebar-header" style="height: auto; padding: 18px 20px; border-bottom: 1px solid var(--glass-border);">
+            <div class="sidebar-header"
+                style="height: auto; padding: 18px 20px; border-bottom: 1px solid var(--glass-border);">
                 <a href="#overview" class="inurum-brand" id="brandLogoLink">
                     <div class="inurum-logo-icon">📹</div>
                     <div>
@@ -115,7 +143,9 @@
             </div>
             <nav class="sidebar-nav" style="padding: 16px 12px; gap: 4px; overflow-y: auto;">
                 <!-- 01 Fleet & Monitoring -->
-                <div style="font-size: 10px; font-weight: 700; color: #64748b; padding: 8px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">01 Fleet & Monitoring</div>
+                <div
+                    style="font-size: 10px; font-weight: 700; color: #64748b; padding: 8px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">
+                    01 Fleet & Monitoring</div>
                 <a href="#overview" class="nav-item active" data-target="overview-section" id="nav-overview">
                     <span class="nav-icon">📊</span> Fleet Overview
                 </a>
@@ -127,7 +157,9 @@
                 </a>
 
                 <!-- 02 Video & Safety -->
-                <div style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">02 Video & Safety</div>
+                <div
+                    style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">
+                    02 Video & Safety</div>
                 <a href="#recordings" class="nav-item" data-target="recordings-section" id="nav-recordings">
                     <span class="nav-icon">🎞️</span> Video Recordings
                 </a>
@@ -139,8 +171,11 @@
                 </a>
 
                 <!-- 03 Incident & Fleet Management -->
-                <div style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">03 Incident & Fleet</div>
-                <a href="#incident-detail" class="nav-item" data-target="incident-detail-section" id="nav-incident-detail">
+                <div
+                    style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">
+                    03 Incident & Fleet</div>
+                <a href="#incident-detail" class="nav-item" data-target="incident-detail-section"
+                    id="nav-incident-detail">
                     <span class="nav-icon">🚨</span> Incident Detail
                 </a>
                 <a href="#device-management" class="nav-item" data-target="devices-section" id="nav-devices">
@@ -151,7 +186,9 @@
                 </a>
 
                 <!-- 04 Reports, Geofence & Settings -->
-                <div style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">04 Reports & Settings</div>
+                <div
+                    style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">
+                    04 Reports & Settings</div>
                 <a href="#reports" class="nav-item" data-target="reports-section" id="nav-reports">
                     <span class="nav-icon">📈</span> Reports & Analytics
                 </a>
@@ -163,7 +200,9 @@
                 </a>
 
                 <!-- Core Utilities -->
-                <div style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">Utilities & Live Sync</div>
+                <div
+                    style="font-size: 10px; font-weight: 700; color: #64748b; padding: 12px 12px 4px; text-transform: uppercase; letter-spacing: 0.8px;">
+                    Utilities & Live Sync</div>
                 <a href="#reels" class="nav-item" data-target="reels-section" id="nav-reels">
                     <span class="nav-icon">📱</span> Reels & Clips
                 </a>
@@ -173,18 +212,21 @@
             </nav>
             <div class="sidebar-footer">
                 <button id="btnTriggerAccident" class="btn-danger"
-                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; background: #ef4444; color: white;">🚨 Simulate Incident</button>
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; background: #ef4444; color: white;">🚨
+                    Simulate Incident</button>
                 <button id="logoutBtn" class="btn-logout">Logout</button>
             </div>
         </aside>
 
         <!-- Main Content Wrapper -->
         <div class="main-wrapper">
-            <header class="top-header" style="flex-wrap: wrap; gap: 12px; height: auto; min-height: 70px; padding: 12px 24px;">
+            <header class="top-header"
+                style="flex-wrap: wrap; gap: 12px; height: auto; min-height: 70px; padding: 12px 24px;">
                 <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                     <!-- SaaS Workspace / Organization Switcher -->
                     <div class="saas-tenant-dropdown" id="saasTenantDropdown">
-                        <div class="saas-tenant-btn" id="saasTenantBtn" title="Switch Organization / Fleet Depot Workspace">
+                        <div class="saas-tenant-btn" id="saasTenantBtn"
+                            title="Switch Organization / Fleet Depot Workspace">
                             <span class="saas-org-icon">🏢</span>
                             <div class="saas-org-info">
                                 <span class="saas-org-name" id="currentOrgName">Inurum Logistics (Global HQ)</span>
@@ -204,7 +246,8 @@
 
                 <div class="header-actions" style="flex-wrap: wrap; gap: 10px;">
                     <!-- Self-Hosted Direct Device Badge -->
-                    <div class="saas-plan-badge" id="saasPlanBadge" title="Server License: Self-Hosted Private Gateway" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981;">
+                    <div class="saas-plan-badge" id="saasPlanBadge" title="Server License: Self-Hosted Private Gateway"
+                        style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981;">
                         <span>⚡</span>
                         <span id="saasPlanName">Direct Device (Self-Hosted)</span>
                     </div>
@@ -213,21 +256,28 @@
                     <div class="saas-quota-chip" id="saasQuotaChip" title="Local Video Storage">
                         <span class="quota-icon">💾</span>
                         <div class="quota-bar-wrapper">
-                            <div class="quota-label"><span id="quotaStorageUsed">8.1 GB</span> / <span id="quotaStorageLimit">Local Storage</span></div>
-                            <div class="quota-progress-bar"><div class="quota-fill" id="quotaStorageFill" style="width: 100%; background: #10b981;"></div></div>
+                            <div class="quota-label"><span id="quotaStorageUsed">8.1 GB</span> / <span
+                                    id="quotaStorageLimit">Local Storage</span></div>
+                            <div class="quota-progress-bar">
+                                <div class="quota-fill" id="quotaStorageFill" style="width: 100%; background: #10b981;">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Stream Capacity Badge -->
                     <div class="saas-seats-badge" id="saasSeatsBadge" title="Concurrent DashCam Streams">
                         <span>📹</span>
-                        <span><strong id="activeStreamsCount">1</strong> Active Streams (<span id="maxStreamsLimit" style="color: #38bdf8;">Unlimited</span>)</span>
+                        <span><strong id="activeStreamsCount">1</strong> Active Streams (<span id="maxStreamsLimit"
+                                style="color: #38bdf8;">Unlimited</span>)</span>
                     </div>
 
                     <div id="simulatedBadgeHeader" class="badge-simulated" style="display: none;">
                         <span>⚠️ SIMULATED DATA</span>
                     </div>
-                    <div class="status-badge" id="btnShowIpGuide" style="cursor: pointer; background: rgba(6, 182, 212, 0.15); border: 1px solid #06b6d4;" title="Click to view real DashCam IP and port details">
+                    <div class="status-badge" id="btnShowIpGuide"
+                        style="cursor: pointer; background: rgba(6, 182, 212, 0.15); border: 1px solid #06b6d4;"
+                        title="Click to view real DashCam IP and port details">
                         <span style="color: #38bdf8;">📡 IP: <strong id="headerServerIp">100.31.90.51</strong></span>
                     </div>
                     <div class="status-badge">
@@ -235,10 +285,15 @@
                         <span>Online</span>
                     </div>
                     <div class="user-profile" id="headerUserProfile" title="Session Role Details">
-                        <div class="avatar" id="headerUserAvatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">S</div>
+                        <div class="avatar" id="headerUserAvatar"
+                            style="background: linear-gradient(135deg, #f59e0b, #ef4444);">S</div>
                         <div style="display: flex; flex-direction: column; text-align: left;">
-                            <span id="headerUserName" style="font-size: 13px; font-weight: 700; color: #f1f5f9; line-height: 1.2;">System SuperAdmin</span>
-                            <span id="headerUserRoleBadge" class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 10px; padding: 1px 6px; border-radius: 4px; width: fit-content; margin-top: 2px;">👑 Super Admin</span>
+                            <span id="headerUserName"
+                                style="font-size: 13px; font-weight: 700; color: #f1f5f9; line-height: 1.2;">System
+                                SuperAdmin</span>
+                            <span id="headerUserRoleBadge" class="badge"
+                                style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 10px; padding: 1px 6px; border-radius: 4px; width: fit-content; margin-top: 2px;">👑
+                                Super Admin</span>
                         </div>
                     </div>
                 </div>
@@ -307,17 +362,27 @@
                             </div>
                             <div class="map-floating-popup-loc" id="popupVehicleLoc">Waiting for GPS Signal...</div>
                             <div class="popup-cam-previews">
-                                <div class="popup-cam-box" onclick="switchToSection('dashboard-section')" title="Open Front Camera (CH1) Live Feed">
-                                    <div style="height: 60px; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius:6px; border:1px solid rgba(6,182,212,0.3);">
-                                        <div class="signal-dot" style="background:#06b6d4; width:8px; height:8px;"></div>
-                                        <span style="font-size:10px; font-weight:700; color:#38bdf8; font-family:'JetBrains Mono',monospace;">CH1 STREAM</span>
+                                <div class="popup-cam-box" onclick="switchToSection('dashboard-section')"
+                                    title="Open Front Camera (CH1) Live Feed">
+                                    <div
+                                        style="height: 60px; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius:6px; border:1px solid rgba(6,182,212,0.3);">
+                                        <div class="signal-dot" style="background:#06b6d4; width:8px; height:8px;">
+                                        </div>
+                                        <span
+                                            style="font-size:10px; font-weight:700; color:#38bdf8; font-family:'JetBrains Mono',monospace;">CH1
+                                            STREAM</span>
                                     </div>
                                     <span class="popup-cam-label">Front Camera (CH1)</span>
                                 </div>
-                                <div class="popup-cam-box" onclick="switchToSection('dashboard-section')" title="Open Cabin Camera (CH2) Live Feed">
-                                    <div style="height: 60px; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius:6px; border:1px solid rgba(168,85,247,0.3);">
-                                        <div class="signal-dot" style="background:#c084fc; width:8px; height:8px;"></div>
-                                        <span style="font-size:10px; font-weight:700; color:#c084fc; font-family:'JetBrains Mono',monospace;">CH2 CABIN</span>
+                                <div class="popup-cam-box" onclick="switchToSection('dashboard-section')"
+                                    title="Open Cabin Camera (CH2) Live Feed">
+                                    <div
+                                        style="height: 60px; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius:6px; border:1px solid rgba(168,85,247,0.3);">
+                                        <div class="signal-dot" style="background:#c084fc; width:8px; height:8px;">
+                                        </div>
+                                        <span
+                                            style="font-size:10px; font-weight:700; color:#c084fc; font-family:'JetBrains Mono',monospace;">CH2
+                                            CABIN</span>
                                     </div>
                                     <span class="popup-cam-label">Cabin Camera (CH2)</span>
                                 </div>
@@ -333,7 +398,8 @@
                         </div>
                         <ul class="recent-event-list" id="recentEventList">
                             <li style="padding: 32px 16px; text-align: center; color: #64748b; font-size: 13px;">
-                                No recent safety events recorded.<br>Real ADAS/crash alarms from 100.31.90.51 will appear here.
+                                No recent safety events recorded.<br>Real ADAS/crash alarms from 100.31.90.51 will
+                                appear here.
                             </li>
                         </ul>
                     </div>
@@ -355,7 +421,9 @@
                         <span class="toolbar-tag tag-acc-off" id="liveToolbarIgnition">Ignition --</span>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button id="btnToggleAudio" class="btn-ctrl" style="background: #10b981; color: white; padding: 6px 14px; font-size: 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer;">🔊 Unmute Live Audio</button>
+                        <button id="btnToggleAudio" class="btn-ctrl"
+                            style="background: #10b981; color: white; padding: 6px 14px; font-size: 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer;">🔊
+                            Unmute Live Audio</button>
                         <div class="tab-pills">
                             <button class="tab-pill active">Live View</button>
                             <button class="tab-pill">Device Info</button>
@@ -386,7 +454,8 @@
                                 <span class="cam-live-indicator" id="ch1LiveIndicator">● CONNECTING</span>
                             </div>
                             <div class="cam-hud-footer">
-                                <div><span id="hudTimestamp">Waiting GPS...</span> &bull; <span id="val-speed">0</span> km/h</div>
+                                <div><span id="hudTimestamp">Waiting GPS...</span> &bull; <span id="val-speed">0</span>
+                                    km/h</div>
                                 <div><span id="val-lat">--</span>, <span id="val-lng">--</span></div>
                             </div>
                         </div>
@@ -394,12 +463,17 @@
                         <!-- Cabin Camera CH2 -->
                         <div class="cam-feed-card" id="cabinCamCard" style="cursor: pointer; position: relative;">
                             <video id="liveVideoCabin" controls autoplay playsinline muted></video>
-                            <canvas id="cabinFrameCanvas" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:2;"></canvas>
+                            <canvas id="cabinFrameCanvas"
+                                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:2;"></canvas>
                             <div id="cabinStreamWaiting" class="stream-waiting-overlay">
-                                <div class="stream-radar-pulse" style="border-color: rgba(168,85,247,0.5); background: rgba(168,85,247,0.12);">👨‍✈️</div>
-                                <div class="stream-waiting-title" style="color: #c084fc;">Awaiting In-Cabin Stream (CH2)</div>
+                                <div class="stream-radar-pulse"
+                                    style="border-color: rgba(168,85,247,0.5); background: rgba(168,85,247,0.12);">👨‍✈️
+                                </div>
+                                <div class="stream-waiting-title" style="color: #c084fc;">Awaiting In-Cabin Stream (CH2)
+                                </div>
                                 <div class="stream-waiting-sub">TCP Port: 10780 / Mobile Frame Upload</div>
-                                <div class="stream-signal-bar" style="color: #c084fc; border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.1);">
+                                <div class="stream-signal-bar"
+                                    style="color: #c084fc; border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.1);">
                                     <div class="signal-dot" style="background: #c084fc;"></div>
                                     <span>DRIVER CABIN & AUDIO READY</span>
                                 </div>
@@ -418,7 +492,8 @@
                     <!-- Right: Mini Live Map & Gauges -->
                     <div class="telemetry-sidebar-card">
                         <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Live Location</div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: -8px;" id="liveLocationAddress">Awaiting GPS Location...</div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-top: -8px;" id="liveLocationAddress">
+                            Awaiting GPS Location...</div>
                         <div class="mini-map-box" id="liveMap"></div>
                         <div class="telemetry-gauges-grid">
                             <div class="telemetry-gauge-item">
@@ -476,8 +551,12 @@
                     </div>
                     <div class="tracking-map-box">
                         <div class="map-layer-controls">
-                            <button class="btn-sm btn-logout" style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);">Traffic: ON</button>
-                            <button class="btn-sm btn-logout" style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);">Map / Satellite</button>
+                            <button class="btn-sm btn-logout"
+                                style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);">Traffic:
+                                ON</button>
+                            <button class="btn-sm btn-logout"
+                                style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);">Map /
+                                Satellite</button>
                         </div>
                         <div id="trackingMap"></div>
                     </div>
@@ -523,16 +602,21 @@
                             <option>Parking</option>
                         </select>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 7px 18px; font-size: 13px;">🔍 Search</button>
+                    <button class="btn-primary" style="width: auto; padding: 7px 18px; font-size: 13px;">🔍
+                        Search</button>
                 </div>
 
                 <!-- Dynamic Real DashCam Recordings Grid -->
                 <div class="recordings-card-grid" id="recordingsGrid">
-                    <div class="no-recordings-box" style="grid-column: 1 / -1; padding: 48px 24px; text-align: center; background: rgba(15,23,42,0.6); border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px;">
+                    <div class="no-recordings-box"
+                        style="grid-column: 1 / -1; padding: 48px 24px; text-align: center; background: rgba(15,23,42,0.6); border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px;">
                         <div style="font-size: 36px; margin-bottom: 12px;">🎞️</div>
-                        <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Real DashCam Recording History</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Real DashCam
+                            Recording History</div>
                         <p style="color: #94a3b8; font-size: 13px; max-width: 540px; margin: 0 auto; line-height: 1.6;">
-                            DashCam jab IP <strong style="color:#38bdf8;">100.31.90.51</strong> (Port 10780) par live streams bhejta hai, server automatically continuous segmented MP4 clips & full sessions SQLite mein save karta hai. Real recordings yahan automatically load ho jayengi.
+                            DashCam jab IP <strong style="color:#38bdf8;">100.31.90.51</strong> (Port 10780) par live
+                            streams bhejta hai, server automatically continuous segmented MP4 clips & full sessions
+                            SQLite mein save karta hai. Real recordings yahan automatically load ho jayengi.
                         </p>
                     </div>
                 </div>
@@ -546,7 +630,9 @@
                 <div class="filter-bar">
                     <div class="filter-group">
                         <span class="filter-label">Vehicle:</span>
-                        <select class="filter-select" id="tripVehicleSelect"><option value="">Awaiting Trips...</option></select>
+                        <select class="filter-select" id="tripVehicleSelect">
+                            <option value="">Awaiting Trips...</option>
+                        </select>
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">Date:</span>
@@ -556,7 +642,9 @@
                         <span class="filter-label">Time:</span>
                         <input type="text" class="filter-input" value="00:00 - 23:59" style="width:120px;">
                     </div>
-                    <button class="btn-primary" id="btnPlayTripReplay" style="width: auto; padding: 7px 18px; font-size: 13px; background: #10b981;">▶ Play Trip</button>
+                    <button class="btn-primary" id="btnPlayTripReplay"
+                        style="width: auto; padding: 7px 18px; font-size: 13px; background: #10b981;">▶ Play
+                        Trip</button>
                     <div class="tab-pills" style="margin-left: auto;">
                         <button class="tab-pill active">Trip Info</button>
                         <button class="tab-pill">Speed Graph</button>
@@ -575,10 +663,14 @@
                         <div class="replay-player-wrap">
                             <div class="replay-video-box">
                                 <video id="replayVideo" controls playsinline></video>
-                                <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">Front Camera (CH1)</div>
+                                <div
+                                    style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
+                                    Front Camera (CH1)</div>
                             </div>
-                            <div style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
-                                <span>Playback: <strong style="color:white;" id="tripPlaybackTime">--:--:-- / --:--:--</strong></span>
+                            <div
+                                style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+                                <span>Playback: <strong style="color:white;" id="tripPlaybackTime">--:--:-- /
+                                        --:--:--</strong></span>
                                 <span>Speed Multiplier: <strong style="color:#06b6d4;">1.0x</strong></span>
                             </div>
                         </div>
@@ -586,14 +678,22 @@
 
                     <!-- Right: Trip Metrics Panel -->
                     <div class="trip-info-card">
-                        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #f8fafc;">Trip Metrics</h3>
-                        <div class="trip-metric-item"><strong>Start Time:</strong> <span id="tripStartTime">--:--:--</span></div>
-                        <div class="trip-metric-item"><strong>End Time:</strong> <span id="tripEndTime">--:--:--</span></div>
-                        <div class="trip-metric-item"><strong>Total Distance:</strong> <span id="tripTotalDist" style="color:#06b6d4;">0.0 km</span></div>
-                        <div class="trip-metric-item"><strong>Driving Time:</strong> <span id="tripDrivingTime">--</span></div>
-                        <div class="trip-metric-item"><strong>Avg Speed:</strong> <span id="tripAvgSpeed">0 km/h</span></div>
-                        <div class="trip-metric-item"><strong>Max Speed:</strong> <span id="tripMaxSpeed" style="color:#ef4444;">0 km/h</span></div>
-                        <div class="trip-metric-item"><strong>Fuel Consumption:</strong> <span id="tripFuel">--</span></div>
+                        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #f8fafc;">Trip Metrics
+                        </h3>
+                        <div class="trip-metric-item"><strong>Start Time:</strong> <span
+                                id="tripStartTime">--:--:--</span></div>
+                        <div class="trip-metric-item"><strong>End Time:</strong> <span id="tripEndTime">--:--:--</span>
+                        </div>
+                        <div class="trip-metric-item"><strong>Total Distance:</strong> <span id="tripTotalDist"
+                                style="color:#06b6d4;">0.0 km</span></div>
+                        <div class="trip-metric-item"><strong>Driving Time:</strong> <span
+                                id="tripDrivingTime">--</span></div>
+                        <div class="trip-metric-item"><strong>Avg Speed:</strong> <span id="tripAvgSpeed">0 km/h</span>
+                        </div>
+                        <div class="trip-metric-item"><strong>Max Speed:</strong> <span id="tripMaxSpeed"
+                                style="color:#ef4444;">0 km/h</span></div>
+                        <div class="trip-metric-item"><strong>Fuel Consumption:</strong> <span id="tripFuel">--</span>
+                        </div>
                         <div class="trip-metric-item"><strong>Stops:</strong> <span id="tripStops">0 Stops</span></div>
                     </div>
                 </div>
@@ -608,7 +708,8 @@
                         <h1>⚠️ Safety Events & ADAS Alerts</h1>
                         <p>Monitor real-time harsh braking, speeding, lane deviation, and driver fatigue events</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 20px; font-size: 13px;">📥 Export Events</button>
+                    <button class="btn-primary" style="width: auto; padding: 8px 20px; font-size: 13px;">📥 Export
+                        Events</button>
                 </div>
                 <div class="panel">
                     <table class="data-table">
@@ -626,7 +727,8 @@
                         <tbody id="safetyEventsTableBody">
                             <tr>
                                 <td colspan="7" style="text-align: center; padding: 32px 16px; color: #64748b;">
-                                    No safety events recorded.<br>Real ADAS/crash alarms from 100.31.90.51 will appear here.
+                                    No safety events recorded.<br>Real ADAS/crash alarms from 100.31.90.51 will appear
+                                    here.
                                 </td>
                             </tr>
                         </tbody>
@@ -640,30 +742,43 @@
             <main id="incident-detail-section" class="content-section">
                 <div class="section-header-banner">
                     <div>
-                        <a href="#safety-events" onclick="switchToSection('safety-events-section')" style="color:#06b6d4; text-decoration:none; font-size:12px; font-weight:700;">&larr; Back to Events</a>
-                        <h1 style="margin-top: 6px;">🚨 Incident Detail: <span id="incDetailEvent">No Active Incident</span></h1>
+                        <a href="#safety-events" onclick="switchToSection('safety-events-section')"
+                            style="color:#06b6d4; text-decoration:none; font-size:12px; font-weight:700;">&larr; Back to
+                            Events</a>
+                        <h1 style="margin-top: 6px;">🚨 Incident Detail: <span id="incDetailEvent">No Active
+                                Incident</span></h1>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">⬇ Download Video</button>
+                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">⬇ Download
+                        Video</button>
                 </div>
 
                 <div class="incident-detail-grid">
                     <!-- Left: Camera Selector & Large Video Player -->
                     <div>
                         <div class="cam-selector-tabs">
-                            <button class="cam-sel-btn active" id="btnCamCH1" onclick="switchIncidentCam(1)">Front Camera (CH1)</button>
-                            <button class="cam-sel-btn" id="btnCamCH2" onclick="switchIncidentCam(2)">Cabin Camera (CH2)</button>
-                            <button class="cam-sel-btn" id="btnCamCH3" onclick="switchIncidentCam(3)">Rear Camera (CH3)</button>
-                            <button class="cam-sel-btn" id="btnCamCH4" onclick="switchIncidentCam(4)">Right Camera (CH4)</button>
+                            <button class="cam-sel-btn active" id="btnCamCH1" onclick="switchIncidentCam(1)">Front
+                                Camera (CH1)</button>
+                            <button class="cam-sel-btn" id="btnCamCH2" onclick="switchIncidentCam(2)">Cabin Camera
+                                (CH2)</button>
+                            <button class="cam-sel-btn" id="btnCamCH3" onclick="switchIncidentCam(3)">Rear Camera
+                                (CH3)</button>
+                            <button class="cam-sel-btn" id="btnCamCH4" onclick="switchIncidentCam(4)">Right Camera
+                                (CH4)</button>
                         </div>
-                        <div style="background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; position:relative;">
-                            <video id="incidentVideoPlayer" controls playsinline style="width:100%; height:100%; object-fit:contain;"></video>
+                        <div
+                            style="background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; position:relative;">
+                            <video id="incidentVideoPlayer" controls playsinline
+                                style="width:100%; height:100%; object-fit:contain;"></video>
                         </div>
 
                         <!-- Speed Chart (km/h) Line Graph -->
                         <div class="speed-chart-box">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <h4>Speed Chart (km/h) at Impact</h4>
-                                <span id="incImpactSpeedBadge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">Impact Speed: -- km/h</span>
+                                <span id="incImpactSpeedBadge"
+                                    style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">Impact
+                                    Speed: -- km/h</span>
                             </div>
                             <div style="height: 180px;">
                                 <canvas id="speedChartCanvas"></canvas>
@@ -675,18 +790,25 @@
                     <div style="display:flex; flex-direction:column; gap:16px;">
                         <div class="panel">
                             <h3 style="font-size:14px; font-weight:700; margin-bottom:12px;">Event Information</h3>
-                            <div class="trip-metric-item"><strong>Event:</strong> <span class="badge-tag event" id="incInfoType" style="background:rgba(239,68,68,0.2); color:#ef4444;">--</span></div>
+                            <div class="trip-metric-item"><strong>Event:</strong> <span class="badge-tag event"
+                                    id="incInfoType" style="background:rgba(239,68,68,0.2); color:#ef4444;">--</span>
+                            </div>
                             <div class="trip-metric-item"><strong>Time:</strong> <span id="incInfoTime">--</span></div>
-                            <div class="trip-metric-item"><strong>Vehicle:</strong> <span id="incInfoVehicle">--</span></div>
-                            <div class="trip-metric-item"><strong>Location:</strong> <span id="incInfoLoc">--</span></div>
-                            <div class="trip-metric-item"><strong>Initial Speed:</strong> <span id="incInfoSpeed" style="color:#ef4444; font-weight:bold;">-- km/h</span></div>
+                            <div class="trip-metric-item"><strong>Vehicle:</strong> <span id="incInfoVehicle">--</span>
+                            </div>
+                            <div class="trip-metric-item"><strong>Location:</strong> <span id="incInfoLoc">--</span>
+                            </div>
+                            <div class="trip-metric-item"><strong>Initial Speed:</strong> <span id="incInfoSpeed"
+                                    style="color:#ef4444; font-weight:bold;">-- km/h</span></div>
                             <div class="trip-metric-item"><strong>Camera:</strong> <span id="incInfoCam">--</span></div>
                             <div class="trip-metric-item"><strong>GPS:</strong> <span id="incInfoGps">--</span></div>
                         </div>
 
                         <div class="panel" style="flex:1; min-height:200px; display:flex; flex-direction:column;">
                             <h3 style="font-size:14px; font-weight:700; margin-bottom:10px;">Incident Map</h3>
-                            <div id="incidentMiniMap" style="flex:1; width:100%; border-radius:8px; min-height:180px; background:#0f172a;"></div>
+                            <div id="incidentMiniMap"
+                                style="flex:1; width:100%; border-radius:8px; min-height:180px; background:#0f172a;">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -701,7 +823,8 @@
                         <h1>📟 Device Management</h1>
                         <p>Configure and monitor installed MDVR units, AI Dashcams and GPS trackers</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add Device</button>
+                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
+                        Device</button>
                 </div>
                 <div class="tab-pills" style="margin-bottom: 16px; width: fit-content;">
                     <button class="tab-pill active" id="tabDevAll">All Devices (0)</button>
@@ -726,7 +849,8 @@
                         <tbody id="deviceTableBody">
                             <tr>
                                 <td colspan="8" style="text-align: center; padding: 32px 16px; color: #64748b;">
-                                    No devices registered yet.<br>Devices communicating via JT808/JT1078 to 100.31.90.51 will appear here automatically.
+                                    No devices registered yet.<br>Devices communicating via JT808/JT1078 to 100.31.90.51
+                                    will appear here automatically.
                                 </td>
                             </tr>
                         </tbody>
@@ -743,7 +867,8 @@
                         <h1>👨‍✈️ Drivers & Fleet Vehicles</h1>
                         <p>Manage driver profiles, license verification and vehicle asset assignments</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add Vehicle</button>
+                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
+                        Vehicle</button>
                 </div>
                 <div class="tab-pills" style="margin-bottom: 16px; width: fit-content;">
                     <button class="tab-pill active">Vehicles</button>
@@ -782,7 +907,8 @@
                         <h1>📈 Reports & Analytics</h1>
                         <p>Fleet distance trends, driving hours, fuel analytics and safety event distribution</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">📥 Export Report</button>
+                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">📥 Export
+                        Report</button>
                 </div>
                 <div class="tab-pills" style="margin-bottom: 18px; width: fit-content;">
                     <button class="tab-pill active">Overview</button>
@@ -844,7 +970,8 @@
                             </div>
                         </div>
                         <div class="donut-legend-grid" id="repDonutLegend">
-                            <div class="donut-legend-item" style="color:#64748b; font-size:12px;">No safety events recorded yet.</div>
+                            <div class="donut-legend-item" style="color:#64748b; font-size:12px;">No safety events
+                                recorded yet.</div>
                         </div>
                     </div>
                 </div>
@@ -859,7 +986,8 @@
                         <h1>🌐 Geofence & Boundary Alerts</h1>
                         <p>Define virtual depot perimeters, client sites and restricted expressway zones</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add Geofence</button>
+                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
+                        Geofence</button>
                 </div>
                 <div class="geofence-grid">
                     <div class="panel">
@@ -899,7 +1027,8 @@
                 <div class="section-header-banner">
                     <div>
                         <h1>⚙️ System & Workspace Settings</h1>
-                        <p>Manage fleet workspaces, team access roles, telematics API keys and webhooks (Direct Hardware & Self-Hosted)</p>
+                        <p>Manage fleet workspaces, team access roles, telematics API keys and webhooks (Direct Hardware
+                            & Self-Hosted)</p>
                     </div>
                 </div>
 
@@ -912,12 +1041,16 @@
                 <!-- 2. API KEYS & WEBHOOKS TAB -->
                 <div id="saasPanelApiKeys" class="saas-tab-panel" style="display: none;">
                     <div class="panel" style="margin-bottom: 24px;">
-                        <div style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div
+                            style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                             <div>
-                                <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">🔑 Enterprise REST & Telematics API Keys</h3>
-                                <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Authenticate your external ERP, TMS, or Telematics pipelines with production tokens</p>
+                                <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">🔑 Enterprise REST &
+                                    Telematics API Keys</h3>
+                                <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Authenticate your external
+                                    ERP, TMS, or Telematics pipelines with production tokens</p>
                             </div>
-                            <button id="btnGenerateApiKey" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Generate Live Key</button>
+                            <button id="btnGenerateApiKey" class="btn-primary"
+                                style="width: auto; padding: 8px 18px; font-size: 13px;">+ Generate Live Key</button>
                         </div>
                         <table class="data-table">
                             <thead>
@@ -938,14 +1071,19 @@
 
                     <!-- Webhook Configuration -->
                     <div class="panel" style="padding: 20px 24px;">
-                        <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">🌐 Outbound Telematics & Accident Webhook</h3>
-                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Server automatically POSTs real-time accident telemetry & high G-force events to this URL:</p>
+                        <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">🌐 Outbound
+                            Telematics & Accident Webhook</h3>
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Server automatically POSTs
+                            real-time accident telemetry & high G-force events to this URL:</p>
                         <div style="display: flex; gap: 12px; max-width: 700px;">
-                            <input type="url" id="saasWebhookUrl" class="console-input" value="https://api.inurum-telematics.io/v1/webhooks/accidents" style="flex: 1;">
-                            <button id="btnSaveWebhook" class="btn-primary" style="width: auto; padding: 8px 20px;">Save Endpoint</button>
+                            <input type="url" id="saasWebhookUrl" class="console-input"
+                                value="https://api.inurum-telematics.io/v1/webhooks/accidents" style="flex: 1;">
+                            <button id="btnSaveWebhook" class="btn-primary" style="width: auto; padding: 8px 20px;">Save
+                                Endpoint</button>
                         </div>
                         <div style="margin-top: 10px; font-size: 11px; color: #10b981;">
-                            ✓ Webhook status: Connected &bull; Signed with HMAC-SHA256 &bull; Retry policy: 3x exponential
+                            ✓ Webhook status: Connected &bull; Signed with HMAC-SHA256 &bull; Retry policy: 3x
+                            exponential
                         </div>
                     </div>
                 </div>
@@ -953,10 +1091,13 @@
                 <!-- 3. WORKSPACES & DEPOTS TAB -->
                 <div id="saasPanelWorkspaces" class="saas-tab-panel" style="display: block;">
                     <div class="panel">
-                        <div style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                        <div
+                            style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">🏢 Enterprise Multi-Tenant Workspaces</h3>
-                                <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Switch active fleet depot workspace to manage localized dashcam fleets</p>
+                                <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">🏢 Enterprise
+                                    Multi-Tenant Workspaces</h3>
+                                <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Switch active fleet depot
+                                    workspace to manage localized dashcam fleets</p>
                             </div>
                         </div>
                         <table class="data-table">
@@ -981,12 +1122,16 @@
                 <!-- 4. USERS & TEAM TAB -->
                 <div id="saasPanelUsers" class="saas-tab-panel" style="display: none;">
                     <div class="panel">
-                        <div style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                        <div
+                            style="padding: 16px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">👥 Workspace Members & Access Roles</h3>
-                                <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Manage system superadmins, operations admins, and standard users</p>
+                                <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">👥 Workspace Members &
+                                    Access Roles</h3>
+                                <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Manage system superadmins,
+                                    operations admins, and standard users</p>
                             </div>
-                            <button id="btnInviteUser" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add / Invite User</button>
+                            <button id="btnInviteUser" class="btn-primary"
+                                style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add / Invite User</button>
                         </div>
                         <table class="data-table">
                             <thead>
@@ -1016,24 +1161,33 @@
                         <h1>📱 Reels & Historical Clips</h1>
                         <p>Continuous 3-second dashcam clips synchronized with GPS trajectory</p>
                     </div>
-                    <button class="btn-ctrl btn-resume" id="btnRefreshReels" style="padding: 8px 18px; border-radius: 6px; cursor: pointer;">🔄 Refresh Clips</button>
+                    <button class="btn-ctrl btn-resume" id="btnRefreshReels"
+                        style="padding: 8px 18px; border-radius: 6px; cursor: pointer;">🔄 Refresh Clips</button>
                 </div>
-                <div style="padding: 14px; background: #111827; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.08);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label for="recordingSelect" style="font-size: 13px; font-weight: 700; color: #f8fafc;">Select Full Recording Session:</label>
-                        <a id="fullRecordingDownloadBtn" href="#" style="display: none; font-size: 13px; color: #38bdf8; text-decoration: none; font-weight: 600;">⬇ Download Full Recording (.m3u8)</a>
+                <div
+                    style="padding: 14px; background: #111827; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.08);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label for="recordingSelect" style="font-size: 13px; font-weight: 700; color: #f8fafc;">Select
+                            Full Recording Session:</label>
+                        <a id="fullRecordingDownloadBtn" href="#"
+                            style="display: none; font-size: 13px; color: #38bdf8; text-decoration: none; font-weight: 600;">⬇
+                            Download Full Recording (.m3u8)</a>
                     </div>
-                    <select id="recordingSelect" style="width: 100%; padding: 8px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                    <select id="recordingSelect"
+                        style="width: 100%; padding: 8px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
                         <option value="">Select a session</option>
                     </select>
-                    <video id="recordingVideo" controls playsinline style="display:block; width:100%; max-height:360px; background:#000; margin-top:12px; border-radius: 8px;"></video>
+                    <video id="recordingVideo" controls playsinline
+                        style="display:block; width:100%; max-height:360px; background:#000; margin-top:12px; border-radius: 8px;"></video>
                 </div>
                 <div class="reels-container">
                     <div class="reels-feed" id="reelsFeed">
                         <p style="color: var(--text-secondary);">Loading 3-second clips...</p>
                     </div>
                     <div class="reels-map-panel">
-                        <div style="padding: 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                        <div
+                            style="padding: 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
                             <h3>Playback GPS Synchronization</h3>
                             <span id="reelSyncBadge" class="badge" style="background: var(--success);">SYNCED</span>
                         </div>
@@ -1049,7 +1203,8 @@
                 <div class="section-header-banner">
                     <div>
                         <h1>💻 Simulation & JT Protocol Console</h1>
-                        <p>Execute raw JT808 location HEX frames, JT1078 media packets, or synthetic Indore simulation</p>
+                        <p>Execute raw JT808 location HEX frames, JT1078 media packets, or synthetic Indore simulation
+                        </p>
                     </div>
                 </div>
                 <div class="console-card">
@@ -1065,12 +1220,17 @@
                         <button id="btnExecuteCommand" class="btn-primary" style="padding: 0 24px;">Execute</button>
                     </div>
                     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <button class="btn-sm btn-logout" id="btnSampleJson" style="font-size: 11px;">Load Sample JSON</button>
-                        <button class="btn-sm btn-logout" id="btnSample808" style="font-size: 11px;">Load Sample JT808 HEX</button>
-                        <button class="btn-sm btn-logout" id="btnSample1078" style="font-size: 11px;">Load Sample JT1078 HEX</button>
-                        <button class="btn-sm btn-logout" id="btnStartIndore" style="font-size: 11px; background: #06b6d4; color: white;">Start Indore Demo</button>
+                        <button class="btn-sm btn-logout" id="btnSampleJson" style="font-size: 11px;">Load Sample
+                            JSON</button>
+                        <button class="btn-sm btn-logout" id="btnSample808" style="font-size: 11px;">Load Sample JT808
+                            HEX</button>
+                        <button class="btn-sm btn-logout" id="btnSample1078" style="font-size: 11px;">Load Sample JT1078
+                            HEX</button>
+                        <button class="btn-sm btn-logout" id="btnStartIndore"
+                            style="font-size: 11px; background: #06b6d4; color: white;">Start Indore Demo</button>
                     </div>
-                    <div class="console-result-box" id="consoleResultBox">// Command output, parsed protocol frame, and server response ACK will appear here...</div>
+                    <div class="console-result-box" id="consoleResultBox">// Command output, parsed protocol frame, and
+                        server response ACK will appear here...</div>
                 </div>
             </main>
         </div>
@@ -1085,7 +1245,8 @@
             </div>
             <div class="modal-body">
                 <div style="background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16/9;">
-                    <video id="genericModalVideo" controls playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>
+                    <video id="genericModalVideo" controls playsinline
+                        style="width: 100%; height: 100%; object-fit: contain;"></video>
                 </div>
             </div>
         </div>
@@ -1118,13 +1279,15 @@
                     </div>
                     <div class="input-group">
                         <label>Assign Role (3 Roles Available)</label>
-                        <select id="newRole" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                        <select id="newRole"
+                            style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
                             <option value="user">👤 User (Standard Operator / Viewer)</option>
                             <option value="admin">🛡️ Admin (Fleet, Video & Device Management)</option>
                             <option value="superadmin">👑 SuperAdmin (Full SaaS, Billing & API Keys)</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Create & Assign Role</button>
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Create & Assign
+                        Role</button>
                 </form>
             </div>
         </div>
@@ -1133,8 +1296,8 @@
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
     <script>
-        const API_BASE_URL = (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.startsWith('http')) 
-            ? window.location.origin 
+        const API_BASE_URL = (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.startsWith('http'))
+            ? window.location.origin
             : 'http://100.31.90.51:3000';
 
         function backendUrl(path) {
@@ -1149,6 +1312,8 @@
         let liveRetry = null;
         let cabinHls = null;
         let cabinRetry = null;
+        let ch1Watchdog = null;
+        let ch2Watchdog = null;
         let overviewMap = null;
         let overviewCarMarker = null;
         let trackingMap = null;
@@ -1226,14 +1391,14 @@
                     if (this.osc) { this.osc.stop(); this.osc.disconnect(); this.osc = null; }
                     if (this.lfo) { this.lfo.stop(); this.lfo.disconnect(); this.lfo = null; }
                     if (this.gain) { this.gain.disconnect(); this.gain = null; }
-                } catch (e) {}
+                } catch (e) { }
             }
         }
         const alarmSound = new EmergencyAlarmSound();
 
         function requestNotificationPermission() {
             if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission().catch(() => {});
+                Notification.requestPermission().catch(() => { });
             }
         }
 
@@ -1245,7 +1410,7 @@
                         icon: '/favicon.ico',
                         requireInteraction: true
                     });
-                } catch (e) {}
+                } catch (e) { }
             }
         }
 
@@ -1261,7 +1426,7 @@
         const loginError = document.getElementById('loginError');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        window.setLoginCredentials = function(username, password) {
+        window.setLoginCredentials = function (username, password) {
             const u = document.getElementById('loginUsername');
             const p = document.getElementById('loginPassword');
             if (u) u.value = username;
@@ -1360,7 +1525,7 @@
             'console-section': 'Utilities & Live Sync'
         };
 
-        window.switchToSection = function(targetId) {
+        window.switchToSection = function (targetId) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -1455,11 +1620,13 @@
         function initLivePlayer(terminalId) {
             clearTimeout(liveRetry);
             clearTimeout(cabinRetry);
+            if (ch1Watchdog) { clearInterval(ch1Watchdog); ch1Watchdog = null; }
+            if (ch2Watchdog) { clearInterval(ch2Watchdog); ch2Watchdog = null; }
 
-            // 1. Ask server to command dashcam for CH1 and CH2 live streams
-            fetch(backendUrl(`/api/video/start-live?terminalId=${encodeURIComponent(terminalId)}`)).catch(() => {});
+            // 1. Command server to request CH1 & CH2 live streams from dashcam
+            fetch(backendUrl(`/api/video/start-live?terminalId=${encodeURIComponent(terminalId)}`)).catch(() => { });
 
-            // 2. Immediately fetch latest known telemetry for this terminal
+            // 2. Fetch latest telemetry
             fetch(backendUrl(`/api/telemetry/latest?terminalId=${encodeURIComponent(terminalId)}`))
                 .then(r => r.json())
                 .then(res => {
@@ -1467,169 +1634,169 @@
                         updateTelemetryDisplay(res.telemetry);
                     }
                 })
-                .catch(() => {});
+                .catch(() => { });
 
-            // Channel 1 (Front Road Camera)
+            const commonHlsConfig = {
+                enableWorker: true,
+                lowLatencyMode: false,
+                liveSyncDurationCount: 3,
+                liveMaxLatencyDurationCount: 6,
+                startFragPrefetch: true,
+                maxBufferLength: 10,
+                maxMaxBufferLength: 20,
+                backBufferLength: 6,
+                manifestLoadingTimeOut: 5000,
+                manifestLoadingMaxRetry: 6,
+                levelLoadingTimeOut: 5000,
+                levelLoadingMaxRetry: 6,
+                fragLoadingTimeOut: 8000,
+                fragLoadingMaxRetry: 4
+            };
+
+            function setupChannelPlayer(camNum, videoElem, waitingElem, indicatorElem) {
+                if (!videoElem) return null;
+                const streamUrl = backendUrl(`/media/live/${terminalId}_${camNum}/live.m3u8`);
+                let lastFragTime = 0;
+                let lastPlayTime = -1;
+                let stallCount = 0;
+                let hlsInstance = null;
+
+                const setIndicator = (state, color) => {
+                    if (indicatorElem) {
+                        indicatorElem.innerText = `● ${state}`;
+                        indicatorElem.style.color = color;
+                    }
+                };
+
+                const scheduleRetry = (delayMs = 3000) => {
+                    return setTimeout(() => {
+                        if (hlsInstance) {
+                            try {
+                                hlsInstance.loadSource(streamUrl);
+                                hlsInstance.startLoad();
+                            } catch (_) {}
+                        }
+                    }, delayMs);
+                };
+
+                videoElem.onplaying = () => {
+                    setIndicator('LIVE', '#10b981');
+                    if (waitingElem) waitingElem.classList.add('hidden');
+                    stallCount = 0;
+                };
+
+                videoElem.onwaiting = () => {
+                    setIndicator('BUFFERING', '#f59e0b');
+                };
+
+                videoElem.onerror = () => {
+                    setIndicator('RECONNECTING', '#38bdf8');
+                    if (waitingElem) waitingElem.classList.remove('hidden');
+                };
+
+                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                    hlsInstance = new Hls(commonHlsConfig);
+                    hlsInstance.attachMedia(videoElem);
+                    hlsInstance.loadSource(streamUrl);
+
+                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                        videoElem.play().catch(() => {});
+                        if (waitingElem) waitingElem.classList.add('hidden');
+                        setIndicator('LIVE', '#10b981');
+                    });
+
+                    hlsInstance.on(Hls.Events.FRAG_LOADED, () => {
+                        lastFragTime = Date.now();
+                        stallCount = 0;
+                    });
+
+                    hlsInstance.on(Hls.Events.ERROR, (_, data) => {
+                        if (data.fatal) {
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    setIndicator('RECONNECTING', '#38bdf8');
+                                    hlsInstance.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    setIndicator('BUFFERING', '#f59e0b');
+                                    hlsInstance.recoverMediaError();
+                                    break;
+                                default:
+                                    setIndicator('OFFLINE', '#ef4444');
+                                    if (waitingElem) waitingElem.classList.remove('hidden');
+                                    hlsInstance.destroy();
+                                    break;
+                            }
+                        }
+                    });
+                } else if (videoElem.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoElem.src = streamUrl;
+                    videoElem.onloadedmetadata = () => {
+                        if (waitingElem) waitingElem.classList.add('hidden');
+                        setIndicator('LIVE', '#10b981');
+                        videoElem.play().catch(() => {});
+                    };
+                }
+
+                const watchdog = setInterval(() => {
+                    if (!videoElem) return;
+                    if (!videoElem.paused && videoElem.readyState >= 2) {
+                        const cur = videoElem.currentTime;
+                        if (Math.abs(cur - lastPlayTime) < 0.05) {
+                            stallCount++;
+                            if (stallCount >= 3) {
+                                setIndicator('BUFFERING', '#f59e0b');
+                                if (videoElem.buffered.length > 0) {
+                                    const liveEdge = videoElem.buffered.end(videoElem.buffered.length - 1);
+                                    if (liveEdge - cur > 1.5) {
+                                        videoElem.currentTime = liveEdge - 0.5;
+                                    }
+                                }
+                                if (hlsInstance) {
+                                    hlsInstance.recoverMediaError();
+                                }
+                            }
+                        } else {
+                            stallCount = 0;
+                            lastPlayTime = cur;
+                            if (lastFragTime && (Date.now() - lastFragTime > 15000)) {
+                                setIndicator('RECONNECTING', '#38bdf8');
+                            } else {
+                                setIndicator('LIVE', '#10b981');
+                            }
+                        }
+                    }
+                }, 2000);
+
+                return { hls: hlsInstance, watchdog, scheduleRetry };
+            }
+
+            // Channel 1: Front Camera
             const ch1Video = document.getElementById('liveVideo');
             const frontWaiting = document.getElementById('frontStreamWaiting');
             const ch1Indicator = document.getElementById('ch1LiveIndicator');
-            if (ch1Video) {
-                const ch1Url = backendUrl(`/media/live/${terminalId}_1/live.m3u8`);
-                if (liveHls) { liveHls.destroy(); liveHls = null; }
-
-                const retryCh1 = () => {
-                    clearTimeout(liveRetry);
-                    liveRetry = setTimeout(() => { if (liveHls) { try { liveHls.loadSource(ch1Url); liveHls.startLoad(); } catch(e){} } }, 3000);
-                };
-
-                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                    liveHls = new Hls({
-                        liveSyncDurationCount: 4,
-                        liveMaxLatencyDurationCount: 12,
-                        startFragPrefetch: true,
-                        maxBufferLength: 30,
-                        maxMaxBufferLength: 60,
-                        enableWorker: true,
-                        backBufferLength: 30,
-                        liveDurationInfinity: true,
-                        highBufferWatchdogPeriod: 1,
-                        nudgeOffset: 0.1,
-                        nudgeMaxRetry: 10,
-                        lowLatencyMode: false
-                    });
-                    liveHls.attachMedia(ch1Video);
-                    liveHls.loadSource(ch1Url);
-                    liveHls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        ch1Video.play().catch(() => {});
-                        if (frontWaiting) frontWaiting.classList.add('hidden');
-                        if (ch1Indicator) { ch1Indicator.innerText = '● LIVE'; ch1Indicator.style.color = '#10b981'; }
-                    });
-                    liveHls.on(Hls.Events.ERROR, (_, d) => {
-                        if (d.fatal) {
-                            switch (d.type) {
-                                case Hls.ErrorTypes.NETWORK_ERROR:
-                                    liveHls.startLoad();
-                                    break;
-                                case Hls.ErrorTypes.MEDIA_ERROR:
-                                    liveHls.recoverMediaError();
-                                    break;
-                                default:
-                                    if (frontWaiting) frontWaiting.classList.remove('hidden');
-                                    if (ch1Indicator) { ch1Indicator.innerText = '● CONNECTING'; ch1Indicator.style.color = '#38bdf8'; }
-                                    retryCh1();
-                                    break;
-                            }
-                        } else if (d.details === 'bufferStalledError') {
-                            if (ch1Video && ch1Video.paused) ch1Video.play().catch(() => {});
-                        }
-                    });
-                } else if (ch1Video.canPlayType('application/vnd.apple.mpegurl')) {
-                    ch1Video.src = ch1Url;
-                    ch1Video.onloadedmetadata = () => {
-                        if (frontWaiting) frontWaiting.classList.add('hidden');
-                        if (ch1Indicator) { ch1Indicator.innerText = '● LIVE'; ch1Indicator.style.color = '#10b981'; }
-                    };
-                    ch1Video.onerror = () => {
-                        if (frontWaiting) frontWaiting.classList.remove('hidden');
-                        if (ch1Indicator) { ch1Indicator.innerText = '● CONNECTING'; ch1Indicator.style.color = '#38bdf8'; }
-                        retryCh1();
-                    };
-                    ch1Video.play().catch(() => {});
-                }
-                ch1Video.onwaiting = () => ch1Video.play().catch(() => {});
-                ch1Video.onstalled = () => ch1Video.play().catch(() => {});
+            if (liveHls) { liveHls.destroy(); liveHls = null; }
+            const ch1Setup = setupChannelPlayer(1, ch1Video, frontWaiting, ch1Indicator);
+            if (ch1Setup) {
+                liveHls = ch1Setup.hls;
+                ch1Watchdog = ch1Setup.watchdog;
             }
 
-            // Channel 2 (Cabin / Driver Camera)
+            // Channel 2: Cabin Camera
             const ch2Video = document.getElementById('liveVideoCabin');
             const cabinWaiting = document.getElementById('cabinStreamWaiting');
             const ch2Indicator = document.getElementById('ch2LiveIndicator');
-            if (ch2Video) {
-                const ch2Url = backendUrl(`/media/live/${terminalId}_2/live.m3u8`);
-                if (cabinHls) { cabinHls.destroy(); cabinHls = null; }
-
-                const retryCh2 = () => {
-                    clearTimeout(cabinRetry);
-                    cabinRetry = setTimeout(() => { if (cabinHls) { try { cabinHls.loadSource(ch2Url); cabinHls.startLoad(); } catch(e){} } }, 3000);
-                };
-
-                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                    cabinHls = new Hls({
-                        liveSyncDurationCount: 4,
-                        liveMaxLatencyDurationCount: 12,
-                        startFragPrefetch: true,
-                        maxBufferLength: 30,
-                        maxMaxBufferLength: 60,
-                        enableWorker: true,
-                        backBufferLength: 30,
-                        liveDurationInfinity: true,
-                        highBufferWatchdogPeriod: 1,
-                        nudgeOffset: 0.1,
-                        nudgeMaxRetry: 10,
-                        lowLatencyMode: false
-                    });
-                    cabinHls.attachMedia(ch2Video);
-                    cabinHls.loadSource(ch2Url);
-                    cabinHls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        ch2Video.play().catch(() => {});
-                        if (cabinWaiting) cabinWaiting.classList.add('hidden');
-                        if (ch2Indicator) { ch2Indicator.innerText = '● LIVE'; ch2Indicator.style.color = '#10b981'; }
-                    });
-                    cabinHls.on(Hls.Events.ERROR, (_, d) => {
-                        if (d.fatal) {
-                            switch (d.type) {
-                                case Hls.ErrorTypes.NETWORK_ERROR:
-                                    cabinHls.startLoad();
-                                    break;
-                                case Hls.ErrorTypes.MEDIA_ERROR:
-                                    cabinHls.recoverMediaError();
-                                    break;
-                                default:
-                                    if (cabinWaiting) cabinWaiting.classList.remove('hidden');
-                                    if (ch2Indicator) { ch2Indicator.innerText = '● CONNECTING'; ch2Indicator.style.color = '#c084fc'; }
-                                    retryCh2();
-                                    break;
-                            }
-                        } else if (d.details === 'bufferStalledError') {
-                            if (ch2Video && ch2Video.paused) ch2Video.play().catch(() => {});
-                        }
-                    });
-                } else if (ch2Video.canPlayType('application/vnd.apple.mpegurl')) {
-                    ch2Video.src = ch2Url;
-                    ch2Video.onloadedmetadata = () => {
-                        if (cabinWaiting) cabinWaiting.classList.add('hidden');
-                        if (ch2Indicator) { ch2Indicator.innerText = '● LIVE'; ch2Indicator.style.color = '#10b981'; }
-                    };
-                    ch2Video.onerror = () => {
-                        if (cabinWaiting) cabinWaiting.classList.remove('hidden');
-                        if (ch2Indicator) { ch2Indicator.innerText = '● CONNECTING'; ch2Indicator.style.color = '#c084fc'; }
-                        retryCh2();
-                    };
-                    ch2Video.play().catch(() => {});
-                }
-                ch2Video.onwaiting = () => ch2Video.play().catch(() => {});
-                ch2Video.onstalled = () => ch2Video.play().catch(() => {});
-            }
-
-            if (!window._liveKeepAliveStarted) {
-                window._liveKeepAliveStarted = true;
-                setInterval(() => {
-                    const v1 = document.getElementById('liveVideo');
-                    const v2 = document.getElementById('liveVideoCabin');
-                    if (v1 && v1.paused && liveHls) {
-                        v1.play().catch(() => {});
-                    }
-                    if (v2 && v2.paused && cabinHls) {
-                        v2.play().catch(() => {});
-                    }
-                }, 1500);
+            if (cabinHls) { cabinHls.destroy(); cabinHls = null; }
+            const ch2Setup = setupChannelPlayer(2, ch2Video, cabinWaiting, ch2Indicator);
+            if (ch2Setup) {
+                cabinHls = ch2Setup.hls;
+                ch2Watchdog = ch2Setup.watchdog;
             }
 
             // Live mini map
             if (!liveMap && document.getElementById('liveMap')) {
-                liveMap = L.map('liveMap').setView([23.116778, 114.481235], 14);
+                liveMap = L.map('liveMap').setView([20.5937, 78.9629], 5);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(liveMap);
-                liveMapMarker = L.marker([23.116778, 114.481235]).addTo(liveMap);
             }
         }
 
@@ -1641,10 +1808,10 @@
             if (liveVideoCabin) liveVideoCabin.muted = newMuted;
             if (!newMuted) {
                 liveVideo.volume = 1.0;
-                liveVideo.play().catch(() => {});
+                liveVideo.play().catch(() => { });
                 if (liveVideoCabin) {
                     liveVideoCabin.volume = 1.0;
-                    liveVideoCabin.play().catch(() => {});
+                    liveVideoCabin.play().catch(() => { });
                 }
             }
             btnToggleAudio.innerText = newMuted ? '🔊 Unmute Live Audio' : '🔇 Mute Audio';
@@ -1657,7 +1824,7 @@
             if (liveVideo && liveVideo.muted) {
                 liveVideo.muted = false;
                 liveVideo.volume = 1.0;
-                liveVideo.play().catch(() => {});
+                liveVideo.play().catch(() => { });
                 if (liveVideoCabin) {
                     liveVideoCabin.muted = false;
                     liveVideoCabin.volume = 1.0;
@@ -1677,7 +1844,7 @@
                 liveVideo.volume = 1.0;
                 liveVideoCabin.muted = false;
                 liveVideoCabin.volume = 1.0;
-                liveVideoCabin.play().catch(() => {});
+                liveVideoCabin.play().catch(() => { });
                 if (btnToggleAudio) {
                     btnToggleAudio.innerText = '🔇 Mute Audio';
                     btnToggleAudio.style.background = 'rgba(239, 68, 68, 0.2)';
@@ -1710,7 +1877,7 @@
         // ==========================================
         // 03.1 INCIDENT DETAIL & SPEED CHART
         // ==========================================
-        window.openIncidentDetail = function(eventType, vehicleId, timeStr, speed) {
+        window.openIncidentDetail = function (eventType, vehicleId, timeStr, speed) {
             document.getElementById('incDetailEvent').innerText = eventType;
             document.getElementById('incInfoType').innerText = eventType;
             document.getElementById('incInfoVehicle').innerText = vehicleId;
@@ -1719,7 +1886,7 @@
             switchToSection('incident-detail-section');
         };
 
-        window.switchIncidentCam = function(camNum) {
+        window.switchIncidentCam = function (camNum) {
             document.querySelectorAll('.cam-sel-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btnCamCH${camNum}`)?.classList.add('active');
             const player = document.getElementById('incidentVideoPlayer');
@@ -1976,7 +2143,7 @@
                     trackingMarkers = [];
                     const bounds = [];
                     devices.forEach(d => {
-                        if (d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude)) {
+                        if (d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude) && !(Number(d.latitude) === 0 && Number(d.longitude) === 0)) {
                             const lat = Number(d.latitude);
                             const lng = Number(d.longitude);
                             const m = L.marker([lat, lng]).addTo(trackingMap)
@@ -1987,6 +2154,8 @@
                     });
                     if (bounds.length > 0) {
                         trackingMap.fitBounds(bounds, { maxZoom: 14, padding: [40, 40] });
+                    } else {
+                        trackingMap.setView([20.5937, 78.9629], 5);
                     }
                 }
             } catch (e) {
@@ -2053,7 +2222,7 @@
                             replayEndMarker = L.marker(coords[coords.length - 1]).addTo(replayMap).bindPopup('Trip End');
                             replayMap.fitBounds(coords, { padding: [30, 30] });
                         }
-                    } catch (err) {}
+                    } catch (err) { }
                 }
             } catch (e) {
                 console.warn('loadTripReplay error:', e);
@@ -2094,7 +2263,7 @@
                     `;
                     tbody.appendChild(tr);
                 });
-            } catch (e) {}
+            } catch (e) { }
         }
 
         async function loadDriversTable() {
@@ -2127,7 +2296,7 @@
                     `;
                     tbody.appendChild(tr);
                 });
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // ==========================================
@@ -2277,7 +2446,7 @@
                         }
                     }
                 });
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // ==========================================
@@ -2316,21 +2485,21 @@
             const fuelEl = document.getElementById('val-fuel');
             if (fuelEl) fuelEl.innerText = '84%';
 
-            if (data.latitude != null && data.longitude != null) {
+            if (data.latitude != null && data.longitude != null && !isNaN(data.latitude) && !isNaN(data.longitude) && !(Number(data.latitude) === 0 && Number(data.longitude) === 0)) {
                 const lat = Number(data.latitude);
                 const lng = Number(data.longitude);
                 const latEl = document.getElementById('val-lat');
-                if (latEl) latEl.innerText = lat.toFixed(4);
+                if (latEl) latEl.innerText = lat.toFixed(6);
                 const lngEl = document.getElementById('val-lng');
-                if (lngEl) lngEl.innerText = lng.toFixed(4);
+                if (lngEl) lngEl.innerText = lng.toFixed(6);
 
                 const locAddr = document.getElementById('liveLocationAddress');
-                if (locAddr) locAddr.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (GPS Fix)`;
+                if (locAddr) locAddr.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (Real GPS Fix)`;
 
                 const popVeh = document.getElementById('popupVehicleId');
                 if (popVeh) popVeh.innerText = data.vehicleId || data.terminalId || 'Vehicle';
                 const popLoc = document.getElementById('popupVehicleLoc');
-                if (popLoc) popLoc.innerText = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                if (popLoc) popLoc.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
                 const popStatus = document.getElementById('popupVehicleStatus');
                 if (popStatus) {
                     popStatus.innerText = 'Online';
@@ -2362,10 +2531,15 @@
                 }
                 if (liveMapMarker) {
                     liveMapMarker.setLatLng([lat, lng]);
+                } else if (liveMap) {
+                    liveMapMarker = L.marker([lat, lng]).addTo(liveMap);
                 }
                 if (liveMap) {
                     liveMap.setView([lat, lng], 15);
                 }
+            } else {
+                const locAddr = document.getElementById('liveLocationAddress');
+                if (locAddr) locAddr.innerText = 'Online - Awaiting GPS Fix (Indoors/Searching satellites)';
             }
         }
 
@@ -2395,6 +2569,18 @@
             // LIVE TELEMETRY
             socket.on('telemetry', data => {
                 if (!data) return;
+                console.log('📡 Real DashCam Telemetry:', data);
+                if (data.terminalId && activeTerminalId !== data.terminalId) {
+                    activeTerminalId = data.terminalId;
+                    const liveSelect = document.getElementById('liveVehicleSelect');
+                    if (liveSelect && !Array.from(liveSelect.options).some(o => o.value === data.terminalId)) {
+                        const opt = document.createElement('option');
+                        opt.value = data.terminalId;
+                        opt.text = `${data.vehicleId || data.terminalId} (${data.terminalId})`;
+                        opt.selected = true;
+                        liveSelect.appendChild(opt);
+                    }
+                }
                 updateTelemetryDisplay(data);
             });
 
@@ -2475,7 +2661,7 @@
                     const port = window.location.port ? `:${window.location.port}` : ':3000';
                     modalUrl.innerText = `http://${ip}${port}`;
                 }
-            } catch (err) {}
+            } catch (err) { }
             requestNotificationPermission();
         }
 
@@ -2491,13 +2677,13 @@
         });
 
         // Video playback modal
-        window.playRecordModal = function(src, vehicle, timeStr) {
+        window.playRecordModal = function (src, vehicle, timeStr) {
             const modal = document.getElementById('videoModal');
             const video = document.getElementById('genericModalVideo');
             document.getElementById('modalVideoTitle').innerText = `${vehicle} - ${timeStr}`;
             video.src = src;
             modal.classList.remove('hidden');
-            video.play().catch(() => {});
+            video.play().catch(() => { });
         };
         document.getElementById('btnCloseVideoModal')?.addEventListener('click', () => {
             document.getElementById('videoModal')?.classList.add('hidden');
@@ -2551,9 +2737,9 @@
                     const video = document.getElementById('recordingVideo');
                     if (!select.value || !video) return;
                     video.src = select.value;
-                    video.play().catch(() => {});
+                    video.play().catch(() => { });
                 };
-            } catch (e) {}
+            } catch (e) { }
         }
 
         async function loadReels() {
@@ -2581,7 +2767,7 @@
                     `;
                     feed.appendChild(card);
                 });
-            } catch (e) {}
+            } catch (e) { }
         }
 
         async function loadVideoRecordings() {
@@ -2705,9 +2891,9 @@
                             <td>${ten.storageUsedGb} GB Local</td>
                             <td><span style="color:${ten.status === 'ACTIVE' ? '#10b981' : '#f59e0b'};">● ${ten.status}</span></td>
                             <td>
-                                ${isCurrent 
-                                    ? '<span style="color:#64748b;font-size:12px;">Active Workspace</span>' 
-                                    : `<button class="btn-sm btn-logout" style="background:#1e293b; color:#38bdf8;" onclick="switchTenant('${ten.id}')">Switch</button>`}
+                                ${isCurrent
+                                ? '<span style="color:#64748b;font-size:12px;">Active Workspace</span>'
+                                : `<button class="btn-sm btn-logout" style="background:#1e293b; color:#38bdf8;" onclick="switchTenant('${ten.id}')">Switch</button>`}
                             </td>
                         `;
                         wsTbody.appendChild(tr);
@@ -2875,7 +3061,7 @@
         function getCurrentUser() {
             const raw = sessionStorage.getItem('dashcam_current_user');
             if (raw) {
-                try { return JSON.parse(raw); } catch (e) {}
+                try { return JSON.parse(raw); } catch (e) { }
             }
             return { role: 'superadmin', fullName: 'System SuperAdmin', username: 'superadmin' };
         }
@@ -2983,11 +3169,11 @@
                         <td><span style="color:#10b981;">● ${u.status}</span></td>
                         <td>${u.lastLogin || 'Never'}</td>
                         <td>
-                            ${isSuperadmin 
-                                ? '<span style="color:#64748b;font-size:11px;">Protected Master</span>'
-                                : (curUser.role === 'superadmin' 
-                                    ? `<button class="btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteSaasUser('${u.id}')">Remove</button>`
-                                    : '<span style="color:#64748b;font-size:11px;">View Only</span>')}
+                            ${isSuperadmin
+                            ? '<span style="color:#64748b;font-size:11px;">Protected Master</span>'
+                            : (curUser.role === 'superadmin'
+                                ? `<button class="btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteSaasUser('${u.id}')">Remove</button>`
+                                : '<span style="color:#64748b;font-size:11px;">View Only</span>')}
                         </td>
                     `;
                     tbody.appendChild(tr);
