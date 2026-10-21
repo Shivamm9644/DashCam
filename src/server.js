@@ -36,6 +36,12 @@ app.use(express.json());
 app.use('/vendor/hls', express.static(path.dirname(require.resolve('hls.js/dist/hls.min.js'))));
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
 
+// Serve Front-End Dashboard (HTML/CSS/JS)
+app.use(express.static(path.join(__dirname, '../public')));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // Serve Static Assets & Reconstructed Media
 app.use('/media', express.static(config.MEDIA_DIR, {
     setHeaders(res, file) {
