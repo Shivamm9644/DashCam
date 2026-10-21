@@ -32,9 +32,21 @@ const config = {
     STORAGE_DIR: storageRoot,
     DB_PATH: path.join(storageRoot, 'dashcam.db'),
     MEDIA_DIR: path.join(storageRoot, 'media'),
+    LIVE_DIR: process.env.LIVE_MEDIA_DIR || path.join(storageRoot, 'media', 'live'),
+    RECORDINGS_DIR: process.env.RECORDINGS_MEDIA_DIR || path.join(storageRoot, 'media', 'recordings'),
+    SESSIONS_DIR: path.join(storageRoot, 'media', 'sessions'),
     TRIPS_DIR: path.join(storageRoot, 'trips'),
     ACCIDENTS_DIR: path.join(storageRoot, 'accidents', 'metadata'),
     FIXTURES_DIR: path.join(__dirname, '..', 'mock_data'),
+
+    // Recording Mode & Stream Architecture Config
+    // Options: 'LIVE_ONLY' (default: bounded temporary HLS, no MP4, no DB bloat) | 'LIVE_AND_RECORD'
+    RECORDING_MODE: process.env.RECORDING_MODE || 'LIVE_ONLY',
+    LIVE_PLAYLIST_SEGMENTS: parseInt(process.env.LIVE_PLAYLIST_SEGMENTS || '6', 10), // 5-8 playable segments in live.m3u8
+    LIVE_GRACE_SEGMENTS: parseInt(process.env.LIVE_GRACE_SEGMENTS || '4', 10),       // Extra older segments retained on disk to prevent player 404s
+    LIVE_RECONNECT_GRACE_SEC: parseInt(process.env.LIVE_RECONNECT_GRACE_SEC || '30', 10), // Grace period before purging disconnected session
+    LIVE_CLEANUP_INACTIVE_SEC: parseInt(process.env.LIVE_CLEANUP_INACTIVE_SEC || '30', 10),
+    MAX_DISK_USAGE_PERCENT: parseInt(process.env.MAX_DISK_USAGE_PERCENT || '85', 10),
 
     // Media & Segmentation Config
     DEFAULT_SEGMENT_DURATION_SEC: parseInt(process.env.SEGMENT_DURATION_SEC || '3', 10),

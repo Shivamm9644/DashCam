@@ -13,6 +13,7 @@ const telemetryService = require('./services/telemetry-service');
 const accidentService = require('./services/accident-service');
 const tripService = require('./services/trip-service');
 const syncService = require('./services/sync-service');
+const storageService = require('./services/storage-service');
 
 // Protocols
 const binaryParser = require('./protocols/jtt808/binary-parser');
@@ -44,7 +45,7 @@ app.use('/media', express.static(config.MEDIA_DIR, {
             res.setHeader('Expires', '0');
             res.setHeader('Access-Control-Allow-Origin', '*');
         } else if (file.endsWith('.ts')) {
-            res.setHeader('Cache-Control', 'public, max-age=60');
+            res.setHeader('Cache-Control', 'public, max-age=10');
             res.setHeader('Access-Control-Allow-Origin', '*');
         }
     }
@@ -161,6 +162,7 @@ app.get('/api/status', (req, res) => {
             display: config.DISPLAY_TIMEZONE
         },
         database: "SQLite (Authoritative)",
+        recordingMode: config.RECORDING_MODE,
         codecs: {
             video: ["H.264 (Baseline)", "H.265 (Passthrough)"],
             audio: ["AAC (ADTS, Standard PT 19)"]
@@ -547,21 +549,11 @@ app.get('/api/video/stream-health', (req, res) => {
     const sock = activeJT808Sockets.get(normId) || activeJT808Sockets.get(normId.padStart(12, '0')) || activeJT808Sockets.get(normId.replace(/^0+/, ''));
     const ch1 = mediaHandler.getStreamStats(terminalId, 1);
     const ch2 = mediaHandler.getStreamStats(terminalId, 2);
-
-    let disk = null;
-    try {
-        if (typeof require('fs').statfsSync === 'function') {
-            const st = require('fs').statfsSync(config.STORAGE_DIR);
-            disk = {
-                totalMb: Math.round((st.blocks * st.bsize) / (1024 * 1024)),
-                freeMb: Math.round((st.bavail * st.bsize) / (1024 * 1024)),
-                percentFree: Math.round((st.bavail / st.blocks) * 100)
-            };
-        }
-    } catch (_) {}
+    const disk = storageService.getDiskUsage();
 
     res.json({
         terminalId,
+        recordingMode: config.RECORDING_MODE,
         jt808: {
             connected: Boolean(sock && !sock.destroyed),
             remoteAddress: sock ? `${sock.remoteAddress}:${sock.remotePort}` : null,
@@ -575,6 +567,52 @@ app.get('/api/video/stream-health', (req, res) => {
         disk,
         serverTime: new Date().toISOString()
     });
+});
+
+// --- Configurable Recording Mode API (LIVE_ONLY vs LIVE_AND_RECORD) ---
+app.get('/api/video/recording-mode', (req, res) => {
+    res.json({
+        recordingMode: config.RECORDING_MODE,
+        options: ['LIVE_ONLY', 'LIVE_AND_RECORD'],
+        livePlaylistSegments: config.LIVE_PLAYLIST_SEGMENTS,
+        liveGraceSegments: config.LIVE_GRACE_SEGMENTS,
+        boundedStorage: true
+    });
+});
+
+function requireAdminAuth(req, res, next) {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+    const customToken = req.headers['x-auth-token'];
+    const activeToken = token || customToken;
+
+    if (activeToken) {
+        if (activeToken.startsWith('token-superadmin') || activeToken.startsWith('token-admin')) {
+            return next();
+        }
+        return res.status(403).json({ error: 'FORBIDDEN', message: 'Admin or SuperAdmin role required' });
+    }
+
+    if (activeUserSession && (activeUserSession.role === 'admin' || activeUserSession.role === 'superadmin')) {
+        return next();
+    }
+
+    return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Authentication required. Please log in as admin.' });
+}
+
+app.post('/api/video/recording-mode', requireAdminAuth, (req, res) => {
+    const { mode } = req.body || {};
+    if (mode === 'LIVE_ONLY' || mode === 'LIVE_AND_RECORD') {
+        config.RECORDING_MODE = mode;
+        console.log(`[RECORDING_MODE] Updated to: ${mode}`);
+        return res.json({ success: true, recordingMode: config.RECORDING_MODE });
+    }
+    return res.status(400).json({ error: 'Invalid mode. Supported: LIVE_ONLY, LIVE_AND_RECORD' });
+});
+
+// --- System Disk Usage API ---
+app.get('/api/system/disk', (req, res) => {
+    res.json(storageService.getDiskUsage());
 });
 
 // --- Media Segments for Reels ---
@@ -1163,7 +1201,7 @@ const server1078 = net.createServer((socket) => {
     });
 
     let ended = false;
-    const finish = () => { if (ended) return; ended = true; for (const key of socket.sessionKeys || []) { const [term, ch] = key.split('_'); mediaHandler.closeSession(term, Number(ch)).catch(console.error); } };
+    const finish = () => { if (ended) return; ended = true; for (const key of socket.sessionKeys || []) { const [term, ch] = key.split('_'); mediaHandler.handleSocketDisconnect(term, Number(ch)); } };
     socket.on('end', finish);
     socket.on('close', finish);
     socket.on('error', err => { console.error('[JT1078]', err.message); finish(); });
@@ -1180,7 +1218,7 @@ let shuttingDown = false;
 async function shutdown() {
     if (shuttingDown) return; shuttingDown = true; simulator.stop();
     await new Promise(r => setTimeout(r, 100));
-    await Promise.all([...mediaHandler.sessions.values()].map(s => mediaHandler.closeSession(s.terminalId, s.channel)));
+    await Promise.all([...mediaHandler.sessions.values()].map(s => mediaHandler.closeSession(s.terminalId, s.channel, true)));
     await mediaHandler.drain(); db.db.close(); process.exit(0);
 }
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);

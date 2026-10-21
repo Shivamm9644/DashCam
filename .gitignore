@@ -9,4 +9,4 @@ storage/media/
 storage/accidents/
 mock_data/
 temp_extracted.json
-verification-30.json
+verification-*.json

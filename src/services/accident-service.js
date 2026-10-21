@@ -74,8 +74,8 @@ class AccidentService {
             previousSpeed = history[history.length - 3].speed;
         }
 
-        // 3. Resolve Media Evidence from SQLite
-        const matchingSeg = db.getSegmentAtTime(telemetry.terminalId, 1, eventTimeMs);
+        // 3. Resolve Media Evidence from SQLite or Live Buffer
+        let matchingSeg = db.getSegmentAtTime(telemetry.terminalId, 1, eventTimeMs);
         let mediaUrl = null;
         let mediaStartMs = eventTimeMs - 3000;
 
@@ -83,16 +83,28 @@ class AccidentService {
             mediaUrl = matchingSeg.mp4_clip_url || matchingSeg.hls_segment_url;
             mediaStartMs = matchingSeg.start_utc_ms;
         } else {
+            // In LIVE_ONLY mode, extract pre-event and post-event footage from rolling live buffer
             try {
-                const anySegs = db.getSegmentsForReels(telemetry.terminalId, 1);
-                if (anySegs && anySegs.length > 0) {
-                    const latestSeg = anySegs[anySegs.length - 1];
-                    mediaUrl = latestSeg.mp4_clip_url || latestSeg.hls_segment_url;
-                    mediaStartMs = latestSeg.start_utc_ms;
-                } else if (fs.existsSync(path.join(config.MEDIA_DIR, 'default_evidence.mp4'))) {
-                    mediaUrl = '/media/default_evidence.mp4';
+                const mediaHandler = require('../protocols/jtt1078/media-handler');
+                const liveFootage = await mediaHandler.extractAccidentFootage(telemetry.terminalId, 1, eventTimeMs, accidentId);
+                if (liveFootage && liveFootage.mp4Url) {
+                    mediaUrl = liveFootage.mp4Url;
+                    mediaStartMs = liveFootage.startUtcMs;
                 }
-            } catch (err) {}
+            } catch (_) {}
+
+            if (!mediaUrl) {
+                try {
+                    const anySegs = db.getSegmentsForReels(telemetry.terminalId, 1);
+                    if (anySegs && anySegs.length > 0) {
+                        const latestSeg = anySegs[anySegs.length - 1];
+                        mediaUrl = latestSeg.mp4_clip_url || latestSeg.hls_segment_url;
+                        mediaStartMs = latestSeg.start_utc_ms;
+                    } else if (fs.existsSync(path.join(config.MEDIA_DIR, 'default_evidence.mp4'))) {
+                        mediaUrl = '/media/default_evidence.mp4';
+                    }
+                } catch (err) {}
+            }
         }
 
         // 4. Generate synchronized timeline based on actual media-time mapping (not raw array index)
@@ -114,6 +126,7 @@ class AccidentService {
         const address = await geocodingService.resolveAddress(telemetry.latitude, telemetry.longitude);
 
         // 5. Build Accident Record (honestly preserve alarm type and null G-force)
+        const hasRealMedia = matchingSeg || (mediaUrl && mediaUrl !== '/media/default_evidence.mp4');
         const accidentRecord = {
             accidentId: accidentId,
             terminalId: telemetry.terminalId,
@@ -131,7 +144,7 @@ class AccidentService {
             ignition: telemetry.ignition,
             impactGForce: telemetry.impactGForce !== undefined ? telemetry.impactGForce : null, // Never invent fake 4.5
             alarmType: telemetry.alarmType || 'COLLISION_WARNING',
-            status: matchingSeg ? 'VERIFIED' : 'PENDING_MEDIA',
+            status: hasRealMedia ? 'VERIFIED' : 'PENDING_MEDIA',
             isSimulated: !!telemetry.isSimulated,
             evidence: {
                 frontCamera: mediaUrl, // Real local media clip or null
@@ -149,6 +162,22 @@ class AccidentService {
         // 7. Broadcast Alert to Dashboard
         console.log(`[AccidentService] Registered Accident: ${accidentId} for ${telemetry.terminalId} [Type: ${accidentRecord.alarmType}]`);
         wsService.emit('accident_alert', accidentRecord);
+        return accidentRecord;
+    }
+
+    /**
+     * Check if an accident record is pending media for this camera in the specified time range
+     */
+    hasPendingAccident(terminalId, channel, startUtcMs, endUtcMs) {
+        for (const acc of this.accidents.values()) {
+            if (acc.terminalId === terminalId && (!acc.evidence.frontCamera || acc.status === 'PENDING_MEDIA')) {
+                const accMs = new Date(acc.timestamp).getTime();
+                if (accMs >= (startUtcMs - 3000) && accMs <= (endUtcMs + 3000)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
