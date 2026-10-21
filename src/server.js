@@ -865,9 +865,28 @@ app.post('/api/simulator/command', async (req, res) => {
 });
 
 // --- Same-Origin Simulator Control Endpoints ---
-app.post('/api/simulator/control', (req, res) => {
-    const { action } = req.body || {};
-    if (action === 'pause') res.json(simulator.pause());
+app.post('/api/simulator/control', async (req, res) => {
+    const { action, terminalId, channel, durationSeconds } = req.body || {};
+    if (action === 'start' || action === 'startSimulation') {
+        const termId = terminalId || '872312858278';
+        const ch = parseInt(channel || 1, 10);
+        mediaHandler.simulated.add(`${termId}_${ch}`);
+        try {
+            await simulator.start({
+                action: 'startSimulation',
+                terminalId: termId,
+                channel: ch,
+                scenario: 'indore-demo',
+                telemetryCount: 600,
+                telemetryIntervalMs: 1000,
+                durationSeconds: durationSeconds || 600,
+                segmentSeconds: 3
+            });
+            return res.json({ success: true, status: simulator.getStatus() });
+        } catch (err) {
+            return res.status(500).json({ success: false, error: err.message });
+        }
+    } else if (action === 'pause') res.json(simulator.pause());
     else if (action === 'resume') res.json(simulator.resume());
     else if (action === 'stop') res.json(simulator.stop());
     else res.json(simulator.getStatus());
