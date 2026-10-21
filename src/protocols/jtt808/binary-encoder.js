@@ -88,6 +88,14 @@ class BinaryEncoder {
         return this._buildPacket(0x9102, terminalId, bodyBuf);
     }
 
+    /**
+     * Builds 0x8201 Location Information Query (JT/T 808-2013 Table 23)
+     * @param {string} terminalId 
+     */
+    buildLocationQuery(terminalId) {
+        return this._buildPacket(0x8201, terminalId, Buffer.alloc(0));
+    }
+
     _buildPacket(messageId, terminalId, bodyBuf) {
         const headerBuf = Buffer.alloc(12);
         headerBuf.writeUInt16BE(messageId, 0);

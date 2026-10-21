@@ -921,6 +921,7 @@ server.listen(config.API_PORT, () => {
 // 2. JT/T 808 Server (GPS & Telemetry)
 // ==========================================
 const activeJT808Sockets = new Map(); // normalizedPhone -> net.Socket
+const connectedSockets808 = new Set(); // all open TCP sockets on port 7800
 
 function registerJT808Socket(terminalPhone, socket) {
     if (!terminalPhone) return;
@@ -980,10 +981,57 @@ function requestLiveStreams(socket, terminalPhone) {
     }, 1500);
 }
 
+app.all('/api/video/start-live', (req, res) => {
+    const terminalId = req.query.terminalId || req.body?.terminalId || '872312858278';
+    let socket = activeJT808Sockets.get(terminalId);
+    let matchedBy = 'terminalId';
+
+    if (!socket || socket.destroyed) {
+        // Fallback: use the most recently connected active JT808 socket
+        const activeSockets = Array.from(connectedSockets808).filter(s => !s.destroyed);
+        if (activeSockets.length > 0) {
+            socket = activeSockets[activeSockets.length - 1];
+            matchedBy = `connectedSocket_${socket.remoteAddress}:${socket.remotePort}`;
+        }
+    }
+
+    if (!socket || socket.destroyed) {
+        return res.status(404).json({
+            success: false,
+            error: 'No active JT808 socket connected from dashcam',
+            connectedSocketsCount: connectedSockets808.size
+        });
+    }
+
+    // Reset flag to force re-request
+    socket.liveRequested = false;
+    requestLiveStreams(socket, terminalId);
+
+    // Also send Location Query 0x8201
+    try {
+        const locQuery = binaryEncoder.buildLocationQuery(terminalId);
+        socket.write(locQuery);
+    } catch (_) {}
+
+    res.json({
+        success: true,
+        terminalId,
+        matchedBy,
+        target: `${socket.remoteAddress}:${socket.remotePort}`,
+        message: 'Live video request (0x9101 CH1 & CH2) and location query (0x8201) dispatched to dashcam socket'
+    });
+});
+
 const server808 = net.createServer((socket) => {
     const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log(`[JT808] Terminal connected: ${clientAddress}`);
     wsService.emit('dashcam_connected', { ip: clientAddress });
+
+    connectedSockets808.add(socket);
+    const removeConn = () => connectedSockets808.delete(socket);
+    socket.on('end', removeConn);
+    socket.on('close', removeConn);
+    socket.on('error', removeConn);
 
     socket.buffer = Buffer.alloc(0);
     socket.authenticated = false;
@@ -999,7 +1047,24 @@ const server808 = net.createServer((socket) => {
         socket.destroy();
     });
 
+    // Proactive probe: If terminal connects but sends no data in 1.5s, probe with 0x8201 & 0x9101
+    const probeTimer = setTimeout(() => {
+        if (!socket.destroyed && !socket.terminalPhone) {
+            const defaultTerminal = config.DEFAULT_TERMINAL_ID || '872312858278';
+            console.log(`[JT808] Probing connected socket ${clientAddress} with 0x8201 (Location Query) & 0x9101 (Live Stream) for ${defaultTerminal}`);
+            try {
+                const locQuery = binaryEncoder.buildLocationQuery(defaultTerminal);
+                socket.write(locQuery);
+                requestLiveStreams(socket, defaultTerminal);
+            } catch (err) {
+                console.error(`[JT808] Probe error on ${clientAddress}:`, err.message);
+            }
+        }
+    }, 1500);
+    socket.on('close', () => clearTimeout(probeTimer));
+
     socket.on('data', async (data) => {
+        clearTimeout(probeTimer);
         socket.lastSeen = Date.now();
         console.log(`[JT808] <<< RAW DATA (${data.length} bytes) from ${clientAddress}: ${data.slice(0, 24).toString('hex')}`);
         socket.buffer = Buffer.concat([socket.buffer, data]);
