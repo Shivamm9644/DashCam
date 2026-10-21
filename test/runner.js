@@ -977,6 +977,83 @@ await runTest('Safety: Temporary live cleanup strictly preserves recordings, ree
     assert(fs.existsSync(config.DB_PATH), 'dashcam.db must exist and be intact');
 });
 
+// -------------------------------------------------------------
+// Test 29: Roadeazy Public API Compatibility Layer
+// -------------------------------------------------------------
+await runTest('Roadeazy API: Complete Suite (Assets, LiveVideo, Recordings, Safety, SSE, Trips, Tags)', async () => {
+    const http = require('http');
+    const express = require('express');
+    const createRoadeazyRouter = require('../src/routes/roadeazy-api');
+
+    const app = express();
+    app.use(express.json());
+    const router = createRoadeazyRouter({
+        db,
+        wsService: null,
+        telemetryService: null,
+        accidentService: null,
+        tripService: null,
+        activeJT808Sockets: new Map(),
+        requestLiveStreams: () => {},
+        config
+    });
+    app.use(router);
+
+    const srv = http.createServer(app);
+    await new Promise(r => srv.listen(0, '127.0.0.1', r));
+    const port = srv.address().port;
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    function doReq(method, urlPath, body = null, headers = {}) {
+        return new Promise((resolve, reject) => {
+            const req = http.request(new URL(urlPath, baseUrl), {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-API-KEY': 'your_api_key_here', ...headers }
+            }, (res) => {
+                let d = '';
+                res.on('data', c => d += c);
+                res.on('end', () => {
+                    let parsed = null;
+                    try { parsed = JSON.parse(d); } catch (_) { parsed = d; }
+                    resolve({ status: res.statusCode, data: parsed });
+                });
+            });
+            req.on('error', reject);
+            if (body) req.write(typeof body === 'string' ? body : JSON.stringify(body));
+            req.end();
+        });
+    }
+
+    try {
+        const assets = await doReq('GET', '/assets');
+        assert.strictEqual(assets.status, 200);
+        assert(Array.isArray(assets.data.rows));
+
+        const hls = await doReq('GET', '/device/media/livevideo/hls?deviceId=872312858278&cameraId=0');
+        assert.strictEqual(hls.status, 200);
+        assert(hls.data.url.includes('live.m3u8'));
+
+        const power = await doReq('POST', '/device/power', { mode: 'wakeup', deviceId: '872312858278' });
+        assert.strictEqual(power.status, 200);
+
+        const safety = await doReq('GET', '/safety?imei=872312858278');
+        assert.strictEqual(safety.status, 200);
+        assert(Array.isArray(safety.data.dataJson.rows));
+
+        const trips = await doReq('GET', '/trips');
+        assert.strictEqual(trips.status, 200);
+        assert(Array.isArray(trips.data.rows));
+
+        const tags = await doReq('GET', '/tags');
+        assert.strictEqual(tags.status, 200);
+
+        const sse = await doReq('POST', '/location/sseRegister-livelocation', { topic: 'live-location' });
+        assert.strictEqual(sse.status, 200);
+    } finally {
+        srv.close();
+    }
+});
+
 console.log('\n============================================================');
 console.log(`TEST RUN SUMMARY: ${passedTests} / ${totalTests} PASSED`);
 console.log('============================================================\n');

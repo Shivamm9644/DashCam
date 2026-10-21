@@ -212,6 +212,31 @@ class DatabaseManager {
                 last_login TEXT,
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS tags (
+                entity_id TEXT PRIMARY KEY,
+                tag_value TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS asset_tags (
+                asset_id TEXT NOT NULL,
+                tag_value TEXT NOT NULL,
+                PRIMARY KEY (asset_id, tag_value)
+            );
+
+            CREATE TABLE IF NOT EXISTS asset_configs (
+                asset_id TEXT PRIMARY KEY,
+                override_fleet_settings INTEGER DEFAULT 1,
+                ignition_off_standby_delay INTEGER DEFAULT 300,
+                road_cam_enable INTEGER DEFAULT 1,
+                road_cam_quality TEXT DEFAULT 'Standard Quality',
+                driver_audio_enable INTEGER DEFAULT 0,
+                driver_cam_enable INTEGER DEFAULT 1,
+                driver_cam_quality TEXT DEFAULT 'Extended Storage',
+                safety_config_json TEXT,
+                updated_at TEXT NOT NULL
+            );
         `);
 
         // Seed default tenants if none exist
@@ -253,6 +278,15 @@ class DatabaseManager {
             insertUser.run('usr_admin', 'admin', 'password', 'Fleet Operations Admin', 'admin@inurum.com', 'admin', 'tenant_inurum_global', 'ACTIVE', 'Yesterday, 18:30', now);
             // 3. User: operational viewing & monitoring only
             insertUser.run('usr_user', 'user', 'password', 'Fleet Dispatcher', 'user@inurum.com', 'user', 'tenant_inurum_global', 'ACTIVE', '2 hours ago', now);
+        }
+
+        // Seed default tags if none exist
+        const tagCount = this.db.prepare(`SELECT COUNT(*) as count FROM tags`).get().count;
+        if (tagCount === 0) {
+            const now = new Date().toISOString();
+            const insertTag = this.db.prepare(`INSERT INTO tags (entity_id, tag_value, created_at) VALUES (?, ?, ?)`);
+            insertTag.run('tag1', 'maintenance-due', now);
+            insertTag.run('tag2', 'high_value_asset', now);
         }
     }
 
@@ -413,6 +447,10 @@ class DatabaseManager {
             SELECT * FROM devices WHERE device_id = ?
         `);
 
+        this.stmtDeleteDevice = this.db.prepare(`
+            DELETE FROM devices WHERE device_id = ?
+        `);
+
         // Drivers
         this.stmtGetAllDrivers = this.db.prepare(`
             SELECT * FROM drivers ORDER BY created_at DESC
@@ -484,6 +522,10 @@ class DatabaseManager {
             SELECT * FROM users WHERE username = ?
         `);
 
+        this.stmtGetUserById = this.db.prepare(`
+            SELECT * FROM users WHERE user_id = ?
+        `);
+
         this.stmtGetAllUsers = this.db.prepare(`
             SELECT user_id, username, full_name, email, role, tenant_id, status, last_login, created_at FROM users ORDER BY created_at ASC
         `);
@@ -503,6 +545,30 @@ class DatabaseManager {
 
         this.stmtUpdateUserLastLogin = this.db.prepare(`
             UPDATE users SET last_login = ? WHERE user_id = ?
+        `);
+
+        // Roadeazy Tags & Asset Configs
+        this.stmtGetAllTags = this.db.prepare(`SELECT entity_id as entityId, tag_value as tagValue, created_at as createdAt FROM tags ORDER BY created_at ASC`);
+        this.stmtInsertTag = this.db.prepare(`INSERT INTO tags (entity_id, tag_value, created_at) VALUES (?, ?, ?)`);
+        this.stmtUpdateTag = this.db.prepare(`UPDATE tags SET tag_value = ? WHERE entity_id = ?`);
+        this.stmtDeleteTag = this.db.prepare(`DELETE FROM tags WHERE entity_id = ?`);
+        this.stmtGetAssetTags = this.db.prepare(`SELECT tag_value FROM asset_tags WHERE asset_id = ?`);
+        this.stmtClearAssetTags = this.db.prepare(`DELETE FROM asset_tags WHERE asset_id = ?`);
+        this.stmtAddAssetTag = this.db.prepare(`INSERT OR IGNORE INTO asset_tags (asset_id, tag_value) VALUES (?, ?)`);
+        this.stmtGetAssetConfig = this.db.prepare(`SELECT * FROM asset_configs WHERE asset_id = ?`);
+        this.stmtUpsertAssetConfig = this.db.prepare(`
+            INSERT INTO asset_configs (asset_id, override_fleet_settings, ignition_off_standby_delay, road_cam_enable, road_cam_quality, driver_audio_enable, driver_cam_enable, driver_cam_quality, safety_config_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(asset_id) DO UPDATE SET
+                override_fleet_settings = excluded.override_fleet_settings,
+                ignition_off_standby_delay = excluded.ignition_off_standby_delay,
+                road_cam_enable = excluded.road_cam_enable,
+                road_cam_quality = excluded.road_cam_quality,
+                driver_audio_enable = excluded.driver_audio_enable,
+                driver_cam_enable = excluded.driver_cam_enable,
+                driver_cam_quality = excluded.driver_cam_quality,
+                safety_config_json = excluded.safety_config_json,
+                updated_at = excluded.updated_at
         `);
     }
 
@@ -767,6 +833,11 @@ class DatabaseManager {
         };
     }
 
+    deleteDevice(deviceId) {
+        this.stmtDeleteDevice.run(deviceId);
+        return true;
+    }
+
     // --- Driver Methods ---
     getAllDrivers() {
         const rows = this.stmtGetAllDrivers.all();
@@ -1019,6 +1090,123 @@ class DatabaseManager {
         if (userId === 'usr_superadmin') return false;
         this.stmtDeleteUser.run(userId);
         return true;
+    }
+
+    getUserById(userId) {
+        const r = this.stmtGetUserById.get(userId);
+        if (!r) return null;
+        return {
+            id: r.user_id,
+            username: r.username,
+            fullName: r.full_name,
+            email: r.email,
+            role: r.role,
+            tenantId: r.tenant_id,
+            status: r.status,
+            lastLogin: r.last_login,
+            createdAt: r.created_at
+        };
+    }
+
+    // --- Roadeazy Tags & Asset Config Methods ---
+    getAllTags() {
+        return this.stmtGetAllTags.all();
+    }
+
+    createTag(tagValue) {
+        const entityId = `tag_${Date.now()}`;
+        const now = new Date().toISOString();
+        this.stmtInsertTag.run(entityId, tagValue, now);
+        return { entityId, tagValue, createdAt: now };
+    }
+
+    updateTag(entityId, tagValue) {
+        this.stmtUpdateTag.run(tagValue, entityId);
+        return { entityId, tagValue };
+    }
+
+    deleteTag(entityId) {
+        this.stmtDeleteTag.run(entityId);
+        return true;
+    }
+
+    getAssetTags(assetId) {
+        return this.stmtGetAssetTags.all(assetId).map(r => r.tag_value);
+    }
+
+    setAssetTags(assetId, tags) {
+        this.stmtClearAssetTags.run(assetId);
+        if (Array.isArray(tags)) {
+            for (const t of tags) {
+                if (t && typeof t === 'string') {
+                    this.stmtAddAssetTag.run(assetId, t.trim());
+                }
+            }
+        }
+        return this.getAssetTags(assetId);
+    }
+
+    getAssetConfig(assetId) {
+        const row = this.stmtGetAssetConfig.get(assetId);
+        if (!row) {
+            return {
+                overrideFleetSettings: true,
+                ignitionOffStandbyDelay: 300,
+                roadCamEnable: true,
+                roadCamQuality: 'Standard Quality',
+                driverAudioEnable: false,
+                driverCamEnable: true,
+                driverCamQuality: 'Extended Storage',
+                safetyConfig: {
+                    audioMode: 1,
+                    harshBraking: { enabled: true },
+                    harshAcceleration: { enabled: true },
+                    driverDistracted: { audibleAlert: true, triggerNotification: 1 },
+                    tailgating: { audibleAlert: false, triggerNotification: 2 }
+                }
+            };
+        }
+        let safetyConfig = null;
+        try {
+            safetyConfig = row.safety_config_json ? JSON.parse(row.safety_config_json) : null;
+        } catch (_) {}
+        return {
+            overrideFleetSettings: Boolean(row.override_fleet_settings),
+            ignitionOffStandbyDelay: row.ignition_off_standby_delay,
+            roadCamEnable: Boolean(row.road_cam_enable),
+            roadCamQuality: row.road_cam_quality,
+            driverAudioEnable: Boolean(row.driver_audio_enable),
+            driverCamEnable: Boolean(row.driver_cam_enable),
+            driverCamQuality: row.driver_cam_quality,
+            safetyConfig: safetyConfig || {
+                audioMode: 1,
+                harshBraking: { enabled: true },
+                harshAcceleration: { enabled: true },
+                driverDistracted: { audibleAlert: true, triggerNotification: 1 },
+                tailgating: { audibleAlert: false, triggerNotification: 2 }
+            }
+        };
+    }
+
+    updateAssetConfig(assetId, config, safetyConfig) {
+        const current = this.getAssetConfig(assetId);
+        const mergedConfig = { ...current, ...(config || {}) };
+        const mergedSafety = safetyConfig !== undefined ? safetyConfig : current.safetyConfig;
+        const now = new Date().toISOString();
+
+        this.stmtUpsertAssetConfig.run(
+            assetId,
+            mergedConfig.overrideFleetSettings ? 1 : 0,
+            mergedConfig.ignitionOffStandbyDelay !== undefined ? Number(mergedConfig.ignitionOffStandbyDelay) : 300,
+            mergedConfig.roadCamEnable ? 1 : 0,
+            mergedConfig.roadCamQuality || 'Standard Quality',
+            mergedConfig.driverAudioEnable ? 1 : 0,
+            mergedConfig.driverCamEnable ? 1 : 0,
+            mergedConfig.driverCamQuality || 'Extended Storage',
+            mergedSafety ? JSON.stringify(mergedSafety) : null,
+            now
+        );
+        return this.getAssetConfig(assetId);
     }
 
     close() {

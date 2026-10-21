@@ -25,6 +25,9 @@ const mediaParser = require('./protocols/jtt1078/media-parser');
 // Simulator
 const simulator = require('./simulator/engine');
 
+// Roadeazy Public API Router
+const createRoadeazyRouter = require('./routes/roadeazy-api');
+
 // ==========================================
 // 1. Express API & WebSocket Server
 // ==========================================
@@ -999,6 +1002,22 @@ function requestLiveStreams(socket, terminalPhone) {
         }
     }, 1500);
 }
+
+// ==========================================
+// Roadeazy Public API Compatibility Layer
+// ==========================================
+const roadeazyRouter = createRoadeazyRouter({
+    db,
+    wsService,
+    telemetryService,
+    accidentService,
+    tripService,
+    activeJT808Sockets,
+    requestLiveStreams,
+    config
+});
+app.use(roadeazyRouter);
+app.use('/api', roadeazyRouter);
 
 app.all('/api/video/start-live', (req, res) => {
     const terminalId = req.query.terminalId || req.body?.terminalId || '872312858278';
