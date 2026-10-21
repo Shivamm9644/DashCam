@@ -517,6 +517,13 @@ app.all('/api/video/start-live', (req, res) => {
     const normId = String(terminalId).trim();
     let sock = activeJT808Sockets.get(normId) || activeJT808Sockets.get(normId.padStart(12, '0')) || activeJT808Sockets.get(normId.replace(/^0+/, ''));
 
+    // Fallback: If terminal registered with slightly different prefix, use active socket
+    if (!sock || sock.destroyed) {
+        for (const [id, s] of activeJT808Sockets.entries()) {
+            if (!s.destroyed) { sock = s; break; }
+        }
+    }
+
     if (sock && !sock.destroyed) {
         const targetId = sock.terminalPhone || normId;
         const req1 = binaryEncoder.buildLiveStartRequest(targetId, {
@@ -983,7 +990,8 @@ const server808 = net.createServer((socket) => {
     socket.lastSeen = Date.now();
     socket.liveRequested = false;
 
-    socket.setKeepAlive(true, 30000);
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 15000);
     socket.setTimeout(180000); // 3-minute inactivity timeout
     socket.on('timeout', () => {
         console.warn(`[JT808] Socket idle timeout (180s): ${clientAddress}`);
@@ -992,6 +1000,7 @@ const server808 = net.createServer((socket) => {
 
     socket.on('data', async (data) => {
         socket.lastSeen = Date.now();
+        console.log(`[JT808] <<< RAW DATA (${data.length} bytes) from ${clientAddress}: ${data.slice(0, 24).toString('hex')}`);
         socket.buffer = Buffer.concat([socket.buffer, data]);
 
         while (socket.buffer.length > 0) {
@@ -1195,7 +1204,8 @@ server808.listen(config.JT808_PORT, () => {
 const server1078 = net.createServer((socket) => {
     const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log(`[JT1078] Media stream connected: ${clientAddress}`);
-    socket.setKeepAlive(true, 30000);
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 15000);
     socket.setTimeout(60000); // 60s timeout if no media packets received
     socket.on('timeout', () => {
         console.warn(`[JT1078] Media stream idle timeout (60s): ${clientAddress}`);
@@ -1203,6 +1213,7 @@ const server1078 = net.createServer((socket) => {
     });
 
     socket.on('data', (data) => {
+        console.log(`[JT1078] <<< RAW MEDIA (${data.length} bytes) from ${clientAddress}`);
         try { mediaHandler.handleData(socket, data); } catch (e) { console.error(e.message); socket.destroy(); }
     });
 
