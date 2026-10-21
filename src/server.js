@@ -1,4 +1,5 @@
 const net = require('net');
+const dgram = require('dgram');
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -1199,6 +1200,116 @@ server808.listen(config.JT808_PORT, () => {
 });
 
 // ==========================================
+// 2b. JT/T 808 Server (UDP Support)
+// ==========================================
+const udpServer808 = dgram.createSocket('udp4');
+
+udpServer808.on('message', async (msg, rinfo) => {
+    console.log(`[JT808-UDP] <<< RAW DATA (${msg.length} bytes) from ${rinfo.address}:${rinfo.port}: ${msg.slice(0, 24).toString('hex')}`);
+
+    let buffer = msg;
+    while (buffer.length > 0) {
+        const startIndex = buffer.indexOf(0x7E);
+        if (startIndex === -1) break;
+        if (startIndex > 0) {
+            buffer = buffer.subarray(startIndex);
+            continue;
+        }
+
+        const endIndex = buffer.indexOf(0x7E, 1);
+        if (endIndex === -1) break;
+        if (endIndex === 1) {
+            buffer = buffer.subarray(1);
+            continue;
+        }
+
+        const frameBuffer = buffer.subarray(0, endIndex + 1);
+        buffer = buffer.subarray(endIndex + 1);
+
+        const result = binaryParser.parse(frameBuffer);
+        if (result && result.frame) {
+            const { frame, decoded, telemetry, error } = result;
+            if (error) {
+                console.warn(`[JT808-UDP] Frame rejected: ${error}`);
+                continue;
+            }
+
+            console.log(`[JT808-UDP] Terminal ${frame.terminalPhone} Message: 0x${frame.messageId.toString(16).padStart(4, '0')} (${frame.messageName})`);
+            let responsePacket = null;
+
+            if (frame.messageId === 0x0100) {
+                // Registration
+                responsePacket = binaryEncoder.buildRegistrationResponse(
+                    frame.terminalPhone,
+                    frame.serialNo,
+                    0,
+                    "AUTH12345"
+                );
+            } else if (frame.messageId === 0x0102) {
+                // Authentication
+                responsePacket = binaryEncoder.buildPlatformResponse(
+                    frame.terminalPhone,
+                    frame.serialNo,
+                    frame.messageId,
+                    0
+                );
+            } else if (frame.messageId === 0x0002) {
+                // Heartbeat
+                responsePacket = binaryEncoder.buildPlatformResponse(
+                    frame.terminalPhone,
+                    frame.serialNo,
+                    frame.messageId,
+                    0
+                );
+            } else if (frame.messageId === 0x0200) {
+                // Location Information
+                if (telemetry) {
+                    telemetryService.addTelemetry(telemetry);
+                    db.touchDevice(telemetry.terminalId, {
+                        vehicleNo: telemetry.vehicleId,
+                        latitude: telemetry.latitude,
+                        longitude: telemetry.longitude,
+                        speed: telemetry.speed,
+                        status: 'Online'
+                    });
+                    await tripService.processTelemetry(telemetry);
+                    wsService.emit('telemetry', telemetry);
+                }
+                responsePacket = binaryEncoder.buildPlatformResponse(
+                    frame.terminalPhone,
+                    frame.serialNo,
+                    frame.messageId,
+                    0
+                );
+            } else {
+                if (frame.messageId !== 0x0001) {
+                    responsePacket = binaryEncoder.buildPlatformResponse(
+                        frame.terminalPhone,
+                        frame.serialNo,
+                        frame.messageId,
+                        0
+                    );
+                }
+            }
+
+            if (responsePacket) {
+                udpServer808.send(responsePacket, rinfo.port, rinfo.address, (err) => {
+                    if (err) console.error(`[JT808-UDP] Send error: ${err.message}`);
+                });
+            }
+        }
+    }
+});
+
+udpServer808.on('error', (err) => {
+    console.error(`[JT808-UDP] Error: ${err.message}`);
+});
+
+udpServer808.bind(config.JT808_PORT, () => {
+    console.log(`[JT808-UDP] Server listening on UDP port ${config.JT808_PORT}`);
+});
+
+// ==========================================
 // 3. JT/T 1078 Server (Video & Audio Ingestion)
 // ==========================================
 const server1078 = net.createServer((socket) => {
@@ -1229,12 +1340,13 @@ server1078.listen(config.JT1078_PORT, () => {
     console.log(`[JT1078] Media Server listening on port ${config.JT1078_PORT}`);
 });
 
-module.exports = { app, server, server808, server1078 };
+module.exports = { app, server, server808, server1078, udpServer808 };
 
 let shuttingDown = false;
 async function shutdown() {
     if (shuttingDown) return; shuttingDown = true; simulator.stop();
     await new Promise(r => setTimeout(r, 100));
+    try { udpServer808.close(); } catch (e) {}
     await Promise.all([...mediaHandler.sessions.values()].map(s => mediaHandler.closeSession(s.terminalId, s.channel, true)));
     await mediaHandler.drain(); db.db.close(); process.exit(0);
 }
