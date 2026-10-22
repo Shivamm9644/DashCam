@@ -419,7 +419,7 @@
                 <div class="multi-cam-toolbar">
                     <div class="multi-cam-toolbar-left">
                         <select class="cam-vehicle-select" id="liveVehicleSelect">
-                            <option value="872312858278" selected>Vehicle 872312858278 (Front & Cabin)</option>
+                            <option value="" disabled selected>Select Connected Vehicle</option>
                         </select>
                         <span class="toolbar-tag tag-offline" id="liveToolbarStatus">● Awaiting Stream</span>
                         <span class="toolbar-tag tag-speed" id="liveToolbarSpeed">0 km/h</span>
@@ -2581,55 +2581,70 @@
                 const tripSelect = document.getElementById('tripVehicleSelect');
 
                 const deviceList = Array.isArray(devices) ? [...devices] : [];
-                if (!deviceList.some(d => d.deviceId === '872312858278')) {
-                    deviceList.unshift({
-                        deviceId: '872312858278',
-                        vehicleNo: 'DashCam-872312858278',
-                        deviceType: 'GD19 AI DashCam (Dual)',
-                        status: 'Online',
-                        simNo: 'Airtel 4G',
-                        latitude: 22.7196,
-                        longitude: 75.8577,
-                        speed: 42
-                    });
-                }
                 allTrackingDevices = deviceList;
 
                 // Update select dropdowns
                 if (liveSelect) {
                     const currentVal = liveSelect.value || activeTerminalId;
                     liveSelect.innerHTML = '';
-                    deviceList.forEach(d => {
+                    if (deviceList.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = d.deviceId;
-                        opt.text = `${d.vehicleNo} (${d.deviceId})`;
-                        if (d.deviceId === currentVal || d.deviceId === activeTerminalId) opt.selected = true;
+                        opt.value = '';
+                        opt.text = 'No Connected Devices';
+                        opt.disabled = true;
+                        opt.selected = true;
                         liveSelect.appendChild(opt);
-                    });
+                    } else {
+                        deviceList.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d.deviceId;
+                            opt.text = `${d.vehicleNo} (${d.deviceId})`;
+                            if (d.deviceId === currentVal || d.deviceId === activeTerminalId) opt.selected = true;
+                            liveSelect.appendChild(opt);
+                        });
+                    }
                     liveSelect.onchange = () => {
-                        activeTerminalId = liveSelect.value;
-                        initLivePlayer(activeTerminalId);
+                        if (liveSelect.value) {
+                            activeTerminalId = liveSelect.value;
+                            initLivePlayer(activeTerminalId);
+                        }
                     };
                 }
 
                 if (recSelect) {
                     recSelect.innerHTML = `<option value="">All Vehicles</option>`;
-                    deviceList.forEach(d => {
+                    if (deviceList.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = d.deviceId;
-                        opt.text = d.vehicleNo;
+                        opt.value = '';
+                        opt.text = 'No vehicles';
+                        opt.disabled = true;
                         recSelect.appendChild(opt);
-                    });
+                    } else {
+                        deviceList.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d.deviceId;
+                            opt.text = d.vehicleNo;
+                            recSelect.appendChild(opt);
+                        });
+                    }
                 }
 
                 if (tripSelect) {
                     tripSelect.innerHTML = '';
-                    deviceList.forEach(d => {
+                    if (deviceList.length === 0) {
                         const opt = document.createElement('option');
-                        opt.value = d.deviceId;
-                        opt.text = d.vehicleNo;
+                        opt.value = '';
+                        opt.text = 'No Trips Available';
+                        opt.disabled = true;
                         tripSelect.appendChild(opt);
-                    });
+                    } else {
+                        deviceList.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d.deviceId;
+                            opt.text = d.vehicleNo;
+                            tripSelect.appendChild(opt);
+                        });
+                    }
                 }
 
                 renderTrackingList();

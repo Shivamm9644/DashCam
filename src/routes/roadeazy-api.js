@@ -253,23 +253,6 @@ function createRoadeazyRouter({
         const hostUrl = `${req.protocol}://${req.get('host')}`;
 
         let devices = db.getAllDevices ? db.getAllDevices() : [];
-
-        // If no devices in DB, synthesize default active dashcam
-        if (devices.length === 0) {
-            devices = [{
-                deviceId: '872312858278',
-                vehicleNo: 'MH-12-IN-9080',
-                deviceType: 'MDVR (Dual Cam)',
-                status: 'Online',
-                simNo: '872312858278',
-                firmware: 'v1.2.6',
-                lastOnline: new Date().toISOString(),
-                latitude: 18.5204,
-                longitude: 73.8567,
-                speed: 38.5
-            }];
-        }
-
         let assetRows = devices.map(d => buildAssetObject(d, hostUrl));
 
         // Filter by tags if specified

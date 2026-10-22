@@ -2,6 +2,7 @@ const net = require('net');
 const dgram = require('dgram');
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 
@@ -314,23 +315,73 @@ app.get('/api/fleet/summary', (req, res) => {
     });
 });
 
-app.get('/api/devices', (req, res) => {
-    let list = db.getAllDevices();
-    if (!list || list.length === 0 || !list.some(d => d.deviceId === '872312858278')) {
-        const latest = db.getLatestTelemetry('872312858278');
-        const sock = activeJT808Sockets.get('872312858278');
-        const isOnline = Boolean(sock && !sock.destroyed);
-        db.touchDevice('872312858278', {
-            vehicleNo: latest?.vehicle_id || 'VEH-8278',
-            deviceType: 'MDVR Dual-Cam (GD19)',
-            status: isOnline ? 'Online' : 'Offline',
-            simNo: '872312858278',
-            latitude: latest?.latitude ?? null,
-            longitude: latest?.longitude ?? null,
-            speed: latest?.speed || 0
+// Clean database and storage completely
+app.all('/api/admin/clean-database', (req, res) => {
+    try {
+        // 1. Wipe SQLite tables
+        const result = db.cleanAllData();
+        
+        // 2. Clear in-memory service caches
+        if (accidentService && accidentService.accidents) {
+            accidentService.accidents.clear();
+        }
+        if (tripService && tripService.activeTrips) {
+            tripService.activeTrips.clear();
+        }
+        
+        // 3. Purge disk storage files (metadata & media)
+        const dirsToClean = [
+            config.ACCIDENTS_DIR,
+            path.join(config.MEDIA_DIR, 'accidents', 'evidence'),
+            path.join(config.MEDIA_DIR, 'live'),
+            path.join(config.MEDIA_DIR, 'recordings'),
+            path.join(config.MEDIA_DIR, 'sessions'),
+            path.join(config.MEDIA_DIR, 'reels'),
+            path.join(config.MEDIA_DIR, 'video'),
+            config.TRIPS_DIR
+        ];
+
+        let deletedFilesCount = 0;
+        for (const dir of dirsToClean) {
+            if (fs.existsSync(dir)) {
+                const entries = fs.readdirSync(dir);
+                for (const entry of entries) {
+                    const fullPath = path.join(dir, entry);
+                    try {
+                        const stat = fs.statSync(fullPath);
+                        if (stat.isDirectory()) {
+                            fs.rmSync(fullPath, { recursive: true, force: true });
+                            deletedFilesCount++;
+                        } else if (entry !== 'default_evidence.mp4') {
+                            fs.unlinkSync(fullPath);
+                            deletedFilesCount++;
+                        }
+                    } catch (err) {
+                        console.warn(`[CleanDB] Failed to delete ${fullPath}:`, err.message);
+                    }
+                }
+            }
+        }
+
+        // 4. Broadcast system reset via WebSocket if available
+        if (wsService && wsService.broadcast) {
+            wsService.broadcast('SYSTEM_DATABASE_CLEANED', { timestamp: new Date().toISOString() });
+        }
+
+        res.json({
+            success: true,
+            message: 'Database & storage media completely cleaned successfully!',
+            tablesWiped: result.wipedTables,
+            deletedFilesCount: deletedFilesCount
         });
-        list = db.getAllDevices();
+    } catch (err) {
+        console.error('[CleanDB] Error during database clean:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
+});
+
+app.get('/api/devices', (req, res) => {
+    const list = db.getAllDevices() || [];
     const dynamicList = list.map(d => {
         const sock = activeJT808Sockets.get(d.deviceId) || activeJT808Sockets.get(String(d.deviceId).padStart(12, '0'));
         const isOnline = Boolean(sock && !sock.destroyed);
