@@ -155,8 +155,8 @@ function createRoadeazyRouter({
             }
         }
 
-        // If no credentials provided, check if internal dashboard session or localhost
-        const isLocalhost = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
+        // If no credentials provided, check if internal dashboard session, localhost, or server host
+        const isLocalhost = req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1' || (config && config.MEDIA_SERVER_IP && (req.ip.includes(config.MEDIA_SERVER_IP) || req.get('host')?.includes(config.MEDIA_SERVER_IP)));
         if (isLocalhost || req.query.internal === 'true') {
             req.apiAuthenticated = true;
             return next();

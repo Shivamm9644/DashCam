@@ -148,6 +148,7 @@ class DatabaseManager {
                 last_lat REAL,
                 last_lng REAL,
                 last_speed REAL,
+                last_address TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
@@ -239,6 +240,9 @@ class DatabaseManager {
             );
         `);
 
+        // Migration: ensure last_address column exists on devices table
+        try { this.db.exec("ALTER TABLE devices ADD COLUMN last_address TEXT;"); } catch (e) {}
+
         // Seed default tenants if none exist
         const tenantCount = this.db.prepare(`SELECT COUNT(*) as count FROM tenants`).get().count;
         if (tenantCount === 0) {
@@ -287,6 +291,100 @@ class DatabaseManager {
             const insertTag = this.db.prepare(`INSERT INTO tags (entity_id, tag_value, created_at) VALUES (?, ?, ?)`);
             insertTag.run('tag1', 'maintenance-due', now);
             insertTag.run('tag2', 'high_value_asset', now);
+        }
+
+        // Seed default devices if none exist
+        const devCount = this.db.prepare(`SELECT COUNT(*) as count FROM devices`).get().count;
+        if (devCount === 0) {
+            const now = new Date().toISOString();
+            const insertDev = this.db.prepare(`
+                INSERT INTO devices (device_id, vehicle_no, device_type, status, sim_no, firmware, last_online, last_lat, last_lng, last_speed, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            insertDev.run('872312858278', 'MP-09-AB-1234', 'GD19 AI DashCam (Dual)', 'Online', 'Airtel 4G 9893012345', 'v2.4.1', now, 22.7196, 75.8577, 42, now, now);
+            insertDev.run('013812345678', 'MH-02-CD-5678', 'JT808/JT1078 4G MDVR', 'Online', 'Jio 4G 9820011223', 'v2.3.0', now, 19.0760, 72.8777, 58, now, now);
+            insertDev.run('013899887766', 'DL-01-EF-9012', 'ADAS AI SmartCam Pro', 'Online', 'Vi 4G 9811099887', 'v3.0.1', now, 28.6139, 77.2090, 35, now, now);
+            insertDev.run('013855443322', 'KA-03-GH-3456', 'Cold-Chain Fleet MDVR', 'Offline', 'Airtel 4G 9845055443', 'v2.1.8', now, 12.9716, 77.5946, 0, now, now);
+            insertDev.run('013811223344', 'GJ-01-JK-7890', 'Heavy Haul MDVR Dual-Cam', 'Offline', 'BSNL 4G 9825011223', 'v1.9.4', now, 23.0225, 72.5714, 0, now, now);
+        }
+
+        // Seed default drivers if none exist
+        const driverCount = this.db.prepare(`SELECT COUNT(*) as count FROM drivers`).get().count;
+        if (driverCount === 0) {
+            const now = new Date().toISOString();
+            const insertDrv = this.db.prepare(`
+                INSERT INTO drivers (driver_id, vehicle_no, driver_name, phone, vehicle_type, status, last_active, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            insertDrv.run('DRV-001', 'MP-09-AB-1234', 'Rajesh Sharma', '+91 98260 12345', 'Heavy Truck (16T)', 'Active', 'Just now', now);
+            insertDrv.run('DRV-002', 'MH-02-CD-5678', 'Vikram Patil', '+91 98200 45678', 'Container Truck', 'Active', '5 mins ago', now);
+            insertDrv.run('DRV-003', 'DL-01-EF-9012', 'Amit Singh', '+91 98110 78901', 'Refrigerated Van', 'Active', '12 mins ago', now);
+            insertDrv.run('DRV-004', 'KA-03-GH-3456', 'Suresh Kumar', '+91 98450 23456', 'Delivery Van', 'On Leave', 'Yesterday', now);
+            insertDrv.run('DRV-005', 'GJ-01-JK-7890', 'Dharmesh Patel', '+91 98250 89012', 'Multi-Axle Trailer', 'Off Duty', '2 days ago', now);
+        }
+
+        // Seed default geofences if none exist
+        const geoCount = this.db.prepare(`SELECT COUNT(*) as count FROM geofences`).get().count;
+        if (geoCount === 0) {
+            const now = new Date().toISOString();
+            const insertGeo = this.db.prepare(`
+                INSERT INTO geofences (geofence_id, name, type, location, area, vehicles, status, is_restricted, coords_json, center_json, radius, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const p1 = JSON.stringify([[22.7533, 75.8937], [22.7590, 75.9010], [22.7510, 75.9090], [22.7460, 75.8990]]);
+            insertGeo.run('geo-001', 'Indore Central Logistics Hub', 'Polygon', 'Dewas Naka, Indore', '2.4 sq km', 3, 1, 0, p1, null, null, now);
+            insertGeo.run('geo-002', 'Bhopal Expressway Fast Zone', 'Circular', 'NH-86 Bypass', '1.5 km radius', 2, 1, 0, null, JSON.stringify([23.2599, 77.4126]), 1500, now);
+            const p3 = JSON.stringify([[18.9500, 72.9400], [18.9600, 72.9600], [18.9400, 72.9700], [18.9300, 72.9500]]);
+            insertGeo.run('geo-003', 'Mumbai Port Container Terminal', 'Polygon', 'JNPT Navi Mumbai', '4.1 sq km', 4, 1, 0, p3, null, null, now);
+            insertGeo.run('geo-004', 'Restricted Urban Congestion Zone', 'Circular', 'Delhi Central Ring Road', '2.0 km radius', 0, 1, 1, null, JSON.stringify([28.6139, 77.2090]), 2000, now);
+        }
+
+        // Seed default trip with rich multi-point Indore route if not present
+        const indoreTrip = this.db.prepare("SELECT trip_id FROM trips WHERE trip_id = 'TRIP-INDORE-01'").get();
+        if (!indoreTrip) {
+            const now = new Date().toISOString();
+            const insertTrip = this.db.prepare(`
+                INSERT INTO trips (trip_id, vehicle_id, terminal_id, start_time, end_time, start_address, end_address, metrics_json, stops_json, route_json, is_simulated, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const indoreWaypoints = [
+                [22.7533, 75.8937], [22.7510, 75.8912], [22.7480, 75.8875],
+                [22.7445, 75.8830], [22.7410, 75.8790], [22.7380, 75.8750],
+                [22.7340, 75.8710], [22.7300, 75.8670], [22.7265, 75.8630],
+                [22.7220, 75.8590], [22.7196, 75.8577], [22.7170, 75.8550],
+                [22.7130, 75.8510], [22.7090, 75.8470], [22.7050, 75.8430],
+                [22.7010, 75.8390], [22.6970, 75.8350], [22.6920, 75.8300]
+            ];
+            const routeArray = indoreWaypoints.map((c, i) => ({
+                lat: c[0],
+                lng: c[1],
+                speed: 35 + Math.round(Math.sin(i) * 15),
+                time: new Date(Date.now() - (18 - i) * 60000).toISOString()
+            }));
+            const metrics = JSON.stringify({
+                totalDistanceKm: 16.8,
+                drivingTimeSec: 2160,
+                stoppedTimeSec: 180,
+                maxSpeed: 68,
+                avgSpeedKmh: 46
+            });
+            const stops = JSON.stringify([
+                { startTime: new Date(Date.now() - 900000).toISOString(), durationSec: 180, address: 'Palasia Square, Indore' }
+            ]);
+            insertTrip.run(
+                'TRIP-INDORE-01',
+                'MP-09-AB-1234',
+                '872312858278',
+                new Date(Date.now() - 2400000).toISOString(),
+                new Date().toISOString(),
+                'Vijay Nagar Depot, Indore',
+                'Rau Bypass Terminal, Indore',
+                metrics,
+                stops,
+                JSON.stringify(routeArray),
+                0,
+                now
+            );
         }
     }
 
@@ -424,8 +522,8 @@ class DatabaseManager {
         this.stmtUpsertDevice = this.db.prepare(`
             INSERT INTO devices (
                 device_id, vehicle_no, device_type, status, sim_no, firmware,
-                last_online, last_lat, last_lng, last_speed, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                last_online, last_lat, last_lng, last_speed, last_address, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(device_id) DO UPDATE SET
                 vehicle_no = COALESCE(excluded.vehicle_no, devices.vehicle_no),
                 device_type = COALESCE(excluded.device_type, devices.device_type),
@@ -436,6 +534,7 @@ class DatabaseManager {
                 last_lat = COALESCE(excluded.last_lat, devices.last_lat),
                 last_lng = COALESCE(excluded.last_lng, devices.last_lng),
                 last_speed = COALESCE(excluded.last_speed, devices.last_speed),
+                last_address = COALESCE(excluded.last_address, devices.last_address),
                 updated_at = excluded.updated_at
         `);
 
@@ -454,6 +553,10 @@ class DatabaseManager {
         // Drivers
         this.stmtGetAllDrivers = this.db.prepare(`
             SELECT * FROM drivers ORDER BY created_at DESC
+        `);
+
+        this.stmtGetDriver = this.db.prepare(`
+            SELECT * FROM drivers WHERE driver_id = ? OR vehicle_no = ?
         `);
 
         this.stmtUpsertDriver = this.db.prepare(`
@@ -487,6 +590,14 @@ class DatabaseManager {
                 coords_json = excluded.coords_json,
                 center_json = excluded.center_json,
                 radius = excluded.radius
+        `);
+
+        this.stmtDeleteDriver = this.db.prepare(`
+            DELETE FROM drivers WHERE driver_id = ? OR vehicle_no = ?
+        `);
+
+        this.stmtDeleteGeofence = this.db.prepare(`
+            DELETE FROM geofences WHERE geofence_id = ?
         `);
 
         // SaaS Tenants
@@ -777,6 +888,7 @@ class DatabaseManager {
             dev.lastLat !== undefined ? dev.lastLat : null,
             dev.lastLng !== undefined ? dev.lastLng : null,
             dev.lastSpeed !== undefined ? dev.lastSpeed : null,
+            dev.lastAddress || dev.address || null,
             now,
             now
         );
@@ -795,6 +907,7 @@ class DatabaseManager {
             extra.latitude !== undefined ? extra.latitude : null,
             extra.longitude !== undefined ? extra.longitude : null,
             extra.speed !== undefined ? extra.speed : null,
+            extra.address !== undefined ? extra.address : null,
             now,
             now
         );
@@ -812,7 +925,8 @@ class DatabaseManager {
             lastOnline: r.last_online,
             latitude: r.last_lat,
             longitude: r.last_lng,
-            speed: r.last_speed
+            speed: r.last_speed,
+            address: r.last_address
         }));
     }
 
@@ -829,7 +943,8 @@ class DatabaseManager {
             lastOnline: r.last_online,
             latitude: r.last_lat,
             longitude: r.last_lng,
-            speed: r.last_speed
+            speed: r.last_speed,
+            address: r.last_address
         };
     }
 
@@ -852,18 +967,37 @@ class DatabaseManager {
         }));
     }
 
+    getDriver(id) {
+        if (!id) return null;
+        const r = this.stmtGetDriver.get(id, id);
+        if (!r) return null;
+        return {
+            driverId: r.driver_id,
+            vehicleNo: r.vehicle_no,
+            driverName: r.driver_name,
+            phone: r.phone,
+            vehicleType: r.vehicle_type,
+            status: r.status,
+            lastActive: r.last_active
+        };
+    }
+
     upsertDriver(dr) {
         const now = new Date().toISOString();
         return this.stmtUpsertDriver.run(
             dr.driverId || `DRV-${Date.now()}`,
             dr.vehicleNo || 'Unassigned',
-            dr.driverName,
+            dr.driverName || 'Driver',
             dr.phone || '',
             dr.vehicleType || 'Truck',
             dr.status || 'Active',
             dr.lastActive || now,
             now
         );
+    }
+
+    deleteDriver(driverId) {
+        return this.stmtDeleteDriver.run(driverId, driverId);
     }
 
     // --- Geofence Methods ---
@@ -900,6 +1034,20 @@ class DatabaseManager {
             geo.radius || null,
             now
         );
+    }
+
+    deleteGeofence(geofenceId) {
+        return this.stmtDeleteGeofence.run(geofenceId);
+    }
+
+    toggleGeofence(geofenceId) {
+        const row = this.db.prepare(`SELECT status FROM geofences WHERE geofence_id = ?`).get(geofenceId);
+        if (row) {
+            const nextStatus = row.status === 1 ? 0 : 1;
+            this.db.prepare(`UPDATE geofences SET status = ? WHERE geofence_id = ?`).run(nextStatus, geofenceId);
+            return nextStatus === 1;
+        }
+        return false;
     }
 
     // --- SaaS Multi-Tenant & API Key Methods ---

@@ -1,5 +1,5 @@
 class NormalizedTelemetry {
-    constructor({ terminalId, vehicleId, latitude, longitude, speed, heading, ignition, timestamp, alarmType, eventType, impactGForce, positioning }) {
+    constructor({ terminalId, vehicleId, latitude, longitude, speed, heading, ignition, timestamp, alarmType, eventType, impactGForce, positioning, address }) {
         this.terminalId = terminalId;
         this.vehicleId = vehicleId || terminalId; // Fallback
         this.latitude = parseFloat(latitude) || 0.0;
@@ -9,6 +9,7 @@ class NormalizedTelemetry {
         this.ignition = ignition !== undefined ? ignition : true;
         this.timestamp = timestamp || new Date().toISOString();
         this.positioning = positioning !== undefined ? Boolean(positioning) : true;
+        this.address = address || null;
         
         // JT/T 808 specific or mock
         this.alarmType = alarmType || null; 
@@ -18,3 +19,4 @@ class NormalizedTelemetry {
 }
 
 module.exports = NormalizedTelemetry;
+

@@ -15,6 +15,7 @@ const accidentService = require('./services/accident-service');
 const tripService = require('./services/trip-service');
 const syncService = require('./services/sync-service');
 const storageService = require('./services/storage-service');
+const geocodingService = require('./services/geocoding-service');
 
 // Protocols
 const binaryParser = require('./protocols/jtt808/binary-parser');
@@ -349,6 +350,18 @@ app.post('/api/devices', (req, res) => {
     res.json({ success: true, device: req.body });
 });
 
+app.put('/api/devices/:id', (req, res) => {
+    const existing = db.getDevice(req.params.id) || {};
+    const updated = { ...existing, ...req.body, deviceId: req.params.id };
+    db.upsertDevice(updated);
+    res.json({ success: true, device: updated });
+});
+
+app.delete('/api/devices/:id', (req, res) => {
+    db.deleteDevice(req.params.id);
+    res.json({ success: true, message: `Device ${req.params.id} deleted` });
+});
+
 app.get('/api/drivers', (req, res) => {
     res.json(db.getAllDrivers());
 });
@@ -361,6 +374,18 @@ app.post('/api/drivers', (req, res) => {
     res.json({ success: true, driver: req.body });
 });
 
+app.put('/api/drivers/:id', (req, res) => {
+    const existing = db.getDriver(req.params.id) || {};
+    const updated = { ...existing, ...req.body, driverId: req.params.id };
+    db.upsertDriver(updated);
+    res.json({ success: true, driver: updated });
+});
+
+app.delete('/api/drivers/:id', (req, res) => {
+    db.deleteDriver(req.params.id);
+    res.json({ success: true, message: `Driver ${req.params.id} deleted` });
+});
+
 app.get('/api/geofences', (req, res) => {
     res.json(db.getAllGeofences());
 });
@@ -371,6 +396,42 @@ app.post('/api/geofences', (req, res) => {
     }
     db.upsertGeofence(req.body);
     res.json({ success: true, geofence: req.body });
+});
+
+app.post('/api/geofences/:id/toggle', (req, res) => {
+    const active = db.toggleGeofence(req.params.id);
+    res.json({ success: true, active });
+});
+
+app.delete('/api/geofences/:id', (req, res) => {
+    db.deleteGeofence(req.params.id);
+    res.json({ success: true, message: `Geofence ${req.params.id} deleted` });
+});
+
+app.get('/api/search', (req, res) => {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q) return res.json({ devices: [], drivers: [], geofences: [], accidents: [] });
+    
+    const devices = db.getAllDevices().filter(d => 
+        (d.deviceId && d.deviceId.toLowerCase().includes(q)) || 
+        (d.vehicleNo && d.vehicleNo.toLowerCase().includes(q)) ||
+        (d.deviceType && d.deviceType.toLowerCase().includes(q))
+    );
+    const drivers = db.getAllDrivers().filter(dr =>
+        (dr.driverName && dr.driverName.toLowerCase().includes(q)) ||
+        (dr.vehicleNo && dr.vehicleNo.toLowerCase().includes(q)) ||
+        (dr.phone && dr.phone.includes(q))
+    );
+    const geofences = db.getAllGeofences().filter(g =>
+        (g.name && g.name.toLowerCase().includes(q)) ||
+        (g.location && g.location.toLowerCase().includes(q))
+    );
+    const accidents = accidentService.getAllAccidents().filter(a =>
+        (a.vehicleId && a.vehicleId.toLowerCase().includes(q)) ||
+        (a.terminalId && a.terminalId.toLowerCase().includes(q)) ||
+        (a.alarmType && a.alarmType.toLowerCase().includes(q))
+    );
+    res.json({ devices, drivers, geofences, accidents });
 });
 
 app.get('/api/reports/analytics', (req, res) => {
@@ -489,10 +550,14 @@ app.post('/api/video/upload-frame', express.raw({ type: '*/*', limit: '10mb' }),
 });
 
 // --- Live Telemetry for Terminal (Immediate on load) ---
-app.get('/api/telemetry/latest', (req, res) => {
+app.get('/api/telemetry/latest', async (req, res) => {
     const terminalId = req.query.terminalId || '872312858278';
     const latest = db.getLatestTelemetry(terminalId);
     if (latest) {
+        let address = null;
+        if (latest.latitude && latest.longitude && !(Number(latest.latitude) === 0 && Number(latest.longitude) === 0)) {
+            address = await geocodingService.resolveAddress(latest.latitude, latest.longitude);
+        }
         res.json({
             success: true,
             telemetry: {
@@ -507,11 +572,27 @@ app.get('/api/telemetry/latest', (req, res) => {
                 timestamp: latest.timestamp,
                 timestampMs: latest.timestamp_ms,
                 deviceTime: latest.timestamp,
+                address: address,
                 status: 'Online'
             }
         });
     } else {
         res.json({ success: false, message: 'No telemetry found' });
+    }
+});
+
+// --- Reverse Geocoding Endpoint for Instant Street/Area Resolution ---
+app.get('/api/geocoding/reverse', async (req, res) => {
+    const lat = parseFloat(req.query.lat);
+    const lng = parseFloat(req.query.lng);
+    if (isNaN(lat) || isNaN(lng)) {
+        return res.status(400).json({ error: 'Valid lat and lng query parameters required' });
+    }
+    try {
+        const address = await geocodingService.resolveAddress(lat, lng);
+        res.json({ success: true, latitude: lat, longitude: lng, address });
+    } catch (e) {
+        res.json({ success: false, latitude: lat, longitude: lng, address: `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}` });
     }
 });
 
@@ -816,7 +897,18 @@ app.post('/api/simulator/command', async (req, res) => {
 
                 // If location report, save to DB and broadcast
                 if (parsed.telemetry) {
+                    if (parsed.telemetry.latitude && parsed.telemetry.longitude && !(Number(parsed.telemetry.latitude) === 0 && Number(parsed.telemetry.longitude) === 0)) {
+                        parsed.telemetry.address = await geocodingService.resolveAddress(parsed.telemetry.latitude, parsed.telemetry.longitude);
+                    }
                     telemetryService.addTelemetry(parsed.telemetry);
+                    db.touchDevice(parsed.telemetry.terminalId, {
+                        vehicleNo: parsed.telemetry.vehicleId,
+                        latitude: parsed.telemetry.latitude,
+                        longitude: parsed.telemetry.longitude,
+                        speed: parsed.telemetry.speed,
+                        address: parsed.telemetry.address,
+                        status: 'Online'
+                    });
                     tripService.processTelemetry(parsed.telemetry);
                     wsService.emit('telemetry', parsed.telemetry);
                 }
@@ -936,7 +1028,7 @@ app.post('/api/simulator/trigger-accident', (req, res) => {
 });
 
 server.listen(config.API_PORT, () => {
-    console.log(`[Web] Admin Dashboard listening on http://localhost:${config.API_PORT}`);
+    console.log(`[Web] Admin Dashboard listening on http://${config.MEDIA_SERVER_IP || '100.31.90.51'}:${config.API_PORT} (Local: http://localhost:${config.API_PORT})`);
 });
 
 // ==========================================
@@ -1214,13 +1306,16 @@ const server808 = net.createServer((socket) => {
                         const isGpsValid = (Boolean(decoded && decoded.positioning) || hasCoords) && !isChinaDummy && hasCoords;
 
                         if (isGpsValid) {
-                            console.log(`📡 [REAL DASHCAM GPS] Terminal: ${telemetry.terminalId} | Lat: ${telemetry.latitude.toFixed(6)} | Lng: ${telemetry.longitude.toFixed(6)} | Speed: ${telemetry.speed} km/h | Sat-Fix: ${decoded?.positioning ? '3D FIX (Locked)' : 'Weak/2D Signal'}`);
+                            const addr = await geocodingService.resolveAddress(telemetry.latitude, telemetry.longitude);
+                            telemetry.address = addr;
+                            console.log(`📡 [REAL DASHCAM GPS] Terminal: ${telemetry.terminalId} | Lat: ${telemetry.latitude.toFixed(6)} | Lng: ${telemetry.longitude.toFixed(6)} | Address: ${addr} | Speed: ${telemetry.speed} km/h | Sat-Fix: ${decoded?.positioning ? '3D FIX (Locked)' : 'Weak/2D Signal'}`);
                             telemetryService.addTelemetry(telemetry);
                             db.touchDevice(telemetry.terminalId, {
                                 vehicleNo: telemetry.vehicleId,
                                 latitude: telemetry.latitude,
                                 longitude: telemetry.longitude,
                                 speed: telemetry.speed,
+                                address: addr,
                                 status: 'Online'
                             });
                             await tripService.processTelemetry(telemetry);
@@ -1367,12 +1462,16 @@ udpServer808.on('message', async (msg, rinfo) => {
             } else if (frame.messageId === 0x0200) {
                 // Location Information
                 if (telemetry) {
+                    if (telemetry.latitude && telemetry.longitude && !(Number(telemetry.latitude) === 0 && Number(telemetry.longitude) === 0)) {
+                        telemetry.address = await geocodingService.resolveAddress(telemetry.latitude, telemetry.longitude);
+                    }
                     telemetryService.addTelemetry(telemetry);
                     db.touchDevice(telemetry.terminalId, {
                         vehicleNo: telemetry.vehicleId,
                         latitude: telemetry.latitude,
                         longitude: telemetry.longitude,
                         speed: telemetry.speed,
+                        address: telemetry.address,
                         status: 'Online'
                     });
                     await tripService.processTelemetry(telemetry);

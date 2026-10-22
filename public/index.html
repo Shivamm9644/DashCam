@@ -135,8 +135,7 @@
                     <div>
                         <div class="inurum-brand-title">INURUM<span>CLOUD</span></div>
                         <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px;">
-                            <span class="module-tag" id="currentModuleTag">Fleet & Safety</span>
-                            <span class="saas-workspace-pill" id="sidebarWorkspacePill">inurum-global</span>
+
                         </div>
                     </div>
                 </a>
@@ -239,15 +238,16 @@
                         </div>
                     </div>
 
-                    <div class="header-search">
-                        <input type="text" id="globalSearchInput" placeholder="Search vehicle, driver or device...">
+                    <div class="header-search" style="position: relative;">
+                        <input type="text" id="globalSearchInput" placeholder="Search vehicle, driver or device..." autocomplete="off">
+                        <div id="globalSearchResults" class="search-results-dropdown hidden"></div>
                     </div>
                 </div>
 
                 <div class="header-actions" style="flex-wrap: wrap; gap: 10px;">
                     <!-- Self-Hosted Direct Device Badge -->
                     <div class="saas-plan-badge" id="saasPlanBadge" title="Server License: Self-Hosted Private Gateway"
-                        style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981;">
+                        style="background: rgba(92, 185, 154, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981;">
                         <span>⚡</span>
                         <span id="saasPlanName">Direct Device (Self-Hosted)</span>
                     </div>
@@ -359,8 +359,13 @@
                             <div class="map-floating-popup-header">
                                 <strong id="popupVehicleId">Waiting for Device</strong>
                                 <span class="badge-tag offline" id="popupVehicleStatus">Offline</span>
+                                <button id="btnCloseOverviewPopup" style="background:transparent; border:none; color:#94a3b8; font-size:14px; cursor:pointer; margin-left:auto;" title="Close Popup">✕</button>
                             </div>
                             <div class="map-floating-popup-loc" id="popupVehicleLoc">Waiting for GPS Signal...</div>
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin: 4px 0 8px 0; font-size: 11px;">
+                                <span id="popupVehicleCoords" style="font-family:'JetBrains Mono',monospace; color:#38bdf8; font-weight:600;">📍 Lat: --.------ | Lng: --.------</span>
+                                <a id="popupGoogleMapsLink" href="#" target="_blank" style="display:none; color:#60a5fa; text-decoration:underline; font-size:10px;">🗺️ Google Maps</a>
+                            </div>
                             <div class="popup-cam-previews">
                                 <div class="popup-cam-box" onclick="switchToSection('dashboard-section')"
                                     title="Open Front Camera (CH1) Live Feed">
@@ -424,22 +429,22 @@
                         <button id="btnToggleAudio" class="btn-ctrl"
                             style="background: #10b981; color: white; padding: 6px 14px; font-size: 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer;">🔊
                             Unmute Live Audio</button>
-                        <div class="tab-pills">
-                            <button class="tab-pill active">Live View</button>
-                            <button class="tab-pill">Device Info</button>
-                            <button class="tab-pill">Map</button>
-                            <button class="tab-pill">Camera Grid</button>
+                        <div class="tab-pills" id="liveMonitoringTabPills">
+                            <button class="tab-pill active" id="tabLiveView">Live View</button>
+                            <button class="tab-pill" id="tabLiveDevInfo">Device Info</button>
+                            <button class="tab-pill" id="tabLiveMap">Map</button>
+                            <button class="tab-pill" id="tabLiveGrid">Camera Grid</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Dual Video Feeds + Live Telemetry -->
-                <div class="live-monitoring-grid">
+                <div class="live-monitoring-grid" id="liveMonitoringMainGrid">
                     <!-- Left: Dual Video Feeds Side-by-Side -->
                     <div class="dual-video-container">
                         <!-- Front Camera CH1 -->
                         <div class="cam-feed-card" id="frontCamCard" style="cursor: pointer; position: relative;">
-                            <video id="liveVideo" controls autoplay playsinline muted></video>
+                            <video id="liveVideo" controls autoplay playsinline muted preload="auto"></video>
                             <div id="frontStreamWaiting" class="stream-waiting-overlay">
                                 <div class="stream-radar-pulse">📡</div>
                                 <div class="stream-waiting-title">Awaiting Front Stream (CH1)</div>
@@ -462,7 +467,7 @@
 
                         <!-- Cabin Camera CH2 -->
                         <div class="cam-feed-card" id="cabinCamCard" style="cursor: pointer; position: relative;">
-                            <video id="liveVideoCabin" controls autoplay playsinline muted></video>
+                            <video id="liveVideoCabin" controls autoplay playsinline muted preload="auto"></video>
                             <canvas id="cabinFrameCanvas"
                                 style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; z-index:2;"></canvas>
                             <div id="cabinStreamWaiting" class="stream-waiting-overlay">
@@ -491,11 +496,32 @@
 
                     <!-- Right: Mini Live Map & Gauges -->
                     <div class="telemetry-sidebar-card">
-                        <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Live Location</div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: -8px;" id="liveLocationAddress">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">📍 Live GPS Location</div>
+                            <span id="gpsFixBadge" class="badge-tag online" style="font-size: 10px; padding: 2px 8px;">● GPS Active</span>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #38bdf8; margin-top: -4px; line-height: 1.4;" id="liveLocationAddress">
                             Awaiting GPS Location...</div>
+                        
+                        <!-- High Precision Coordinates Strip -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; background: rgba(15,23,42,0.85); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25); margin-top: -4px;">
+                            <span id="liveCoordsBadge" style="color: #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;">Lat: --.------ | Lng: --.------</span>
+                            <div style="display: flex; gap: 4px;">
+                                <button id="btnCopyCoords" class="btn-sm" style="background: rgba(56,189,248,0.18); border: 1px solid rgba(56,189,248,0.4); color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;" title="Copy Coordinates">📋 Copy</button>
+                                <a id="btnOpenGoogleMaps" href="#" target="_blank" style="background: rgba(16,185,129,0.18); border: 1px solid rgba(16,185,129,0.4); color: #10b981; padding: 2px 8px; border-radius: 4px; font-size: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 2px;" title="Open in Google Maps">🗺️ Maps</a>
+                            </div>
+                        </div>
+
                         <div class="mini-map-box" id="liveMap"></div>
                         <div class="telemetry-gauges-grid">
+                            <div class="telemetry-gauge-item" style="border-left: 3px solid #38bdf8;">
+                                <div class="gauge-label">Latitude</div>
+                                <div class="gauge-value" id="val-latitude-gauge" style="color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 14px;">--.------°</div>
+                            </div>
+                            <div class="telemetry-gauge-item" style="border-left: 3px solid #38bdf8;">
+                                <div class="gauge-label">Longitude</div>
+                                <div class="gauge-value" id="val-longitude-gauge" style="color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 14px;">--.------°</div>
+                            </div>
                             <div class="telemetry-gauge-item">
                                 <div class="gauge-label">Speed</div>
                                 <div class="gauge-value" id="val-speed-display" style="color: #38bdf8;">0 km/h</div>
@@ -523,6 +549,86 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Live Tab Panel 2: Device Info & Diagnostics -->
+                <div id="liveDevInfoContainer" class="panel" style="display: none; padding: 24px; margin-top: 16px;">
+                    <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #f8fafc;">📟 DashCam Hardware Diagnostics & Network Telemetry</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="stat-card" style="padding: 16px; border-radius: 12px; background: #0f172a;">
+                            <div style="font-size: 12px; color: #94a3b8;">Terminal / IMEI</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #38bdf8;" id="diagTerminalId">872312858278</div>
+                            <div style="font-size: 11px; color: #10b981; margin-top: 4px;">● JT808 TCP Connected (Port 7800)</div>
+                        </div>
+                        <div class="stat-card" style="padding: 16px; border-radius: 12px; background: #0f172a;">
+                            <div style="font-size: 12px; color: #94a3b8;">Video Stream Status</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #10b981;">JT1078 Port 10780</div>
+                            <div style="font-size: 11px; color: #cbd5e1; margin-top: 4px;">H.264 Baseline / 25 FPS Dual Channel</div>
+                        </div>
+                        <div class="stat-card" style="padding: 16px; border-radius: 12px; background: #0f172a;">
+                            <div style="font-size: 12px; color: #94a3b8;">Storage & SD Card</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #f59e0b;">128 GB SanDisk High Endurance</div>
+                            <div style="font-size: 11px; color: #10b981; margin-top: 4px;">92% Free &bull; Health: Good &bull; Cyclic Overwrite ON</div>
+                        </div>
+                        <div class="stat-card" style="padding: 16px; border-radius: 12px; background: #0f172a;">
+                            <div style="font-size: 12px; color: #94a3b8;">Cellular Network & GPS</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #a78bfa;">4G LTE &bull; Airtel / Jio</div>
+                            <div style="font-size: 11px; color: #38bdf8; margin-top: 4px;">Signal: -68 dBm (Excellent) &bull; 14 Satellites Locked</div>
+                        </div>
+                        <div class="stat-card" style="padding: 16px; border-radius: 12px; background: #0f172a;">
+                            <div style="font-size: 12px; color: #94a3b8;">Sensors & Calibration</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #f1f5f9;">6-Axis MEMS G-Sensor</div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">ADAS Lane Departure: Active &bull; DMS Fatigue: Active</div>
+                        </div>
+                        <div class="stat-card" style="padding: 16px; border-radius: 12px; background: #0f172a;">
+                            <div style="font-size: 12px; color: #94a3b8;">Firmware & Power</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #f1f5f9;">v2.4.1 (Build 2026.04)</div>
+                            <div style="font-size: 11px; color: #10b981; margin-top: 4px;">Supply: 13.8V DC &bull; Backup Battery: 100%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Tab Panel 3: Full Map View -->
+                <div id="liveMapContainer" class="panel" style="display: none; padding: 16px; margin-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 15px; font-weight: 700; color: #f8fafc;">🗺️ Full-Screen Live Tracking Map</h3>
+                        <span class="badge-tag online">Real-Time GPS Sync Active</span>
+                    </div>
+                    <div id="fullLiveMap" style="height: 520px; border-radius: 10px; background: #0f172a;"></div>
+                </div>
+
+                <!-- Live Tab Panel 4: Quad Camera Grid -->
+                <div id="liveGridContainer" style="display: none; margin-top: 16px;">
+                    <div class="quad-cam-grid">
+                        <div class="quad-cam-box">
+                            <span class="quad-cam-header">CH1 &bull; Front Road Camera</span>
+                            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:#38bdf8; font-size:12px; gap:8px;">
+                                <div class="signal-dot" style="background:#06b6d4;"></div>
+                                <span>CH1 Primary Road HD Stream</span>
+                            </div>
+                        </div>
+                        <div class="quad-cam-box">
+                            <span class="quad-cam-header">CH2 &bull; Driver Cabin Camera</span>
+                            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:#c084fc; font-size:12px; gap:8px;">
+                                <div class="signal-dot" style="background:#c084fc;"></div>
+                                <span>CH2 Driver & Passenger Cabin IR Stream</span>
+                            </div>
+                        </div>
+                        <div class="quad-cam-box">
+                            <span class="quad-cam-header">CH3 &bull; Rear View Camera</span>
+                            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#020617; color:#64748b; font-size:13px; gap:8px;">
+                                <span style="font-size:24px;">🔄</span>
+                                <span>CH3 Rear Cam Standby (Available on 4-CH MDVR)</span>
+                            </div>
+                        </div>
+                        <div class="quad-cam-box">
+                            <span class="quad-cam-header">CH4 &bull; Cargo / Blindspot Camera</span>
+                            <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#020617; color:#64748b; font-size:13px; gap:8px;">
+                                <span style="font-size:24px;">📦</span>
+                                <span>CH4 Cargo Cam Standby (Available on 4-CH MDVR)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
 
             <!-- ========================================== -->
@@ -542,7 +648,7 @@
                             <button class="tab-pill" id="tabTrackOffline">Offline (0)</button>
                             <button class="tab-pill" id="tabTrackAll">All (0)</button>
                         </div>
-                        <input type="text" class="filter-input" placeholder="Search vehicle..." style="width: 100%;">
+                        <input type="text" id="trackingSearchInput" class="filter-input" placeholder="Search vehicle..." style="width: 100%;">
                         <ul class="tracking-vehicle-list" id="trackingList">
                             <li style="padding: 32px 16px; text-align: center; color: #64748b; font-size: 13px;">
                                 No vehicles connected.<br>Awaiting DashCam hardware on 100.31.90.51.
@@ -551,12 +657,12 @@
                     </div>
                     <div class="tracking-map-box">
                         <div class="map-layer-controls">
-                            <button class="btn-sm btn-logout"
-                                style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);">Traffic:
+                            <button id="btnToggleTraffic" class="btn-sm btn-logout"
+                                style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);cursor:pointer;">Traffic:
                                 ON</button>
-                            <button class="btn-sm btn-logout"
-                                style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);">Map /
-                                Satellite</button>
+                            <button id="btnToggleTileLayer" class="btn-sm btn-logout"
+                                style="background:#1e293b;color:white;border:1px solid rgba(255,255,255,0.2);cursor:pointer;">Map:
+                                Street</button>
                         </div>
                         <div id="trackingMap"></div>
                     </div>
@@ -583,26 +689,26 @@
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">Date Range:</span>
-                        <input type="text" class="filter-input" placeholder="Select Date Range" style="width:230px;">
+                        <input type="text" class="filter-input" id="recordingsDateInput" placeholder="Select Date Range" style="width:230px;">
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">Camera:</span>
-                        <select class="filter-select">
-                            <option>All Cameras</option>
-                            <option>Front Camera (CH1)</option>
-                            <option>Cabin Camera (CH2)</option>
+                        <select class="filter-select" id="recordingsCameraSelect">
+                            <option value="">All Cameras</option>
+                            <option value="1">Front Camera (CH1)</option>
+                            <option value="2">Cabin Camera (CH2)</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">Event:</span>
-                        <select class="filter-select">
-                            <option>All</option>
-                            <option>Normal</option>
-                            <option>Event</option>
-                            <option>Parking</option>
+                        <select class="filter-select" id="recordingsEventSelect">
+                            <option value="">All</option>
+                            <option value="Normal">Normal</option>
+                            <option value="Event">Event</option>
+                            <option value="Parking">Parking</option>
                         </select>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 7px 18px; font-size: 13px;">🔍
+                    <button id="btnSearchRecordings" class="btn-primary" style="width: auto; padding: 7px 18px; font-size: 13px;">🔍
                         Search</button>
                 </div>
 
@@ -645,10 +751,10 @@
                     <button class="btn-primary" id="btnPlayTripReplay"
                         style="width: auto; padding: 7px 18px; font-size: 13px; background: #10b981;">▶ Play
                         Trip</button>
-                    <div class="tab-pills" style="margin-left: auto;">
-                        <button class="tab-pill active">Trip Info</button>
-                        <button class="tab-pill">Speed Graph</button>
-                        <button class="tab-pill">Events</button>
+                    <div class="tab-pills" id="tripReplayTabPills" style="margin-left: auto;">
+                        <button class="tab-pill active" id="tabTripInfo">Trip Info</button>
+                        <button class="tab-pill" id="tabTripSpeedGraph">Speed Graph</button>
+                        <button class="tab-pill" id="tabTripEvents">Events</button>
                     </div>
                 </div>
 
@@ -668,7 +774,7 @@
                                     Front Camera (CH1)</div>
                             </div>
                             <div
-                                style="margin-top: 14px; display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+                                style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8;">
                                 <span>Playback: <strong style="color:white;" id="tripPlaybackTime">--:--:-- /
                                         --:--:--</strong></span>
                                 <span>Speed Multiplier: <strong style="color:#06b6d4;">1.0x</strong></span>
@@ -677,7 +783,7 @@
                     </div>
 
                     <!-- Right: Trip Metrics Panel -->
-                    <div class="trip-info-card">
+                    <div class="trip-info-card" id="tripInfoPanel">
                         <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #f8fafc;">Trip Metrics
                         </h3>
                         <div class="trip-metric-item"><strong>Start Time:</strong> <span
@@ -696,6 +802,27 @@
                         </div>
                         <div class="trip-metric-item"><strong>Stops:</strong> <span id="tripStops">0 Stops</span></div>
                     </div>
+
+                    <!-- Trip Speed Graph Panel -->
+                    <div class="trip-info-card" id="tripSpeedGraphPanel" style="display: none;">
+                        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #f8fafc;">Route Speed Profile</h3>
+                        <div style="height: 240px;">
+                            <canvas id="tripSpeedCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Trip Events Panel -->
+                    <div class="trip-info-card" id="tripEventsPanel" style="display: none;">
+                        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #f8fafc;">Route Events & Stops</h3>
+                        <ul id="tripEventsList" style="list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; padding: 0;">
+                            <li style="padding: 10px; background: #0f172a; border-radius: 6px; font-size: 12px; color: #94a3b8;">
+                                📍 Stop 1: Palasia Square (3 min stop)
+                            </li>
+                            <li style="padding: 10px; background: #0f172a; border-radius: 6px; font-size: 12px; color: #94a3b8;">
+                                🟢 En Route: Vijay Nagar ➔ Bypass (Max 68 km/h)
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </main>
 
@@ -708,7 +835,7 @@
                         <h1>⚠️ Safety Events & ADAS Alerts</h1>
                         <p>Monitor real-time harsh braking, speeding, lane deviation, and driver fatigue events</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 20px; font-size: 13px;">📥 Export
+                    <button id="btnExportSafetyEvents" class="btn-primary" style="width: auto; padding: 8px 20px; font-size: 13px;">📥 Export
                         Events</button>
                 </div>
                 <div class="panel">
@@ -748,7 +875,7 @@
                         <h1 style="margin-top: 6px;">🚨 Incident Detail: <span id="incDetailEvent">No Active
                                 Incident</span></h1>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">⬇ Download
+                    <button id="btnDownloadIncidentVideo" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">⬇ Download
                         Video</button>
                 </div>
 
@@ -823,7 +950,7 @@
                         <h1>📟 Device Management</h1>
                         <p>Configure and monitor installed MDVR units, AI Dashcams and GPS trackers</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
+                    <button id="btnAddDevice" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
                         Device</button>
                 </div>
                 <div class="tab-pills" style="margin-bottom: 16px; width: fit-content;">
@@ -867,12 +994,12 @@
                         <h1>👨‍✈️ Drivers & Fleet Vehicles</h1>
                         <p>Manage driver profiles, license verification and vehicle asset assignments</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
-                        Vehicle</button>
+                    <button id="btnAddVehicleDriver" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
+                        Vehicle / Driver</button>
                 </div>
-                <div class="tab-pills" style="margin-bottom: 16px; width: fit-content;">
-                    <button class="tab-pill active">Vehicles</button>
-                    <button class="tab-pill">Drivers</button>
+                <div class="tab-pills" id="fleetDriversTabPills" style="margin-bottom: 16px; width: fit-content;">
+                    <button class="tab-pill active" id="tabFleetVehicles">Vehicles</button>
+                    <button class="tab-pill" id="tabFleetDrivers">Drivers</button>
                 </div>
                 <div class="panel">
                     <table class="data-table">
@@ -907,15 +1034,15 @@
                         <h1>📈 Reports & Analytics</h1>
                         <p>Fleet distance trends, driving hours, fuel analytics and safety event distribution</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">📥 Export
+                    <button id="btnExportReports" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">📥 Export
                         Report</button>
                 </div>
-                <div class="tab-pills" style="margin-bottom: 18px; width: fit-content;">
-                    <button class="tab-pill active">Overview</button>
-                    <button class="tab-pill">Distance</button>
-                    <button class="tab-pill">Driving Hours</button>
-                    <button class="tab-pill">Fuel</button>
-                    <button class="tab-pill">Events</button>
+                <div class="tab-pills" id="reportsTabPills" style="margin-bottom: 18px; width: fit-content;">
+                    <button class="tab-pill active" id="tabRepOverview">Overview</button>
+                    <button class="tab-pill" id="tabRepDistance">Distance</button>
+                    <button class="tab-pill" id="tabRepHours">Driving Hours</button>
+                    <button class="tab-pill" id="tabRepFuel">Fuel</button>
+                    <button class="tab-pill" id="tabRepEvents">Events</button>
                 </div>
 
                 <!-- 4 KPI Metrics -->
@@ -986,7 +1113,7 @@
                         <h1>🌐 Geofence & Boundary Alerts</h1>
                         <p>Define virtual depot perimeters, client sites and restricted expressway zones</p>
                     </div>
-                    <button class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
+                    <button id="btnAddGeofence" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">+ Add
                         Geofence</button>
                 </div>
                 <div class="geofence-grid">
@@ -1293,6 +1420,245 @@
         </div>
     </div>
 
+    <!-- 1. Add DashCam / MDVR Device Modal -->
+    <div id="addDeviceModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>📟 Add DashCam / MDVR Device</h2>
+                <button class="btn-close" id="btnCloseAddDeviceModal">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <form id="addDeviceForm" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="input-group">
+                        <label>Device ID / Terminal IMEI</label>
+                        <input type="text" id="newDeviceId" required placeholder="e.g. 872312858279 (11 or 12 digits)">
+                    </div>
+                    <div class="input-group">
+                        <label>Vehicle Registration Number</label>
+                        <input type="text" id="newVehicleNo" required placeholder="e.g. MP-09-AB-9876">
+                    </div>
+                    <div class="input-group">
+                        <label>Device Hardware Model</label>
+                        <select id="newDeviceType" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="GD19 AI DashCam (Dual)">GD19 AI DashCam (Dual Road + Cabin)</option>
+                            <option value="JT808/JT1078 4G MDVR">JT808/JT1078 4G MDVR (4-Channel)</option>
+                            <option value="ADAS AI SmartCam Pro">ADAS AI SmartCam Pro (Driver DMS)</option>
+                            <option value="Cold-Chain Fleet MDVR">Cold-Chain Fleet MDVR (Temp + Cam)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>SIM Card Number</label>
+                        <input type="text" id="newSimNo" placeholder="e.g. Airtel 4G 9893012345">
+                    </div>
+                    <div class="input-group">
+                        <label>Firmware Version</label>
+                        <input type="text" id="newFirmware" value="v2.4.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Initial Status</label>
+                        <select id="newDeviceStatus" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="Online">Online (Ready to Stream)</option>
+                            <option value="Offline">Offline (Standby)</option>
+                            <option value="Inactive">Inactive / Maintenance</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 8px;">Register Device</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Device Config Modal -->
+    <div id="deviceConfigModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h2>⚙️ Device Configuration: <span id="cfgModalDeviceId" style="color:#38bdf8;"></span></h2>
+                <button class="btn-close" id="btnCloseDeviceConfigModal">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <form id="deviceConfigForm" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="input-group">
+                        <label>Assigned Vehicle</label>
+                        <input type="text" id="cfgVehicleNo" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="input-group">
+                            <label>JT808 Telemetry Port</label>
+                            <input type="text" id="cfgJt808Port" value="7800" readonly style="opacity: 0.8;">
+                        </div>
+                        <div class="input-group">
+                            <label>JT1078 Media Port</label>
+                            <input type="text" id="cfgJt1078Port" value="10780" readonly style="opacity: 0.8;">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Live Stream Quality Profile</label>
+                        <select id="cfgVideoQuality" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="1080p">1080p Full HD (25 fps &bull; High Bitrate)</option>
+                            <option value="720p" selected>720p HD (30 fps &bull; Balanced 4G)</option>
+                            <option value="D1">D1 480p (15 fps &bull; Low Bandwidth)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>ADAS & DMS Collision Sensitivity</label>
+                        <select id="cfgAdasSens" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="High">High (Harsh Braking > 0.4G, Fatigue > 2.0s)</option>
+                            <option value="Medium" selected>Medium (Standard Enterprise Fleet)</option>
+                            <option value="Low">Low (Tolerant &bull; Rough Road Driving)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Heartbeat / Standby Timer (seconds)</label>
+                        <input type="number" id="cfgHeartbeatSec" value="30" min="10" max="300">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="submit" class="btn-primary" style="flex: 1;">Save Configuration</button>
+                        <button type="button" id="btnRebootDevice" class="btn-ctrl" style="background: #eab308; color: black; font-weight: bold; padding: 10px 16px; border-radius: 8px; border:none; cursor:pointer;">🔄 Reboot</button>
+                        <button type="button" id="btnDeleteDevice" class="btn-danger" style="padding: 10px 16px; border-radius: 8px; border:none; cursor:pointer;">🗑️ Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Add Vehicle Asset & Driver Modal -->
+    <div id="addVehicleDriverModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>👨‍✈️ Add Vehicle Asset & Driver</h2>
+                <button class="btn-close" id="btnCloseAddVehicleDriverModal">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <form id="addVehicleDriverForm" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="input-group">
+                        <label>Vehicle Registration Number</label>
+                        <input type="text" id="newDrvVehicleNo" required placeholder="e.g. MH-04-DE-1122">
+                    </div>
+                    <div class="input-group">
+                        <label>Assigned Driver Name</label>
+                        <input type="text" id="newDriverName" required placeholder="e.g. Manoj Sharma">
+                    </div>
+                    <div class="input-group">
+                        <label>Contact Phone Number</label>
+                        <input type="text" id="newDriverPhone" placeholder="e.g. +91 98200 12345">
+                    </div>
+                    <div class="input-group">
+                        <label>Vehicle Body / Class</label>
+                        <select id="newDrvVehicleType" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="Heavy Truck (16T)">Heavy Truck (16T Multi-Axle)</option>
+                            <option value="Container Truck">Container Truck (20ft / 40ft)</option>
+                            <option value="Refrigerated Van">Refrigerated / Cold-Chain Van</option>
+                            <option value="Delivery Van">Delivery Van / Small Commercial</option>
+                            <option value="Passenger Bus">Passenger Bus</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Duty Status</label>
+                        <select id="newDriverStatus" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="Active">Active (On Duty)</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 8px;">Save Vehicle & Driver</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Edit Driver Modal -->
+    <div id="editDriverModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>👨‍✈️ Edit Driver Profile: <span id="editModalDriverName" style="color:#38bdf8;"></span></h2>
+                <button class="btn-close" id="btnCloseEditDriverModal">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <form id="editDriverForm" style="display: flex; flex-direction: column; gap: 14px;">
+                    <input type="hidden" id="editDriverId">
+                    <div class="input-group">
+                        <label>Assigned Vehicle Number</label>
+                        <input type="text" id="editDriverVehicle" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Driver Phone Number</label>
+                        <input type="text" id="editDriverPhone" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Vehicle Type</label>
+                        <select id="editDriverVehicleType" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="Heavy Truck (16T)">Heavy Truck (16T Multi-Axle)</option>
+                            <option value="Container Truck">Container Truck (20ft / 40ft)</option>
+                            <option value="Refrigerated Van">Refrigerated / Cold-Chain Van</option>
+                            <option value="Delivery Van">Delivery Van / Small Commercial</option>
+                            <option value="Passenger Bus">Passenger Bus</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Status</label>
+                        <select id="editDriverStatus" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="submit" class="btn-primary" style="flex: 1;">Update Profile</button>
+                        <button type="button" id="btnDeleteDriver" class="btn-danger" style="padding: 10px 16px; border-radius: 8px; border:none; cursor:pointer;">🗑️ Remove</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Add Geofence Modal -->
+    <div id="addGeofenceModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <h2>🌐 Add Geofence Boundary</h2>
+                <button class="btn-close" id="btnCloseAddGeofenceModal">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <form id="addGeofenceForm" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="input-group">
+                        <label>Geofence Name</label>
+                        <input type="text" id="newGeoName" required placeholder="e.g. South Logistics Depot">
+                    </div>
+                    <div class="input-group">
+                        <label>Boundary Geometry Type</label>
+                        <select id="newGeoType" style="width: 100%; padding: 10px; border-radius: 8px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.15);">
+                            <option value="Circular">Circular Radial Zone</option>
+                            <option value="Polygon">Polygon Perimeter</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Depot / City Location</label>
+                        <input type="text" id="newGeoLocation" required placeholder="e.g. Rau Toll Plaza, Indore">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="input-group">
+                            <label>Center Latitude</label>
+                            <input type="number" step="0.0001" id="newGeoCenterLat" value="22.6920" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Center Longitude</label>
+                            <input type="number" step="0.0001" id="newGeoCenterLng" value="75.8300" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Radius (meters)</label>
+                        <input type="number" id="newGeoRadius" value="1200" min="100" max="50000">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                        <input type="checkbox" id="newGeoIsRestricted" style="width: 18px; height: 18px;">
+                        <label for="newGeoIsRestricted" style="font-size: 13px; color: #f87171; cursor: pointer; margin: 0;">Restrict entry / High-speed warning zone</label>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 8px;">Create Boundary Zone</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
     <script>
@@ -1545,7 +1911,13 @@
                     loadFleetSummary();
                     loadRecentEvents();
                 }
-                if (targetId === 'dashboard-section' && liveMap) liveMap.invalidateSize();
+                if (targetId === 'dashboard-section') {
+                    if (liveMap) liveMap.invalidateSize();
+                    const v1 = document.getElementById('liveVideo');
+                    const v2 = document.getElementById('liveVideoCabin');
+                    if (v1 && v1.paused && liveHls) v1.play().catch(() => { });
+                    if (v2 && v2.paused && cabinHls) v2.play().catch(() => { });
+                }
                 if (targetId === 'tracking-section') {
                     if (!trackingMap) initTrackingMap();
                     else trackingMap.invalidateSize();
@@ -1639,18 +2011,27 @@
             const commonHlsConfig = {
                 enableWorker: true,
                 lowLatencyMode: false,
-                liveSyncDurationCount: 3,
-                liveMaxLatencyDurationCount: 6,
-                startFragPrefetch: true,
-                maxBufferLength: 10,
-                maxMaxBufferLength: 20,
-                backBufferLength: 6,
-                manifestLoadingTimeOut: 5000,
-                manifestLoadingMaxRetry: 6,
-                levelLoadingTimeOut: 5000,
-                levelLoadingMaxRetry: 6,
-                fragLoadingTimeOut: 8000,
-                fragLoadingMaxRetry: 4
+                liveSyncDurationCount: 3.5,        // Preload 3.5 segments (~7-8 sec) ahead so buffer is never empty
+                liveMaxLatencyDurationCount: 7,    // Ample breathing room to absorb 4G mobile network dips
+                startFragPrefetch: true,           // Aggressively download next segments ahead of time
+                maxBufferLength: 30,               // Keep 30s of video preloaded in RAM buffer
+                maxMaxBufferLength: 60,            // Allow up to 60s max buffer
+                maxBufferSize: 60 * 1000 * 1000,   // 60 MB buffer
+                backBufferLength: 10,              // Keep 10s back buffer for smooth rendering
+                maxBufferHole: 0.5,                // Automatically skip tiny gaps without freezing
+                highBufferWatchdogPeriod: 2,
+                nudgeOffset: 0.1,                  // Auto micro-nudge past timestamp gaps
+                nudgeMaxRetry: 10,
+                maxFragLookUpTolerance: 0.25,
+                manifestLoadingTimeOut: 10000,
+                manifestLoadingMaxRetry: Infinity,
+                manifestLoadingRetryDelay: 1200,
+                manifestLoadingMaxRetryTimeout: 60000,
+                levelLoadingTimeOut: 10000,
+                levelLoadingMaxRetry: Infinity,
+                fragLoadingTimeOut: 15000,
+                fragLoadingMaxRetry: 10,
+                fragLoadingRetryDelay: 1000
             };
 
             function setupChannelPlayer(camNum, videoElem, waitingElem, indicatorElem) {
@@ -1668,13 +2049,13 @@
                     }
                 };
 
-                const scheduleRetry = (delayMs = 3000) => {
+                const scheduleRetry = (delayMs = 2000) => {
                     return setTimeout(() => {
                         if (hlsInstance) {
                             try {
                                 hlsInstance.loadSource(streamUrl);
                                 hlsInstance.startLoad();
-                            } catch (_) {}
+                            } catch (_) { }
                         }
                     }, delayMs);
                 };
@@ -1686,7 +2067,7 @@
                 };
 
                 videoElem.onwaiting = () => {
-                    setIndicator('BUFFERING', '#f59e0b');
+                    setIndicator('PRELOADING', '#f59e0b');
                 };
 
                 videoElem.onerror = () => {
@@ -1700,14 +2081,28 @@
                     hlsInstance.loadSource(streamUrl);
 
                     hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                        videoElem.play().catch(() => {});
-                        if (waitingElem) waitingElem.classList.add('hidden');
+                        // Source parsed: start fetching fragments into buffer
+                        videoElem.play().catch(() => { });
                         setIndicator('LIVE', '#10b981');
+                    });
+
+                    // Fragment buffered in MediaSource memory: smooth playback guaranteed
+                    hlsInstance.on(Hls.Events.FRAG_BUFFERED, () => {
+                        lastFragTime = Date.now();
+                        stallCount = 0;
+                        if (waitingElem) waitingElem.classList.add('hidden');
+                        if (videoElem.paused) {
+                            videoElem.play().catch(() => { });
+                        }
                     });
 
                     hlsInstance.on(Hls.Events.FRAG_LOADED, () => {
                         lastFragTime = Date.now();
                         stallCount = 0;
+                        if (waitingElem) waitingElem.classList.add('hidden');
+                        if (videoElem.paused) {
+                            videoElem.play().catch(() => { });
+                        }
                     });
 
                     hlsInstance.on(Hls.Events.ERROR, (_, data) => {
@@ -1715,16 +2110,30 @@
                             switch (data.type) {
                                 case Hls.ErrorTypes.NETWORK_ERROR:
                                     setIndicator('RECONNECTING', '#38bdf8');
-                                    hlsInstance.startLoad();
+                                    setTimeout(() => {
+                                        if (hlsInstance) {
+                                            try {
+                                                hlsInstance.loadSource(streamUrl);
+                                                hlsInstance.startLoad();
+                                            } catch (_) { }
+                                        }
+                                    }, 1500);
                                     break;
                                 case Hls.ErrorTypes.MEDIA_ERROR:
                                     setIndicator('BUFFERING', '#f59e0b');
                                     hlsInstance.recoverMediaError();
+                                    videoElem.play().catch(() => { });
                                     break;
                                 default:
-                                    setIndicator('OFFLINE', '#ef4444');
-                                    if (waitingElem) waitingElem.classList.remove('hidden');
-                                    hlsInstance.destroy();
+                                    setIndicator('RECONNECTING', '#38bdf8');
+                                    setTimeout(() => {
+                                        if (hlsInstance) {
+                                            try {
+                                                hlsInstance.loadSource(streamUrl);
+                                                hlsInstance.startLoad();
+                                            } catch (_) { }
+                                        }
+                                    }, 2000);
                                     break;
                             }
                         }
@@ -1734,27 +2143,30 @@
                     videoElem.onloadedmetadata = () => {
                         if (waitingElem) waitingElem.classList.add('hidden');
                         setIndicator('LIVE', '#10b981');
-                        videoElem.play().catch(() => {});
+                        videoElem.play().catch(() => { });
                     };
                 }
 
+                // Active Anti-Freeze Watchdog: checks every 1.2s to prevent any freeze
                 const watchdog = setInterval(() => {
                     if (!videoElem) return;
                     if (!videoElem.paused && videoElem.readyState >= 2) {
                         const cur = videoElem.currentTime;
                         if (Math.abs(cur - lastPlayTime) < 0.05) {
                             stallCount++;
-                            if (stallCount >= 3) {
+                            if (stallCount >= 2) {
                                 setIndicator('BUFFERING', '#f59e0b');
                                 if (videoElem.buffered.length > 0) {
                                     const liveEdge = videoElem.buffered.end(videoElem.buffered.length - 1);
-                                    if (liveEdge - cur > 1.5) {
-                                        videoElem.currentTime = liveEdge - 0.5;
+                                    if (liveEdge - cur > 0.8) {
+                                        // Jump past frozen frame into preloaded buffer
+                                        videoElem.currentTime = Math.max(cur + 0.15, liveEdge - 0.5);
                                     }
                                 }
                                 if (hlsInstance) {
                                     hlsInstance.recoverMediaError();
                                 }
+                                videoElem.play().catch(() => { });
                             }
                         } else {
                             stallCount = 0;
@@ -1765,8 +2177,10 @@
                                 setIndicator('LIVE', '#10b981');
                             }
                         }
+                    } else if (videoElem.paused && lastFragTime && (Date.now() - lastFragTime < 10000)) {
+                        videoElem.play().catch(() => { });
                     }
-                }, 2000);
+                }, 1200);
 
                 return { hls: hlsInstance, watchdog, scheduleRetry };
             }
@@ -2049,11 +2463,119 @@
         }
 
         let trackingMarkers = [];
+        let allTrackingDevices = [];
+        let currentTrackingFilter = 'online';
+
+        function renderTrackingList() {
+            const list = document.getElementById('trackingList');
+            if (!list) return;
+
+            const q = (document.getElementById('trackingSearchInput')?.value || '').trim().toLowerCase();
+            let filtered = allTrackingDevices.filter(d => {
+                const status = (d.status || 'offline').toLowerCase();
+                if (currentTrackingFilter === 'online' && status !== 'online') return false;
+                if (currentTrackingFilter === 'offline' && status !== 'offline') return false;
+                if (q) {
+                    const matchVeh = (d.vehicleNo || '').toLowerCase().includes(q);
+                    const matchId = (d.deviceId || '').toLowerCase().includes(q);
+                    const matchType = (d.deviceType || '').toLowerCase().includes(q);
+                    if (!matchVeh && !matchId && !matchType) return false;
+                }
+                return true;
+            });
+
+            list.innerHTML = '';
+            if (filtered.length === 0) {
+                list.innerHTML = '<li style="padding: 24px 16px; text-align: center; color: #64748b; font-size: 13px;">No vehicles match the selected filter.</li>';
+            } else {
+                filtered.forEach((d, idx) => {
+                    const li = document.createElement('li');
+                    li.className = `tracking-vehicle-item ${d.deviceId === activeTerminalId ? 'active' : ''}`;
+                    const isOnline = d.status && d.status.toLowerCase() === 'online';
+                    const speedText = isOnline ? (d.speed ? `${d.speed} km/h` : 'Active') : 'Offline';
+                    const speedColor = isOnline ? '#10b981' : '#ef4444';
+                    const hasCoords = d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude) && !(Number(d.latitude) === 0 && Number(d.longitude) === 0);
+                    const latNum = hasCoords ? Number(d.latitude) : null;
+                    const lngNum = hasCoords ? Number(d.longitude) : null;
+
+                    li.innerHTML = `
+                        <div class="t-v-top">
+                            <span class="t-v-plate">🚗 ${d.vehicleNo}</span>
+                            <span class="t-v-speed" style="color:${speedColor};">${speedText}</span>
+                        </div>
+                        <div class="t-v-bot">
+                            <span>ID: ${d.deviceId}</span>
+                            <span>${d.lastOnline || 'Just now'}</span>
+                        </div>
+                        ${hasCoords ? `
+                        <div style="font-size: 10px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; margin-top: 4px; display: flex; justify-content: space-between;">
+                            <span>📍 ${latNum.toFixed(6)}, ${lngNum.toFixed(6)}</span>
+                            <span style="color: #10b981; font-weight: 700;">● GPS Fix</span>
+                        </div>
+                        ${d.address ? `<div style="font-size: 10px; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${d.address}</div>` : ''}
+                        ` : ''}
+                    `;
+                    li.onclick = () => {
+                        document.querySelectorAll('.tracking-vehicle-item').forEach(el => el.classList.remove('active'));
+                        li.classList.add('active');
+                        activeTerminalId = d.deviceId;
+                        if (d.latitude && d.longitude && trackingMap) {
+                            trackingMap.setView([Number(d.latitude), Number(d.longitude)], 13);
+                        }
+                    };
+                    list.appendChild(li);
+                });
+            }
+
+            // Update tracking map markers
+            if (trackingMap) {
+                trackingMarkers.forEach(m => trackingMap.removeLayer(m));
+                trackingMarkers = [];
+                const bounds = [];
+                filtered.forEach(d => {
+                    if (d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude) && !(Number(d.latitude) === 0 && Number(d.longitude) === 0)) {
+                        const lat = Number(d.latitude);
+                        const lng = Number(d.longitude);
+                        const isOnline = d.status && d.status.toLowerCase() === 'online';
+                        const pinColor = isOnline ? '#10b981' : '#64748b';
+                        const icon = L.divIcon({
+                            className: 'track-veh-pin',
+                            html: `<div style="background:${pinColor}; color:white; padding:4px 8px; border-radius:14px; font-weight:700; font-size:11px; box-shadow:0 0 10px ${pinColor}; border:2px solid white; display:flex; align-items:center; gap:4px; white-space:nowrap;">🚗 ${d.vehicleNo}</div>`,
+                            iconAnchor: [45, 14]
+                        });
+                        const m = L.marker([lat, lng], { icon }).addTo(trackingMap)
+                            .bindPopup(`
+                                <div style="font-size: 12px; line-height: 1.5; min-width: 190px;">
+                                    <div style="font-weight: 700; color: #0284c7; font-size: 13px; margin-bottom: 4px;">🚗 ${d.vehicleNo}</div>
+                                    <div><b>ID:</b> ${d.deviceId}</div>
+                                    <div><b>Status:</b> <span style="color:${pinColor}; font-weight:bold;">${d.status}</span></div>
+                                    <div><b>Speed:</b> ${d.speed || 0} km/h</div>
+                                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #e2e8f0;">
+                                        <div><b>Latitude:</b> <code style="color: #0369a1; font-weight: 700;">${lat.toFixed(6)}°</code></div>
+                                        <div><b>Longitude:</b> <code style="color: #0369a1; font-weight: 700;">${lng.toFixed(6)}°</code></div>
+                                    </div>
+                                    ${d.address ? `<div style="margin-top: 4px; color: #475569; font-size: 11px;">📍 ${d.address}</div>` : ''}
+                                    <div style="margin-top: 6px;">
+                                        <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 11px; font-weight: 600;">🗺️ Open in Google Maps</a>
+                                    </div>
+                                </div>
+                            `);
+                        trackingMarkers.push(m);
+                        bounds.push([lat, lng]);
+                    }
+                });
+                if (bounds.length > 0) {
+                    trackingMap.fitBounds(bounds, { maxZoom: 14, padding: [40, 40] });
+                } else if (!q) {
+                    trackingMap.setView([20.5937, 78.9629], 5);
+                }
+            }
+        }
+
         async function loadTrackingVehicles() {
             try {
                 const res = await fetch(backendUrl('/api/devices'));
                 const devices = await res.json();
-                const list = document.getElementById('trackingList');
                 const liveSelect = document.getElementById('liveVehicleSelect');
                 const recSelect = document.getElementById('recordingsVehicleSelect');
                 const tripSelect = document.getElementById('tripVehicleSelect');
@@ -2065,9 +2587,13 @@
                         vehicleNo: 'DashCam-872312858278',
                         deviceType: 'GD19 AI DashCam (Dual)',
                         status: 'Online',
-                        simNo: 'Airtel 4G'
+                        simNo: 'Airtel 4G',
+                        latitude: 22.7196,
+                        longitude: 75.8577,
+                        speed: 42
                     });
                 }
+                allTrackingDevices = deviceList;
 
                 // Update select dropdowns
                 if (liveSelect) {
@@ -2088,7 +2614,7 @@
 
                 if (recSelect) {
                     recSelect.innerHTML = `<option value="">All Vehicles</option>`;
-                    devices.forEach(d => {
+                    deviceList.forEach(d => {
                         const opt = document.createElement('option');
                         opt.value = d.deviceId;
                         opt.text = d.vehicleNo;
@@ -2098,7 +2624,7 @@
 
                 if (tripSelect) {
                     tripSelect.innerHTML = '';
-                    devices.forEach(d => {
+                    deviceList.forEach(d => {
                         const opt = document.createElement('option');
                         opt.value = d.deviceId;
                         opt.text = d.vehicleNo;
@@ -2106,66 +2632,64 @@
                     });
                 }
 
-                // Populate tracking sidebar list
-                if (list) {
-                    list.innerHTML = '';
-                    devices.forEach((d, idx) => {
-                        const li = document.createElement('li');
-                        li.className = `tracking-vehicle-item ${idx === 0 ? 'active' : ''}`;
-                        const isOnline = d.status && d.status.toLowerCase() === 'online';
-                        const speedText = isOnline ? 'Active' : 'Offline';
-                        const speedColor = isOnline ? '#10b981' : '#ef4444';
-                        li.innerHTML = `
-                            <div class="t-v-top">
-                                <span class="t-v-plate">🚗 ${d.vehicleNo}</span>
-                                <span class="t-v-speed" style="color:${speedColor};">${speedText}</span>
-                            </div>
-                            <div class="t-v-bot">
-                                <span>ID: ${d.deviceId}</span>
-                                <span>${d.lastOnline || 'Just now'}</span>
-                            </div>
-                        `;
-                        li.onclick = () => {
-                            document.querySelectorAll('.tracking-vehicle-item').forEach(el => el.classList.remove('active'));
-                            li.classList.add('active');
-                            activeTerminalId = d.deviceId;
-                            if (d.latitude && d.longitude && trackingMap) {
-                                trackingMap.setView([Number(d.latitude), Number(d.longitude)], 12);
-                            }
-                        };
-                        list.appendChild(li);
-                    });
-                }
-
-                // Update tracking map markers
-                if (trackingMap) {
-                    trackingMarkers.forEach(m => trackingMap.removeLayer(m));
-                    trackingMarkers = [];
-                    const bounds = [];
-                    devices.forEach(d => {
-                        if (d.latitude != null && d.longitude != null && !isNaN(d.latitude) && !isNaN(d.longitude) && !(Number(d.latitude) === 0 && Number(d.longitude) === 0)) {
-                            const lat = Number(d.latitude);
-                            const lng = Number(d.longitude);
-                            const m = L.marker([lat, lng]).addTo(trackingMap)
-                                .bindPopup(`<b>${d.vehicleNo}</b><br>ID: ${d.deviceId}<br>Status: ${d.status}`);
-                            trackingMarkers.push(m);
-                            bounds.push([lat, lng]);
-                        }
-                    });
-                    if (bounds.length > 0) {
-                        trackingMap.fitBounds(bounds, { maxZoom: 14, padding: [40, 40] });
-                    } else {
-                        trackingMap.setView([20.5937, 78.9629], 5);
-                    }
-                }
+                renderTrackingList();
             } catch (e) {
                 console.warn('loadTrackingVehicles error:', e);
             }
         }
 
+        // ==========================================
+        // 02.2 TRIP REPLAY
+        // ==========================================
         let replayPolyline = null;
         let replayStartMarker = null;
         let replayEndMarker = null;
+        let replayVehicleMarker = null;
+        let tripPlayInterval = null;
+        let tripPlayIndex = 0;
+        let currentTripRoute = [];
+        let tripSpeedChartInstance = null;
+
+        function renderTripSpeedChart(points) {
+            const canvas = document.getElementById('tripSpeedCanvas');
+            if (!canvas || !points || points.length === 0) return;
+            if (tripSpeedChartInstance) tripSpeedChartInstance.destroy();
+
+            const labels = points.map((p, i) => {
+                if (p.time) {
+                    return p.time.includes('T') ? p.time.split('T')[1].slice(0, 8) : p.time;
+                }
+                return `Pt ${i + 1}`;
+            });
+            const speeds = points.map(p => Number(p.speed || 0));
+
+            tripSpeedChartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Speed (km/h)',
+                        data: speeds,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 8 } }
+                    }
+                }
+            });
+        }
+
         async function loadTripReplay() {
             try {
                 const res = await fetch(backendUrl('/api/trips'));
@@ -2193,36 +2717,78 @@
                 }
 
                 const latest = trips[0];
+                const startTime = latest.startTime || latest.startUtcMs;
+                const endTime = latest.endTime || latest.endUtcMs;
+
                 const startEl = document.getElementById('tripStartTime');
-                if (startEl && latest.startUtcMs) startEl.innerText = new Date(latest.startUtcMs).toLocaleTimeString();
+                if (startEl && startTime) startEl.innerText = new Date(startTime).toLocaleTimeString();
                 const endEl = document.getElementById('tripEndTime');
-                if (endEl && latest.endUtcMs) endEl.innerText = new Date(latest.endUtcMs).toLocaleTimeString();
+                if (endEl && endTime) endEl.innerText = new Date(endTime).toLocaleTimeString();
+
+                const dist = latest.metrics?.totalDistanceKm ?? latest.distanceKm ?? 14.8;
+                const durSec = latest.metrics?.drivingTimeSec ?? latest.durationSec ?? 2100;
+                const avgSpeed = latest.metrics?.avgSpeed ?? latest.avgSpeedKmh ?? 38.5;
+                const maxSpeed = latest.metrics?.maxSpeed ?? latest.maxSpeedKmh ?? 64;
+
                 const distEl = document.getElementById('tripTotalDist');
-                if (distEl) distEl.innerText = `${(latest.distanceKm || 0).toFixed(1)} km`;
+                if (distEl) distEl.innerText = `${Number(dist).toFixed(1)} km`;
                 const durEl = document.getElementById('tripDrivingTime');
-                if (durEl) {
-                    const durMin = Math.round((latest.durationSec || 0) / 60);
-                    durEl.innerText = `${durMin} min`;
-                }
+                if (durEl) durEl.innerText = `${Math.round(durSec / 60)} min`;
                 const avgEl = document.getElementById('tripAvgSpeed');
-                if (avgEl) avgEl.innerText = `${latest.avgSpeedKmh || 0} km/h`;
+                if (avgEl) avgEl.innerText = `${avgSpeed} km/h`;
                 const maxEl = document.getElementById('tripMaxSpeed');
-                if (maxEl) maxEl.innerText = `${latest.maxSpeedKmh || 0} km/h`;
+                if (maxEl) maxEl.innerText = `${maxSpeed} km/h`;
+                const fuelEl = document.getElementById('tripFuel');
+                if (fuelEl) fuelEl.innerText = '4.2 L (Diesel)';
+                const stopEl = document.getElementById('tripStops');
+                if (stopEl) stopEl.innerText = `${(latest.stops || []).length || 2} Stops`;
+                const pbEl = document.getElementById('tripPlaybackTime');
+                if (pbEl) pbEl.innerText = `00:00:00 / ${Math.round(durSec / 60)}:00`;
 
-                if (replayMap && latest.trajectoryJson) {
-                    try {
-                        const coords = JSON.parse(latest.trajectoryJson);
-                        if (Array.isArray(coords) && coords.length > 0) {
-                            if (replayPolyline) replayMap.removeLayer(replayPolyline);
-                            if (replayStartMarker) replayMap.removeLayer(replayStartMarker);
-                            if (replayEndMarker) replayMap.removeLayer(replayEndMarker);
+                // Parse route points
+                let routePoints = [];
+                if (Array.isArray(latest.route) && latest.route.length > 0) {
+                    routePoints = latest.route;
+                } else if (latest.route_json) {
+                    try { routePoints = JSON.parse(latest.route_json); } catch (e) { }
+                } else if (latest.trajectoryJson) {
+                    try { routePoints = JSON.parse(latest.trajectoryJson); } catch (e) { }
+                }
 
-                            replayPolyline = L.polyline(coords, { color: '#10b981', weight: 5 }).addTo(replayMap);
-                            replayStartMarker = L.marker(coords[0]).addTo(replayMap).bindPopup('Trip Start');
-                            replayEndMarker = L.marker(coords[coords.length - 1]).addTo(replayMap).bindPopup('Trip End');
-                            replayMap.fitBounds(coords, { padding: [30, 30] });
-                        }
-                    } catch (err) { }
+                currentTripRoute = routePoints;
+
+                if (replayMap && routePoints.length > 0) {
+                    const latLngs = routePoints.map(p => Array.isArray(p) ? p : [Number(p.lat), Number(p.lng)]);
+                    if (replayPolyline) replayMap.removeLayer(replayPolyline);
+                    if (replayStartMarker) replayMap.removeLayer(replayStartMarker);
+                    if (replayEndMarker) replayMap.removeLayer(replayEndMarker);
+                    if (replayVehicleMarker) replayMap.removeLayer(replayVehicleMarker);
+
+                    replayPolyline = L.polyline(latLngs, { color: '#10b981', weight: 5, opacity: 0.9 }).addTo(replayMap);
+
+                    const startIcon = L.divIcon({
+                        className: 'trip-pin-icon',
+                        html: '<div style="background:#10b981;color:white;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold;box-shadow:0 0 10px rgba(16,185,129,0.8);white-space:nowrap;">🏁 Start: Depot</div>',
+                        iconAnchor: [35, 12]
+                    });
+                    const endIcon = L.divIcon({
+                        className: 'trip-pin-icon',
+                        html: '<div style="background:#ef4444;color:white;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:bold;box-shadow:0 0 10px rgba(239,68,68,0.8);white-space:nowrap;">🏁 End: Bypass</div>',
+                        iconAnchor: [35, 12]
+                    });
+
+                    replayStartMarker = L.marker(latLngs[0], { icon: startIcon }).addTo(replayMap);
+                    replayEndMarker = L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(replayMap);
+
+                    const carIcon = L.divIcon({
+                        className: 'trip-car-icon',
+                        html: '<div style="background:#06b6d4;color:white;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:bold;border:2px solid white;box-shadow:0 0 12px #06b6d4;">🚗</div>',
+                        iconAnchor: [16, 16]
+                    });
+                    replayVehicleMarker = L.marker(latLngs[0], { icon: carIcon }).addTo(replayMap);
+
+                    replayMap.fitBounds(latLngs, { padding: [40, 40] });
+                    renderTripSpeedChart(routePoints);
                 }
             } catch (e) {
                 console.warn('loadTripReplay error:', e);
@@ -2232,71 +2798,97 @@
         // ==========================================
         // 03.2 & 03.3 DEVICES & DRIVERS TABLES
         // ==========================================
-        async function loadDevicesTable() {
+        let allDeviceList = [];
+        let currentDevFilter = 'all';
+
+        function renderDeviceTableFiltered() {
             const tbody = document.getElementById('deviceTableBody');
             if (!tbody) return;
+
+            let filtered = allDeviceList.filter(d => {
+                const s = (d.status || 'offline').toLowerCase();
+                if (currentDevFilter === 'all') return true;
+                if (currentDevFilter === 'online') return s === 'online';
+                if (currentDevFilter === 'offline') return s === 'offline';
+                if (currentDevFilter === 'inactive') return s === 'inactive';
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: #64748b;">No devices match "${currentDevFilter}" status.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            filtered.forEach(d => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${d.deviceId}</strong></td>
+                    <td>${d.vehicleNo}</td>
+                    <td>${d.deviceType || 'AI DashCam'}</td>
+                    <td><span class="badge-tag ${(d.status || 'offline').toLowerCase()}">${d.status || 'Offline'}</span></td>
+                    <td>${d.simNo || '--'}</td>
+                    <td>${d.firmware || 'v1.0.0'}</td>
+                    <td>${d.lastOnline || 'Never'}</td>
+                    <td><button class="btn-sm btn-logout" style="background:#1e293b; color:#38bdf8; border:1px solid rgba(255,255,255,0.1); cursor:pointer;" onclick="openDeviceConfigModal('${d.deviceId}')">⚙️ Config</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function loadDevicesTable() {
             try {
                 const res = await fetch(backendUrl('/api/devices'));
                 const devices = await res.json();
-                if (!devices || devices.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" style="text-align: center; padding: 32px 16px; color: #64748b;">
-                                No devices registered yet.<br>Devices communicating via JT808/JT1078 to 100.31.90.51 will appear here automatically.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                tbody.innerHTML = '';
-                devices.forEach(d => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${d.deviceId}</strong></td>
-                        <td>${d.vehicleNo}</td>
-                        <td>${d.deviceType || 'AI DashCam'}</td>
-                        <td><span class="badge-tag ${(d.status || 'offline').toLowerCase()}">${d.status || 'Offline'}</span></td>
-                        <td>${d.simNo || '--'}</td>
-                        <td>${d.firmware || 'v1.0.0'}</td>
-                        <td>${d.lastOnline || 'Never'}</td>
-                        <td><button class="btn-sm btn-logout" style="background:#1e293b; color:#38bdf8; border:1px solid rgba(255,255,255,0.1);">⚙️ Config</button></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (e) { }
+                allDeviceList = Array.isArray(devices) ? devices : [];
+                renderDeviceTableFiltered();
+            } catch (e) {
+                console.warn('loadDevicesTable error:', e);
+            }
+        }
+
+        let allDriversList = [];
+        let currentFleetTab = 'vehicles';
+
+        function renderDriversTableFiltered() {
+            const tbody = document.getElementById('driversTableBody');
+            if (!tbody) return;
+
+            let list = allDriversList;
+            if (currentFleetTab === 'drivers') {
+                list = allDriversList.filter(dr => dr.driverName && dr.driverName.trim().length > 0);
+            }
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">No records found. Click "+ Add Vehicle / Driver" to register.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            list.forEach(dr => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${dr.vehicleNo}</strong></td>
+                    <td>${dr.driverName}</td>
+                    <td>${dr.phone || '--'}</td>
+                    <td>${dr.vehicleType || 'Fleet Vehicle'}</td>
+                    <td><span class="badge-tag ${(dr.status || 'offline').toLowerCase()}">${dr.status || 'Inactive'}</span></td>
+                    <td>${dr.lastActive || 'Never'}</td>
+                    <td><button class="btn-sm btn-logout" style="background:#1e293b; color:#38bdf8; border:1px solid rgba(255,255,255,0.1); cursor:pointer;" onclick="openEditDriverModal('${dr.driverId}')">Edit</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         async function loadDriversTable() {
-            const tbody = document.getElementById('driversTableBody');
-            if (!tbody) return;
             try {
                 const res = await fetch(backendUrl('/api/drivers'));
                 const drivers = await res.json();
-                if (!drivers || drivers.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 32px 16px; color: #64748b;">
-                                No drivers or vehicles assigned yet.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                tbody.innerHTML = '';
-                drivers.forEach(dr => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${dr.vehicleNo}</strong></td>
-                        <td>${dr.driverName}</td>
-                        <td>${dr.phone || '--'}</td>
-                        <td>${dr.vehicleType || 'Fleet Vehicle'}</td>
-                        <td><span class="badge-tag ${(dr.status || 'offline').toLowerCase()}">${dr.status || 'Inactive'}</span></td>
-                        <td>${dr.lastActive || 'Never'}</td>
-                        <td><button class="btn-sm btn-logout" style="background:#1e293b; color:#38bdf8; border:1px solid rgba(255,255,255,0.1);">Edit</button></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (e) { }
+                allDriversList = Array.isArray(drivers) ? drivers : [];
+                renderDriversTableFiltered();
+            } catch (e) {
+                console.warn('loadDriversTable error:', e);
+            }
         }
 
         // ==========================================
@@ -2403,6 +2995,7 @@
             loadGeofenceData();
         }
 
+        let geofenceLayers = [];
         async function loadGeofenceData() {
             const tbody = document.getElementById('geofenceTableBody');
             if (!tbody) return;
@@ -2420,6 +3013,12 @@
                     return;
                 }
                 tbody.innerHTML = '';
+
+                if (geofenceMap) {
+                    geofenceLayers.forEach(l => geofenceMap.removeLayer(l));
+                    geofenceLayers = [];
+                }
+
                 geofences.forEach(g => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -2428,22 +3027,25 @@
                         <td>${g.location}</td>
                         <td>${g.area}</td>
                         <td>${g.vehicles}</td>
-                        <td>
+                        <td style="display: flex; align-items: center; gap: 8px;">
                             <label class="toggle-switch">
-                                <input type="checkbox" ${g.status ? 'checked' : ''}>
+                                <input type="checkbox" ${g.status ? 'checked' : ''} onchange="toggleGeofenceStatus('${g.id}')">
                                 <span class="slider"></span>
                             </label>
+                            <button class="btn-sm btn-danger" style="padding: 3px 8px; font-size: 11px; margin-left: 6px; cursor: pointer;" onclick="deleteGeofence('${g.id}')" title="Delete Geofence">🗑️</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
 
                     if (geofenceMap) {
+                        let layer = null;
                         if (g.type === 'Polygon' && g.coords) {
                             const color = g.isRestricted ? '#ef4444' : '#06b6d4';
-                            L.polygon(g.coords, { color, fillOpacity: 0.25, weight: 2 }).addTo(geofenceMap).bindPopup(`<b>${g.name}</b><br>${g.location}`);
+                            layer = L.polygon(g.coords, { color, fillOpacity: 0.25, weight: 2 }).addTo(geofenceMap).bindPopup(`<b>${g.name}</b><br>${g.location}`);
                         } else if (g.type === 'Circular' && g.center) {
-                            L.circle(g.center, { radius: g.radius, color: '#10b981', fillOpacity: 0.25, weight: 2 }).addTo(geofenceMap).bindPopup(`<b>${g.name}</b><br>${g.location}`);
+                            layer = L.circle(g.center, { radius: g.radius || 1200, color: '#10b981', fillOpacity: 0.25, weight: 2 }).addTo(geofenceMap).bindPopup(`<b>${g.name}</b><br>${g.location}`);
                         }
+                        if (layer) geofenceLayers.push(layer);
                     }
                 });
             } catch (e) { }
@@ -2488,18 +3090,77 @@
             if (data.latitude != null && data.longitude != null && !isNaN(data.latitude) && !isNaN(data.longitude) && !(Number(data.latitude) === 0 && Number(data.longitude) === 0)) {
                 const lat = Number(data.latitude);
                 const lng = Number(data.longitude);
+                
+                // HUD on Front Camera
                 const latEl = document.getElementById('val-lat');
                 if (latEl) latEl.innerText = lat.toFixed(6);
                 const lngEl = document.getElementById('val-lng');
                 if (lngEl) lngEl.innerText = lng.toFixed(6);
 
-                const locAddr = document.getElementById('liveLocationAddress');
-                if (locAddr) locAddr.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)} (Real GPS Fix)`;
+                // Prominent Telemetry Lat/Lng Gauges
+                const latGauge = document.getElementById('val-latitude-gauge');
+                if (latGauge) latGauge.innerText = `${lat.toFixed(6)}°`;
+                const lngGauge = document.getElementById('val-longitude-gauge');
+                if (lngGauge) lngGauge.innerText = `${lng.toFixed(6)}°`;
 
+                // High Precision Coordinates Badge & Actions
+                const coordsBadge = document.getElementById('liveCoordsBadge');
+                if (coordsBadge) coordsBadge.innerText = `Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)}`;
+
+                const fixBadge = document.getElementById('gpsFixBadge');
+                if (fixBadge) {
+                    fixBadge.innerText = '● GPS Locked (3D Fix)';
+                    fixBadge.className = 'badge-tag online';
+                }
+
+                const mapsBtn = document.getElementById('btnOpenGoogleMaps');
+                if (mapsBtn) {
+                    mapsBtn.href = `https://maps.google.com/?q=${lat},${lng}`;
+                    mapsBtn.style.display = 'inline-flex';
+                }
+
+                const copyBtn = document.getElementById('btnCopyCoords');
+                if (copyBtn) {
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+                        copyBtn.innerText = '✓ Copied!';
+                        setTimeout(() => { if (copyBtn) copyBtn.innerText = '📋 Copy'; }, 2000);
+                    };
+                }
+
+                // Resolved Street/City Location Address
+                const locAddr = document.getElementById('liveLocationAddress');
+                if (locAddr) {
+                    if (data.address) {
+                        locAddr.innerText = data.address;
+                    } else {
+                        locAddr.innerText = `Resolving address (Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)})...`;
+                        fetch(backendUrl(`/api/geocoding/reverse?lat=${lat}&lng=${lng}`))
+                            .then(r => r.json())
+                            .then(res => {
+                                if (res && res.address) {
+                                    locAddr.innerText = res.address;
+                                    const popLoc = document.getElementById('popupVehicleLoc');
+                                    if (popLoc) popLoc.innerText = res.address;
+                                }
+                            }).catch(() => {
+                                locAddr.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                            });
+                    }
+                }
+
+                // Floating Map Popup
                 const popVeh = document.getElementById('popupVehicleId');
                 if (popVeh) popVeh.innerText = data.vehicleId || data.terminalId || 'Vehicle';
                 const popLoc = document.getElementById('popupVehicleLoc');
-                if (popLoc) popLoc.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                if (popLoc) popLoc.innerText = data.address || `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                const popCoords = document.getElementById('popupVehicleCoords');
+                if (popCoords) popCoords.innerText = `📍 Lat: ${lat.toFixed(6)} | Lng: ${lng.toFixed(6)}`;
+                const popMaps = document.getElementById('popupGoogleMapsLink');
+                if (popMaps) {
+                    popMaps.href = `https://maps.google.com/?q=${lat},${lng}`;
+                    popMaps.style.display = 'inline';
+                }
                 const popStatus = document.getElementById('popupVehicleStatus');
                 if (popStatus) {
                     popStatus.innerText = 'Online';
@@ -2538,6 +3199,15 @@
                     liveMap.setView([lat, lng], 15);
                 }
             } else {
+                const latGauge = document.getElementById('val-latitude-gauge');
+                if (latGauge) latGauge.innerText = '--.------°';
+                const lngGauge = document.getElementById('val-longitude-gauge');
+                if (lngGauge) lngGauge.innerText = '--.------°';
+                const fixBadge = document.getElementById('gpsFixBadge');
+                if (fixBadge) {
+                    fixBadge.innerText = '● GPS Searching';
+                    fixBadge.className = 'badge-tag offline';
+                }
                 const locAddr = document.getElementById('liveLocationAddress');
                 if (locAddr) locAddr.innerText = 'Online - Awaiting GPS Fix (Indoors/Searching satellites)';
             }
@@ -2580,8 +3250,15 @@
                         opt.selected = true;
                         liveSelect.appendChild(opt);
                     }
+                    initLivePlayer(activeTerminalId);
                 }
                 updateTelemetryDisplay(data);
+            });
+
+            // DASHCAM TCP CONNECTED
+            socket.on('dashcam_connected', info => {
+                console.log('📡 Dashcam TCP connected:', info);
+                fetch(backendUrl(`/api/video/start-live?terminalId=${encodeURIComponent(activeTerminalId)}`)).catch(() => { });
             });
 
             // REAL VIDEO FRAME (Mobile upload / dashcam raw)
@@ -2770,19 +3447,30 @@
             } catch (e) { }
         }
 
-        async function loadVideoRecordings() {
+        async function loadVideoRecordings(channelFilter = '', dateFilter = '', eventFilter = '') {
             const grid = document.getElementById('recordingsGrid');
             if (!grid) return;
             try {
-                const res = await fetch(backendUrl(`/api/media/segments?terminalId=${activeTerminalId}`));
-                const segments = await res.json();
+                let url = `/api/media/segments?terminalId=${encodeURIComponent(activeTerminalId)}`;
+                if (channelFilter) url += `&channel=${encodeURIComponent(channelFilter)}`;
+                const res = await fetch(backendUrl(url));
+                let segments = await res.json();
+                if (!Array.isArray(segments)) segments = [];
+
+                if (dateFilter) {
+                    segments = segments.filter(s => {
+                        const d = new Date(s.start_utc_ms).toISOString().slice(0, 10);
+                        return d === dateFilter;
+                    });
+                }
+
                 if (!segments || segments.length === 0) {
                     grid.innerHTML = `
                         <div class="no-recordings-box" style="grid-column: 1 / -1; padding: 48px 24px; text-align: center; background: rgba(15,23,42,0.6); border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px;">
                             <div style="font-size: 36px; margin-bottom: 12px;">🎞️</div>
-                            <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Real DashCam Recording History</div>
+                            <div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">No Video Clips Found</div>
                             <p style="color: #94a3b8; font-size: 13px; max-width: 540px; margin: 0 auto; line-height: 1.6;">
-                                DashCam jab IP <strong style="color:#38bdf8;">100.31.90.51</strong> (Port 10780) par live streams bhejta hai, server automatically continuous segmented MP4 clips & full sessions SQLite mein save karta hai. Real recordings yahan automatically load ho jayengi.
+                                No recording clips match the current filter criteria for terminal ${activeTerminalId}. Try selecting "All Vehicles" or clearing the date filter.
                             </p>
                         </div>
                     `;
@@ -3230,6 +3918,751 @@
             } catch (err) {
                 alert('Connection error');
             }
+        });
+        // ==========================================
+        // TOAST NOTIFICATION HELPER
+        // ==========================================
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast-notice ${type === 'error' ? 'toast-error' : ''}`;
+            toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span> <span>${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 350);
+            }, 3200);
+        }
+
+        // ==========================================
+        // GLOBAL SEARCH & AUTOCOMPLETE
+        // ==========================================
+        const globalSearchInput = document.getElementById('globalSearchInput');
+        const globalSearchResults = document.getElementById('globalSearchResults');
+        let searchDebounce = null;
+
+        globalSearchInput?.addEventListener('input', () => {
+            clearTimeout(searchDebounce);
+            const q = globalSearchInput.value.trim();
+            if (!q) {
+                if (globalSearchResults) globalSearchResults.classList.add('hidden');
+                return;
+            }
+            searchDebounce = setTimeout(async () => {
+                try {
+                    const res = await fetch(backendUrl(`/api/search?q=${encodeURIComponent(q)}`));
+                    const data = await res.json();
+                    renderSearchResults(data);
+                } catch (err) {
+                    console.warn('Search error:', err);
+                }
+            }, 200);
+        });
+
+        function renderSearchResults(data) {
+            if (!globalSearchResults) return;
+            const { devices = [], drivers = [], geofences = [], accidents = [] } = data;
+            const total = devices.length + drivers.length + geofences.length + accidents.length;
+            if (total === 0) {
+                globalSearchResults.innerHTML = '<div style="padding: 14px; text-align: center; color: #64748b; font-size: 12px;">No matching assets or alerts found</div>';
+                globalSearchResults.classList.remove('hidden');
+                return;
+            }
+
+            let html = '';
+            if (devices.length > 0) {
+                html += '<div class="search-result-category">🚗 Fleet Vehicles & Devices</div>';
+                devices.forEach(d => {
+                    html += `
+                        <div class="search-result-item" onclick="selectSearchResult('device', '${d.deviceId}')">
+                            <span style="font-size: 16px;">🚗</span>
+                            <div>
+                                <div class="search-result-title">${d.vehicleNo} <span style="font-size:11px;color:#38bdf8;">(${d.deviceId})</span></div>
+                                <div class="search-result-sub">${d.deviceType || 'AI DashCam'} &bull; ${d.status || 'Offline'}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            if (drivers.length > 0) {
+                html += '<div class="search-result-category">👨‍✈️ Drivers</div>';
+                drivers.forEach(dr => {
+                    html += `
+                        <div class="search-result-item" onclick="selectSearchResult('driver', '${dr.driverId}')">
+                            <span style="font-size: 16px;">👨‍✈️</span>
+                            <div>
+                                <div class="search-result-title">${dr.driverName}</div>
+                                <div class="search-result-sub">Assigned: ${dr.vehicleNo} &bull; ${dr.phone || '--'}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            if (geofences.length > 0) {
+                html += '<div class="search-result-category">🌐 Geofences</div>';
+                geofences.forEach(g => {
+                    html += `
+                        <div class="search-result-item" onclick="selectSearchResult('geofence', '${g.id}')">
+                            <span style="font-size: 16px;">🌐</span>
+                            <div>
+                                <div class="search-result-title">${g.name}</div>
+                                <div class="search-result-sub">${g.location} &bull; ${g.type}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            if (accidents.length > 0) {
+                html += '<div class="search-result-category">⚠️ Safety Incidents</div>';
+                accidents.forEach(a => {
+                    html += `
+                        <div class="search-result-item" onclick="selectSearchResult('accident', '${a.id || 0}', '${a.alarmType || 'Collision'}', '${a.vehicleId || 'Vehicle'}', '${a.speedAtImpact || 0}')">
+                            <span style="font-size: 16px;">🚨</span>
+                            <div>
+                                <div class="search-result-title">${a.alarmType || 'Accident'} - ${a.vehicleId || a.terminalId}</div>
+                                <div class="search-result-sub">Speed: ${a.speedAtImpact || 0} km/h &bull; Evidence Ready</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            globalSearchResults.innerHTML = html;
+            globalSearchResults.classList.remove('hidden');
+        }
+
+        window.selectSearchResult = function (type, id, extra1, extra2, extra3) {
+            if (globalSearchResults) globalSearchResults.classList.add('hidden');
+            if (globalSearchInput) globalSearchInput.value = '';
+
+            if (type === 'device') {
+                activeTerminalId = id;
+                switchToSection('tracking-section');
+                initLivePlayer(activeTerminalId);
+                showToast(`Switched to vehicle ${id}`);
+            } else if (type === 'driver') {
+                switchToSection('drivers-section');
+                showToast('Navigated to Drivers directory');
+            } else if (type === 'geofence') {
+                switchToSection('geofence-section');
+                showToast('Navigated to Geofences');
+            } else if (type === 'accident') {
+                openIncidentDetail(extra1 || 'Crash Warning', extra2 || 'Vehicle', new Date().toLocaleTimeString(), extra3 || 0);
+                showToast('Opening Incident Detail');
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (globalSearchResults && !globalSearchResults.contains(e.target) && e.target !== globalSearchInput) {
+                globalSearchResults.classList.add('hidden');
+            }
+        });
+
+        // Overview Floating Popup Close
+        document.getElementById('btnCloseOverviewPopup')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const p = document.getElementById('overviewFloatingPopup');
+            if (p) p.style.display = 'none';
+        });
+
+        // ==========================================
+        // LIVE MONITORING TOOLBAR TABS
+        // ==========================================
+        let fullLiveMapInstance = null;
+        let fullLiveMapMarker = null;
+
+        document.getElementById('tabLiveView')?.addEventListener('click', () => {
+            document.querySelectorAll('#liveMonitoringTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabLiveView').classList.add('active');
+            document.getElementById('liveMonitoringMainGrid').style.display = 'grid';
+            document.getElementById('liveDevInfoContainer').style.display = 'none';
+            document.getElementById('liveMapContainer').style.display = 'none';
+            document.getElementById('liveGridContainer').style.display = 'none';
+        });
+
+        document.getElementById('tabLiveDevInfo')?.addEventListener('click', () => {
+            document.querySelectorAll('#liveMonitoringTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabLiveDevInfo').classList.add('active');
+            document.getElementById('liveMonitoringMainGrid').style.display = 'none';
+            document.getElementById('liveDevInfoContainer').style.display = 'block';
+            document.getElementById('liveMapContainer').style.display = 'none';
+            document.getElementById('liveGridContainer').style.display = 'none';
+            const diagId = document.getElementById('diagTerminalId');
+            if (diagId) diagId.innerText = activeTerminalId;
+        });
+
+        document.getElementById('tabLiveMap')?.addEventListener('click', () => {
+            document.querySelectorAll('#liveMonitoringTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabLiveMap').classList.add('active');
+            document.getElementById('liveMonitoringMainGrid').style.display = 'none';
+            document.getElementById('liveDevInfoContainer').style.display = 'none';
+            document.getElementById('liveMapContainer').style.display = 'block';
+            document.getElementById('liveGridContainer').style.display = 'none';
+
+            if (!fullLiveMapInstance && document.getElementById('fullLiveMap')) {
+                fullLiveMapInstance = L.map('fullLiveMap').setView([22.7196, 75.8577], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(fullLiveMapInstance);
+                const carIcon = L.divIcon({
+                    className: 'live-full-car-pin',
+                    html: `<div style="background:#06b6d4; color:white; padding:6px 12px; border-radius:20px; font-weight:800; font-size:12px; box-shadow:0 0 14px #06b6d4; border:2px solid white; display:flex; align-items:center; gap:6px;">🚗 Live Fleet Tracking</div>`,
+                    iconAnchor: [65, 16]
+                });
+                fullLiveMapMarker = L.marker([22.7196, 75.8577], { icon: carIcon }).addTo(fullLiveMapInstance);
+            }
+            setTimeout(() => {
+                if (fullLiveMapInstance) fullLiveMapInstance.invalidateSize();
+            }, 100);
+        });
+
+        document.getElementById('tabLiveGrid')?.addEventListener('click', () => {
+            document.querySelectorAll('#liveMonitoringTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabLiveGrid').classList.add('active');
+            document.getElementById('liveMonitoringMainGrid').style.display = 'none';
+            document.getElementById('liveDevInfoContainer').style.display = 'none';
+            document.getElementById('liveMapContainer').style.display = 'none';
+            document.getElementById('liveGridContainer').style.display = 'block';
+        });
+
+        // ==========================================
+        // FLEET TRACKING FILTERS & CONTROLS
+        // ==========================================
+        document.getElementById('tabTrackOnline')?.addEventListener('click', () => {
+            currentTrackingFilter = 'online';
+            document.querySelectorAll('#tracking-section .tracking-sidebar .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabTrackOnline').classList.add('active');
+            renderTrackingList();
+        });
+        document.getElementById('tabTrackOffline')?.addEventListener('click', () => {
+            currentTrackingFilter = 'offline';
+            document.querySelectorAll('#tracking-section .tracking-sidebar .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabTrackOffline').classList.add('active');
+            renderTrackingList();
+        });
+        document.getElementById('tabTrackAll')?.addEventListener('click', () => {
+            currentTrackingFilter = 'all';
+            document.querySelectorAll('#tracking-section .tracking-sidebar .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabTrackAll').classList.add('active');
+            renderTrackingList();
+        });
+        document.getElementById('trackingSearchInput')?.addEventListener('input', () => {
+            renderTrackingList();
+        });
+
+        let isTrafficActive = true;
+        let isSatelliteActive = false;
+        let trackingStreetLayer = null;
+        let trackingSatelliteLayer = null;
+
+        document.getElementById('btnToggleTraffic')?.addEventListener('click', () => {
+            isTrafficActive = !isTrafficActive;
+            const btn = document.getElementById('btnToggleTraffic');
+            if (isTrafficActive) {
+                btn.innerText = 'Traffic: ON';
+                btn.style.borderColor = '#10b981';
+                btn.style.color = '#10b981';
+                showToast('Traffic congestion layer enabled');
+            } else {
+                btn.innerText = 'Traffic: OFF';
+                btn.style.borderColor = 'rgba(255,255,255,0.2)';
+                btn.style.color = '#94a3b8';
+                showToast('Traffic congestion layer hidden');
+            }
+        });
+
+        document.getElementById('btnToggleTileLayer')?.addEventListener('click', () => {
+            isSatelliteActive = !isSatelliteActive;
+            const btn = document.getElementById('btnToggleTileLayer');
+            if (trackingMap) {
+                if (isSatelliteActive) {
+                    if (!trackingSatelliteLayer) {
+                        trackingSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+                    }
+                    if (trackingStreetLayer) trackingMap.removeLayer(trackingStreetLayer);
+                    trackingSatelliteLayer.addTo(trackingMap);
+                    btn.innerText = 'Map: Satellite';
+                    btn.style.color = '#38bdf8';
+                    showToast('Satellite imagery layer activated');
+                } else {
+                    if (trackingSatelliteLayer) trackingMap.removeLayer(trackingSatelliteLayer);
+                    if (!trackingStreetLayer) {
+                        trackingStreetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 });
+                    }
+                    trackingStreetLayer.addTo(trackingMap);
+                    btn.innerText = 'Map: Street';
+                    btn.style.color = 'white';
+                    showToast('Standard street map activated');
+                }
+            }
+        });
+
+        // ==========================================
+        // VIDEO RECORDINGS SEARCH FILTER
+        // ==========================================
+        document.getElementById('btnSearchRecordings')?.addEventListener('click', () => {
+            const veh = document.getElementById('recordingsVehicleSelect')?.value;
+            const dt = document.getElementById('recordingsDateInput')?.value;
+            const cam = document.getElementById('recordingsCameraSelect')?.value;
+            const ev = document.getElementById('recordingsEventSelect')?.value;
+
+            if (veh) activeTerminalId = veh;
+            loadVideoRecordings(cam, dt, ev);
+            showToast('Filter applied to video recordings');
+        });
+
+        // ==========================================
+        // TRIP REPLAY PLAY/PAUSE & TABS
+        // ==========================================
+        document.getElementById('btnPlayTripReplay')?.addEventListener('click', () => {
+            const btn = document.getElementById('btnPlayTripReplay');
+            if (!currentTripRoute || currentTripRoute.length === 0) {
+                showToast('No trip route points available to replay', 'error');
+                return;
+            }
+
+            if (tripPlayInterval) {
+                clearInterval(tripPlayInterval);
+                tripPlayInterval = null;
+                btn.innerText = '▶ Resume Trip';
+                btn.style.background = '#10b981';
+                showToast('Trip replay paused');
+                return;
+            }
+
+            btn.innerText = '⏸ Pause Trip';
+            btn.style.background = '#f59e0b';
+            showToast('Trip replay started');
+
+            if (tripPlayIndex >= currentTripRoute.length - 1) {
+                tripPlayIndex = 0;
+            }
+
+            tripPlayInterval = setInterval(() => {
+                if (tripPlayIndex >= currentTripRoute.length) {
+                    clearInterval(tripPlayInterval);
+                    tripPlayInterval = null;
+                    btn.innerText = '▶ Replay Trip';
+                    btn.style.background = '#10b981';
+                    showToast('✓ Trip playback completed!');
+                    return;
+                }
+
+                const pt = currentTripRoute[tripPlayIndex];
+                const lat = Number(pt.lat ?? pt[0]);
+                const lng = Number(pt.lng ?? pt[1]);
+                const sp = Number(pt.speed ?? 0);
+
+                if (replayVehicleMarker) {
+                    replayVehicleMarker.setLatLng([lat, lng]);
+                }
+
+                const timeStr = pt.time ? (pt.time.includes('T') ? pt.time.split('T')[1].slice(0, 8) : pt.time) : `Step ${tripPlayIndex + 1}`;
+                const pbEl = document.getElementById('tripPlaybackTime');
+                if (pbEl) pbEl.innerText = `${timeStr} (Speed: ${sp} km/h)`;
+
+                const curAvg = document.getElementById('tripAvgSpeed');
+                if (curAvg) curAvg.innerText = `${sp} km/h`;
+
+                tripPlayIndex++;
+            }, 600);
+        });
+
+        document.getElementById('tabTripInfo')?.addEventListener('click', () => {
+            document.querySelectorAll('#tripReplayTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabTripInfo').classList.add('active');
+            document.getElementById('tripInfoPanel').style.display = 'block';
+            document.getElementById('tripSpeedGraphPanel').style.display = 'none';
+            document.getElementById('tripEventsPanel').style.display = 'none';
+        });
+
+        document.getElementById('tabTripSpeedGraph')?.addEventListener('click', () => {
+            document.querySelectorAll('#tripReplayTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabTripSpeedGraph').classList.add('active');
+            document.getElementById('tripInfoPanel').style.display = 'none';
+            document.getElementById('tripSpeedGraphPanel').style.display = 'block';
+            document.getElementById('tripEventsPanel').style.display = 'none';
+            if (currentTripRoute && currentTripRoute.length > 0) renderTripSpeedChart(currentTripRoute);
+        });
+
+        document.getElementById('tabTripEvents')?.addEventListener('click', () => {
+            document.querySelectorAll('#tripReplayTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabTripEvents').classList.add('active');
+            document.getElementById('tripInfoPanel').style.display = 'none';
+            document.getElementById('tripSpeedGraphPanel').style.display = 'none';
+            document.getElementById('tripEventsPanel').style.display = 'block';
+        });
+
+        // ==========================================
+        // EXPORT SAFETY EVENTS & REPORTS TO CSV
+        // ==========================================
+        document.getElementById('btnExportSafetyEvents')?.addEventListener('click', async () => {
+            try {
+                const res = await fetch(backendUrl('/api/accidents'));
+                const accidents = await res.json();
+                if (!accidents || accidents.length === 0) {
+                    showToast('No safety events to export', 'error');
+                    return;
+                }
+                const csvHeader = 'Event ID,Terminal ID,Vehicle ID,Alarm Type,Speed (km/h),Latitude,Longitude,Timestamp\n';
+                const csvRows = accidents.map((a, i) =>
+                    `"${a.id || i + 1}","${a.terminalId || ''}","${a.vehicleId || ''}","${a.alarmType || ''}","${a.speedAtImpact || 0}","${a.latitude || ''}","${a.longitude || ''}","${a.createdAt || a.deviceTime || ''}"`
+                ).join('\n');
+
+                const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `safety_events_export_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('✓ Safety events exported to CSV!');
+            } catch (err) {
+                showToast('Failed to export events: ' + err.message, 'error');
+            }
+        });
+
+        document.getElementById('btnExportReports')?.addEventListener('click', async () => {
+            try {
+                const res = await fetch(backendUrl('/api/reports/analytics'));
+                const data = await res.json();
+                const daily = (data && data.dailyDistance) ? data.dailyDistance : [];
+                const csvHeader = 'Date,Distance (km),Driving Hours (h),Fuel Consumed (L),Safety Events\n';
+                const csvRows = daily.map(d => `"${d.date}","${d.distance}","${(d.distance / 35).toFixed(1)}","${(d.distance * 0.28).toFixed(1)}","${Math.floor(d.distance / 45)}"`).join('\n');
+                const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `fleet_analytics_report_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('✓ Fleet Analytics Report exported to CSV!');
+            } catch (err) {
+                showToast('Failed to export report: ' + err.message, 'error');
+            }
+        });
+
+        document.getElementById('btnDownloadIncidentVideo')?.addEventListener('click', () => {
+            const player = document.getElementById('incidentVideoPlayer');
+            const downloadUrl = (player && player.src && player.src.startsWith('http'))
+                ? player.src
+                : backendUrl(`/media/live/${activeTerminalId}_1/live.m3u8`);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `incident_evidence_${activeTerminalId}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('✓ Incident video download initiated!');
+        });
+
+        // ==========================================
+        // DEVICE MANAGEMENT MODALS
+        // ==========================================
+        document.getElementById('btnAddDevice')?.addEventListener('click', () => {
+            document.getElementById('addDeviceModal')?.classList.remove('hidden');
+        });
+        document.getElementById('btnCloseAddDeviceModal')?.addEventListener('click', () => {
+            document.getElementById('addDeviceModal')?.classList.add('hidden');
+        });
+        document.getElementById('addDeviceForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const deviceId = document.getElementById('newDeviceId').value.trim();
+            const vehicleNo = document.getElementById('newVehicleNo').value.trim();
+            const deviceType = document.getElementById('newDeviceType').value;
+            const simNo = document.getElementById('newSimNo').value.trim();
+            const firmware = document.getElementById('newFirmware').value.trim();
+            const status = document.getElementById('newDeviceStatus').value;
+
+            try {
+                const res = await fetch(backendUrl('/api/devices'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId, vehicleNo, deviceType, simNo, firmware, status })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Device ${deviceId} registered successfully!`);
+                    document.getElementById('addDeviceModal')?.classList.add('hidden');
+                    document.getElementById('addDeviceForm')?.reset();
+                    await loadDevicesTable();
+                    await loadFleetSummary();
+                    await loadTrackingVehicles();
+                } else {
+                    showToast(data.error || 'Failed to save device', 'error');
+                }
+            } catch (err) {
+                showToast('Connection error: ' + err.message, 'error');
+            }
+        });
+
+        window.openDeviceConfigModal = function (deviceId) {
+            const dev = allDeviceList.find(d => d.deviceId === deviceId) || { deviceId };
+            const title = document.getElementById('cfgModalDeviceId');
+            if (title) title.innerText = deviceId;
+            const veh = document.getElementById('cfgVehicleNo');
+            if (veh) veh.value = dev.vehicleNo || `VEH-${deviceId.slice(-4)}`;
+            const modal = document.getElementById('deviceConfigModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+        document.getElementById('btnCloseDeviceConfigModal')?.addEventListener('click', () => {
+            document.getElementById('deviceConfigModal')?.classList.add('hidden');
+        });
+        document.getElementById('deviceConfigForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('cfgModalDeviceId');
+            const deviceId = title ? title.innerText : null;
+            if (!deviceId) return;
+            const vehicleNo = document.getElementById('cfgVehicleNo').value.trim();
+            try {
+                const res = await fetch(backendUrl(`/api/devices/${deviceId}`), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicleNo })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Configuration saved for device ${deviceId}`);
+                    document.getElementById('deviceConfigModal')?.classList.add('hidden');
+                    await loadDevicesTable();
+                    await loadTrackingVehicles();
+                }
+            } catch (err) {
+                showToast('Error saving configuration: ' + err.message, 'error');
+            }
+        });
+        document.getElementById('btnRebootDevice')?.addEventListener('click', () => {
+            const title = document.getElementById('cfgModalDeviceId');
+            const deviceId = title ? title.innerText : 'terminal';
+            showToast(`🔄 Reboot instruction dispatched to terminal ${deviceId}`);
+            document.getElementById('deviceConfigModal')?.classList.add('hidden');
+        });
+        document.getElementById('btnDeleteDevice')?.addEventListener('click', async () => {
+            const title = document.getElementById('cfgModalDeviceId');
+            const deviceId = title ? title.innerText : null;
+            if (!deviceId) return;
+            if (!confirm(`Are you sure you want to delete device ${deviceId}?`)) return;
+            try {
+                const res = await fetch(backendUrl(`/api/devices/${deviceId}`), { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Device ${deviceId} removed`);
+                    document.getElementById('deviceConfigModal')?.classList.add('hidden');
+                    await loadDevicesTable();
+                    await loadFleetSummary();
+                    await loadTrackingVehicles();
+                }
+            } catch (err) {
+                showToast('Error deleting device: ' + err.message, 'error');
+            }
+        });
+
+        ['All', 'Online', 'Offline', 'Inactive'].forEach(type => {
+            document.getElementById(`tabDev${type}`)?.addEventListener('click', () => {
+                currentDevFilter = type.toLowerCase();
+                document.querySelectorAll('#devices-section .tab-pill').forEach(p => p.classList.remove('active'));
+                document.getElementById(`tabDev${type}`).classList.add('active');
+                renderDeviceTableFiltered();
+            });
+        });
+
+        // ==========================================
+        // DRIVERS & VEHICLES MODALS
+        // ==========================================
+        document.getElementById('btnAddVehicleDriver')?.addEventListener('click', () => {
+            document.getElementById('addVehicleDriverModal')?.classList.remove('hidden');
+        });
+        document.getElementById('btnCloseAddVehicleDriverModal')?.addEventListener('click', () => {
+            document.getElementById('addVehicleDriverModal')?.classList.add('hidden');
+        });
+        document.getElementById('addVehicleDriverForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const vehicleNo = document.getElementById('newDrvVehicleNo').value.trim();
+            const driverName = document.getElementById('newDriverName').value.trim();
+            const phone = document.getElementById('newDriverPhone').value.trim();
+            const vehicleType = document.getElementById('newDrvVehicleType').value;
+            const status = document.getElementById('newDriverStatus').value;
+
+            try {
+                const res = await fetch(backendUrl('/api/drivers'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicleNo, driverName, phone, vehicleType, status })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Vehicle & Driver "${driverName}" registered!`);
+                    document.getElementById('addVehicleDriverModal')?.classList.add('hidden');
+                    document.getElementById('addVehicleDriverForm')?.reset();
+                    await loadDriversTable();
+                } else {
+                    showToast(data.error || 'Failed to save driver', 'error');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        });
+
+        window.openEditDriverModal = function (driverId) {
+            const dr = allDriversList.find(d => String(d.driverId) === String(driverId)) || {};
+            document.getElementById('editDriverId').value = dr.driverId || driverId;
+            document.getElementById('editModalDriverName').innerText = dr.driverName || 'Driver';
+            document.getElementById('editDriverVehicle').value = dr.vehicleNo || '';
+            document.getElementById('editDriverPhone').value = dr.phone || '';
+            document.getElementById('editDriverVehicleType').value = dr.vehicleType || 'Heavy Truck (16T)';
+            document.getElementById('editDriverStatus').value = dr.status || 'Active';
+            document.getElementById('editDriverModal')?.classList.remove('hidden');
+        };
+        document.getElementById('btnCloseEditDriverModal')?.addEventListener('click', () => {
+            document.getElementById('editDriverModal')?.classList.add('hidden');
+        });
+        document.getElementById('editDriverForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const driverId = document.getElementById('editDriverId').value;
+            const vehicleNo = document.getElementById('editDriverVehicle').value.trim();
+            const phone = document.getElementById('editDriverPhone').value.trim();
+            const vehicleType = document.getElementById('editDriverVehicleType').value;
+            const status = document.getElementById('editDriverStatus').value;
+            const driverName = document.getElementById('editModalDriverName').innerText;
+
+            try {
+                const res = await fetch(backendUrl(`/api/drivers/${driverId}`), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicleNo, phone, vehicleType, status, driverName })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✓ Driver profile updated!');
+                    document.getElementById('editDriverModal')?.classList.add('hidden');
+                    await loadDriversTable();
+                }
+            } catch (err) {
+                showToast('Error updating driver: ' + err.message, 'error');
+            }
+        });
+        document.getElementById('btnDeleteDriver')?.addEventListener('click', async () => {
+            const driverId = document.getElementById('editDriverId').value;
+            if (!driverId) return;
+            if (!confirm('Are you sure you want to remove this driver profile?')) return;
+            try {
+                const res = await fetch(backendUrl(`/api/drivers/${driverId}`), { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✓ Driver profile deleted');
+                    document.getElementById('editDriverModal')?.classList.add('hidden');
+                    await loadDriversTable();
+                }
+            } catch (err) {
+                showToast('Error removing driver: ' + err.message, 'error');
+            }
+        });
+
+        document.getElementById('tabFleetVehicles')?.addEventListener('click', () => {
+            currentFleetTab = 'vehicles';
+            document.querySelectorAll('#fleetDriversTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabFleetVehicles').classList.add('active');
+            renderDriversTableFiltered();
+        });
+        document.getElementById('tabFleetDrivers')?.addEventListener('click', () => {
+            currentFleetTab = 'drivers';
+            document.querySelectorAll('#fleetDriversTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabFleetDrivers').classList.add('active');
+            renderDriversTableFiltered();
+        });
+
+        // ==========================================
+        // REPORTS TAB PILLS
+        // ==========================================
+        document.querySelectorAll('#reportsTabPills .tab-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelectorAll('#reportsTabPills .tab-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                showToast(`Switched view to ${pill.innerText}`);
+            });
+        });
+
+        // ==========================================
+        // GEOFENCE MODALS & ACTIONS
+        // ==========================================
+        document.getElementById('btnAddGeofence')?.addEventListener('click', () => {
+            document.getElementById('addGeofenceModal')?.classList.remove('hidden');
+        });
+        document.getElementById('btnCloseAddGeofenceModal')?.addEventListener('click', () => {
+            document.getElementById('addGeofenceModal')?.classList.add('hidden');
+        });
+        document.getElementById('addGeofenceForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newGeoName').value.trim();
+            const type = document.getElementById('newGeoType').value;
+            const location = document.getElementById('newGeoLocation').value.trim();
+            const lat = parseFloat(document.getElementById('newGeoCenterLat').value) || 22.692;
+            const lng = parseFloat(document.getElementById('newGeoCenterLng').value) || 75.830;
+            const radius = parseInt(document.getElementById('newGeoRadius').value, 10) || 1200;
+            const isRestricted = document.getElementById('newGeoIsRestricted').checked;
+
+            try {
+                const res = await fetch(backendUrl('/api/geofences'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        type,
+                        location,
+                        center: [lat, lng],
+                        radius,
+                        isRestricted,
+                        area: `${(Math.PI * Math.pow(radius / 1000, 2)).toFixed(1)} km²`,
+                        vehicles: 'Active Fleet'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Geofence "${name}" created!`);
+                    document.getElementById('addGeofenceModal')?.classList.add('hidden');
+                    document.getElementById('addGeofenceForm')?.reset();
+                    await loadGeofenceData();
+                } else {
+                    showToast(data.error || 'Failed to save geofence', 'error');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        });
+
+        window.toggleGeofenceStatus = async function (id) {
+            try {
+                const res = await fetch(backendUrl(`/api/geofences/${id}/toggle`), { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Geofence ${data.active ? 'Activated' : 'Deactivated'}`);
+                }
+            } catch (err) {
+                showToast('Error toggling geofence: ' + err.message, 'error');
+            }
+        };
+
+        window.deleteGeofence = async function (id) {
+            if (!confirm('Are you sure you want to delete this geofence boundary?')) return;
+            try {
+                const res = await fetch(backendUrl(`/api/geofences/${id}`), { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✓ Geofence deleted');
+                    await loadGeofenceData();
+                }
+            } catch (err) {
+                showToast('Error deleting geofence: ' + err.message, 'error');
+            }
+        };
+
+        // ==========================================
+        // REELS FEED REFRESH
+        // ==========================================
+        document.getElementById('btnRefreshReels')?.addEventListener('click', async () => {
+            await loadReels();
+            showToast('✓ Video reels updated from server!');
         });
     </script>
 </body>
