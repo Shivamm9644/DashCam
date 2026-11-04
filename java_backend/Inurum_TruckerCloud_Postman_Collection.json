@@ -1,0 +1,552 @@
+{
+  "info": {
+    "_postman_id": "c1f7b889-4a92-4e90-8c2f-3d61a29f8841",
+    "name": "Inurum Enterprise DashCam & TruckerCloud API Collection",
+    "description": "Production Postman Collection for Inurum DashCam Fleet Telematics, Native JT/T 808 & JT/T 1078 Video Retrieval, and certified TruckerCloud Integration.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://ec2-3-85-81-10.compute-1.amazonaws.com:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tcApiKey",
+      "value": "inurum-tc-prod-key-2026",
+      "type": "string"
+    },
+    {
+      "key": "sampleVin",
+      "value": "1HD1KAE12FB099999",
+      "type": "string"
+    },
+    {
+      "key": "sampleTerminalId",
+      "value": "018800123456",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "POST Auth Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    pm.test('Token extracted and saved to collection', function() {",
+                  "        pm.expect(jsonData.token).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@inurum.com\",\n  \"password\": \"InurumAdmin2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Vehicles & Assets",
+      "item": [
+        {
+          "name": "GET Vehicles List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "POST Create Vehicle (17-char VIN & ECU Odometer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plateNumber\": \"TRK-9001\",\n  \"vin\": \"1HD1KAE12FB099999\",\n  \"label\": \"Heavy Hauler 9001\",\n  \"model\": \"Kenworth T680\",\n  \"year\": 2024,\n  \"odometerKm\": 145230.8,\n  \"odometerSource\": \"ECU\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "GET Vehicle Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles/veh-aebf556b",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles", "veh-aebf556b"]
+            }
+          }
+        },
+        {
+          "name": "POST Pair DashCam Terminal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalId\": \"018800123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles/veh-aebf556b/pair-device",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles", "veh-aebf556b", "pair-device"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Drivers",
+      "item": [
+        {
+          "name": "GET Drivers List (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers?page=0&size=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Create Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Marcus Vance\",\n  \"phone\": \"+1-404-555-0188\",\n  \"email\": \"marcus.vance@inurumfleet.com\",\n  \"licenseNumber\": \"GA-CDL-882910\",\n  \"licenseState\": \"GA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers"]
+            }
+          }
+        },
+        {
+          "name": "GET Driver Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/drivers/drv-f4685a30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "drivers", "drv-f4685a30"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Telemetry & Diagnostics",
+      "item": [
+        {
+          "name": "GET Latest GPS Positions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/positions/latest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "positions", "latest"]
+            }
+          }
+        },
+        {
+          "name": "GET Historical Breadcrumbs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry/breadcrumbs?terminalId={{sampleTerminalId}}&page=0&size=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry", "breadcrumbs"],
+              "query": [
+                { "key": "terminalId", "value": "{{sampleTerminalId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Devices Connection Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "devices", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Safety Events & Evidence",
+      "item": [
+        {
+          "name": "GET Safety Events List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/safety/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "safety", "events"]
+            }
+          }
+        },
+        {
+          "name": "GET Safety Event Recording URL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/safety/recording-url?eventId=evt-20261102-001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "safety", "recording-url"],
+              "query": [
+                { "key": "eventId", "value": "evt-20261102-001" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. SD Card Video Retrieval (JT/T 1078)",
+      "item": [
+        {
+          "name": "POST Query SD Card Files (0x9205)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalId\": \"{{sampleTerminalId}}\",\n  \"channel\": 0,\n  \"startTime\": \"2026-11-02 08:00:00\",\n  \"endTime\": \"2026-11-02 12:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/video/query-sd",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "video", "query-sd"]
+            }
+          }
+        },
+        {
+          "name": "POST Retrieve SD Video Clip (0x9201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"terminalId\": \"{{sampleTerminalId}}\",\n  \"channel\": 1,\n  \"startTime\": \"2026-11-02 08:00:00\",\n  \"endTime\": \"2026-11-02 08:05:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/video/retrieve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "video", "retrieve"]
+            }
+          }
+        },
+        {
+          "name": "GET Video Retrieval Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/video/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "video", "jobs"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. TruckerCloud Standard Integration",
+      "item": [
+        {
+          "name": "GET TruckerCloud Vehicles (X-API-KEY)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/vehicles?page=0&size=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "vehicles"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET TruckerCloud Vehicle by 17-char VIN",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/vehicles/{{sampleVin}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "vehicles", "{{sampleVin}}"]
+            }
+          }
+        },
+        {
+          "name": "GET TruckerCloud Drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/drivers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "drivers"]
+            }
+          }
+        },
+        {
+          "name": "GET TruckerCloud Latest Telemetry (km/h, UTC ISO, Odometer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/telemetry/latest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "telemetry", "latest"]
+            }
+          }
+        },
+        {
+          "name": "GET TruckerCloud Historical Telemetry / Breadcrumbs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/telemetry/history?vin={{sampleVin}}&page=0&size=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "telemetry", "history"],
+              "query": [
+                { "key": "vin", "value": "{{sampleVin}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "100" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET TruckerCloud Safety Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/safety/events?vin={{sampleVin}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "safety", "events"],
+              "query": [
+                { "key": "vin", "value": "{{sampleVin}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET TruckerCloud Trips",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "{{tcApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/integrations/truckercloud/trips?vin={{sampleVin}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "integrations", "truckercloud", "trips"],
+              "query": [
+                { "key": "vin", "value": "{{sampleVin}}" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

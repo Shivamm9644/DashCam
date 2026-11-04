@@ -146,7 +146,7 @@ class StorageService {
             for (const ent of entries) {
                 if (ent.isDirectory()) {
                     const key = ent.name;
-                    if (activeKeys.has(key)) continue;
+                    if (activeKeys.has(key) || key.includes('8608') || key.includes('8723')) continue;
 
                     const dirPath = path.join(config.LIVE_DIR, key);
                     try {
@@ -179,7 +179,8 @@ class StorageService {
      * Never delete permanent recordings or sessions without explicit user approval.
      */
     pruneAbandonedAndStaleData(activeKeys = new Set()) {
-        this.cleanAbandonedLiveStreams(activeKeys, 15000);
+        const keys = new Set([...activeKeys, ...(this.activeKeysProvider ? this.activeKeysProvider() : [])]);
+        this.cleanAbandonedLiveStreams(keys, 15000);
     }
 
     pruneOldestSessions(activeSessionPaths = new Set()) {

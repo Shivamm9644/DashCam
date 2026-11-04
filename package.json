@@ -1,42 +1,25 @@
 {
-  "name": "dashcam",
+  "name": "inurum-dashcam-saas",
   "version": "1.0.0",
-  "description": "DashCam JT808 & JT1078 Ingestion, Telemetry Sync, and Simulator Dashboard",
+  "description": "Inurum Technologies - Enterprise Multi-Tenant Dashcam SaaS Platform",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test/runner.js",
-    "smoke": "node test/smoke.js",
-    "simulate": "node tools/simulator_cli.js",
-    "generate:fixtures": "node tools/generate_fixtures.js",
-    "verify:env": "node tools/verify_env.js",
-    "jt808:test": "node tools/jt808_hex_sender.js",
-    "test:playback": "node test/playback-regression.js 30",
-    "test:full": "node test/playback-regression.js 1000"
+    "dev": "node src/server.js"
   },
   "keywords": [
     "dashcam",
+    "telematics",
+    "multi-tenant",
     "jt808",
     "jt1078",
-    "hls",
-    "telemetry",
-    "simulator"
+    "video-safety"
   ],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "author": "Inurum Technologies",
+  "license": "Proprietary",
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@ffprobe-installer/ffprobe": "^2.1.2",
-    "cors": "^2.8.6",
     "express": "^5.2.1",
     "hls.js": "^1.7.3",
-    "leaflet": "^1.9.4",
-    "multer": "^2.4.0",
-    "socket.io": "^4.8.3",
-    "uuid": "^14.0.2"
-  },
-  "engines": {
-    "node": ">=24.11.0"
+    "leaflet": "^1.9.4"
   }
 }

@@ -1,0 +1,292 @@
+{
+  "vehicles": [
+    {
+      "id": "veh-in-m16c",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-505073",
+      "label": "Desk Test DashCam (505073583696)",
+      "type": "Cable-Powered DashCam",
+      "driverName": "Desk Setup (Cable Connected)",
+      "assignedDeviceId": "505073583696",
+      "createdAt": "2026-02-15T00:00:00Z",
+      "status": "OFFLINE",
+      "speed": 0
+    },
+    {
+      "id": "veh-auto-505073214789",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-214789",
+      "label": "DashCam 505073214789",
+      "type": "DashCam",
+      "driverName": "Unassigned",
+      "assignedDeviceId": "505073214789",
+      "createdAt": "2026-10-28T11:24:21.080Z",
+      "autoDiscovered": true,
+      "status": "OFFLINE",
+      "speed": 0
+    },
+    {
+      "id": "veh-auto-505073322632",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-322632",
+      "label": "DashCam 505073322632",
+      "type": "DashCam",
+      "driverName": "Unassigned",
+      "assignedDeviceId": "505073322632",
+      "createdAt": "2026-10-28T11:55:18.118Z",
+      "autoDiscovered": true,
+      "status": "OFFLINE",
+      "speed": 0
+    },
+    {
+      "id": "veh-auto-505073474490",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-474490",
+      "label": "DashCam 505073474490",
+      "type": "DashCam",
+      "driverName": "Unassigned",
+      "assignedDeviceId": "505073474490",
+      "createdAt": "2026-10-28T12:10:49.398Z",
+      "autoDiscovered": true,
+      "status": "OFFLINE",
+      "speed": 0
+    },
+    {
+      "id": "veh-auto-505073729067",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-729067",
+      "label": "DashCam 505073729067",
+      "type": "DashCam",
+      "driverName": "Unassigned",
+      "assignedDeviceId": "505073729067",
+      "createdAt": "2026-10-28T13:02:08.548Z",
+      "autoDiscovered": true,
+      "status": "OFFLINE",
+      "speed": 0
+    },
+    {
+      "id": "veh-auto-505073095782",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-095782",
+      "label": "DashCam 505073095782",
+      "type": "DashCam",
+      "driverName": "Unassigned",
+      "assignedDeviceId": "505073095782",
+      "createdAt": "2026-10-28T13:20:24.831Z",
+      "autoDiscovered": true
+    },
+    {
+      "id": "veh-auto-872312860795",
+      "tenantId": "tenant-inurum",
+      "plateNumber": "CAM-860795",
+      "label": "DashCam 872312860795",
+      "type": "DashCam",
+      "driverName": "Unassigned",
+      "assignedDeviceId": "872312860795",
+      "createdAt": "2026-10-30T07:02:17.510Z",
+      "autoDiscovered": true
+    }
+  ],
+  "devices": [
+    {
+      "terminalId": "505073583696",
+      "imei": "863505073583696",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-in-m16c",
+      "model": "M16C Dual-Channel 4G DashCam",
+      "serialNumber": "SN-505073583696",
+      "firmwareVersion": "v2.4.18-rel",
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing Main (CH1)",
+          "codec": "H.264",
+          "resolution": "1080P FHD",
+          "fps": 25,
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin DMS (CH2)",
+          "codec": "H.264",
+          "resolution": "720P HD",
+          "fps": 25,
+          "audio": true
+        }
+      ],
+      "ipAddress": "100.31.90.51",
+      "deviceLocalIp": "192.168.1.1",
+      "lastSeen": "2026-10-28T11:14:34.224Z",
+      "status": "OFFLINE"
+    },
+    {
+      "terminalId": "505073214789",
+      "imei": "505073214789",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-auto-505073214789",
+      "model": "MDVR (Dual Cam)",
+      "serialNumber": "SN-505073214789",
+      "firmwareVersion": "v1.2.6",
+      "simNumber": null,
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing (CH1)",
+          "codec": "H.264",
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin (CH2)",
+          "codec": "H.264",
+          "audio": true
+        }
+      ],
+      "ipAddress": "127.0.0.1",
+      "lastSeen": "2026-10-28T11:31:52.370Z",
+      "status": "OFFLINE",
+      "createdAt": "2026-10-28T11:24:21.080Z"
+    },
+    {
+      "terminalId": "505073322632",
+      "imei": "505073322632",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-auto-505073322632",
+      "model": "MDVR (Dual Cam)",
+      "serialNumber": "SN-505073322632",
+      "firmwareVersion": "v1.2.6",
+      "simNumber": null,
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing (CH1)",
+          "codec": "H.264",
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin (CH2)",
+          "codec": "H.264",
+          "audio": true
+        }
+      ],
+      "ipAddress": "127.0.0.1",
+      "lastSeen": "2026-10-28T11:57:58.193Z",
+      "status": "OFFLINE",
+      "createdAt": "2026-10-28T11:55:18.118Z"
+    },
+    {
+      "terminalId": "505073474490",
+      "imei": "505073474490",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-auto-505073474490",
+      "model": "MDVR (Dual Cam)",
+      "serialNumber": "SN-505073474490",
+      "firmwareVersion": "v1.2.6",
+      "simNumber": null,
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing (CH1)",
+          "codec": "H.264",
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin (CH2)",
+          "codec": "H.264",
+          "audio": true
+        }
+      ],
+      "ipAddress": "127.0.0.1",
+      "lastSeen": "2026-10-28T12:47:05.579Z",
+      "status": "OFFLINE",
+      "createdAt": "2026-10-28T12:10:49.399Z"
+    },
+    {
+      "terminalId": "505073729067",
+      "imei": "505073729067",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-auto-505073729067",
+      "model": "MDVR (Dual Cam)",
+      "serialNumber": "SN-505073729067",
+      "firmwareVersion": "v1.2.6",
+      "simNumber": null,
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing (CH1)",
+          "codec": "H.264",
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin (CH2)",
+          "codec": "H.264",
+          "audio": true
+        }
+      ],
+      "ipAddress": "127.0.0.1",
+      "lastSeen": "2026-10-28T13:06:45.180Z",
+      "status": "OFFLINE",
+      "createdAt": "2026-10-28T13:02:08.548Z"
+    },
+    {
+      "terminalId": "505073095782",
+      "imei": "505073095782",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-auto-505073095782",
+      "model": "MDVR (Dual Cam)",
+      "serialNumber": "SN-505073095782",
+      "firmwareVersion": "v1.2.6",
+      "simNumber": null,
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing (CH1)",
+          "codec": "H.264",
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin (CH2)",
+          "codec": "H.264",
+          "audio": true
+        }
+      ],
+      "ipAddress": "127.0.0.1",
+      "lastSeen": "2026-10-28T13:20:24.831Z",
+      "status": "OFFLINE",
+      "createdAt": "2026-10-28T13:20:24.831Z"
+    },
+    {
+      "terminalId": "872312860795",
+      "imei": "872312860795",
+      "tenantId": "tenant-inurum",
+      "vehicleId": "veh-auto-872312860795",
+      "model": "MDVR (Dual Cam)",
+      "serialNumber": "SN-872312860795",
+      "firmwareVersion": "v1.2.6",
+      "simNumber": null,
+      "channels": [
+        {
+          "channelId": 1,
+          "name": "Road Facing (CH1)",
+          "codec": "H.264",
+          "audio": true
+        },
+        {
+          "channelId": 2,
+          "name": "Driver Cabin (CH2)",
+          "codec": "H.264",
+          "audio": true
+        }
+      ],
+      "ipAddress": "127.0.0.1",
+      "lastSeen": "2026-10-30T07:02:17.510Z",
+      "status": "OFFLINE",
+      "createdAt": "2026-10-30T07:02:17.510Z"
+    }
+  ],
+  "removedTerminals": []
+}

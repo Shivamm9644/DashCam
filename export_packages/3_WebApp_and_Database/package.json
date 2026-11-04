@@ -1,0 +1,29 @@
+{
+  "name": "inurum-dashcam-saas",
+  "version": "1.0.0",
+  "description": "Inurum Technologies - Enterprise Multi-Tenant Dashcam SaaS Platform",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test:auth": "node test/auth-isolation.test.js"
+  },
+  "keywords": [
+    "dashcam",
+    "telematics",
+    "multi-tenant",
+    "jt808",
+    "jt1078",
+    "video-safety"
+  ],
+  "author": "Inurum Technologies",
+  "license": "Proprietary",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "hls.js": "^1.7.3",
+    "leaflet": "^1.9.4",
+    "socket.io": "^4.8.3",
+    "uuid": "^14.0.2"
+  }
+}

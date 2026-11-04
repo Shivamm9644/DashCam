@@ -1,0 +1,49 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: inurum-dashcam-backend
+
+  # File-backed H2 for local runs; production sets SPRING_DATASOURCE_* to MySQL
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/dashcam_db;DB_CLOSE_DELAY=-1;MODE=MySQL}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+
+security:
+  jwt:
+    # Empty = a random key per boot (everyone must log in again after a restart). Set JWT_SECRET in production.
+    secret: ${JWT_SECRET:inurum-dashcam-jwt-production-secret-key-super-secure-256-bit}
+    expiration-ms: ${JWT_EXPIRATION_MS:43200000}
+  integration:
+    api-key: ${INTEGRATION_API_KEY:inurum-tc-prod-key-2026}
+
+# The Node JT808/JT1078 gateway (same server). It owns the camera sockets, live HLS and SD playback.
+gateway:
+  url: ${GATEWAY_URL:http://100.31.90.51:3000}
+  # Host and ports the cameras are configured with (shown on device status screens)
+  public-host: ${GATEWAY_PUBLIC_HOST:100.31.90.51}
+  jt808-port: ${JT808_PORT:7800}
+  jt1078-port: ${JT1078_PORT:10780}
+
+# First login account, created only when the users table is empty
+bootstrap:
+  admin-email: ${INITIAL_ADMIN_EMAIL:admin@inurum.com}
+  admin-password: ${INITIAL_ADMIN_PASSWORD:InurumAdmin2026!}
+  admin-name: ${INITIAL_ADMIN_NAME:Platform Admin}

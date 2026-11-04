@@ -1,12 +1,48 @@
+# Node dependencies
 node_modules/
+
+# Java / Maven build output
+java_backend/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Environment & secrets
+.env
+.env.local
 *.env
-*.log
-*.ogv
-*.mp4
+
+# Database & local data
+data/
+*.mv.db
+*.trace.db
 *.db-shm
 *.db-wal
+
+# Media & binary streams
 storage/media/
 storage/accidents/
-mock_data/
-temp_extracted.json
-verification-*.json
+*.mp4
+*.ogv
+
+# Large archives & binaries
+*.tar.gz
+*.tgz
+*.zip
+*.apk
+
+# Logs & scratch
+*.log
+logs/
+temp/
+scratch/
+.agents/
+
+# IDE & OS metadata
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

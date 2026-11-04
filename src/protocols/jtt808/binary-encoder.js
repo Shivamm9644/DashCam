@@ -96,6 +96,113 @@ class BinaryEncoder {
         return this._buildPacket(0x8201, terminalId, Buffer.alloc(0));
     }
 
+
+    /**
+     * Builds 0x9205 Query Terminal Media Resource List (JT/T 1078-2016 Table 13)
+     */
+    buildMediaResourceQuery(terminalId, {
+        channel = 1,
+        startTime,
+        endTime,
+        alarmFlag1 = 0,
+        alarmFlag2 = 0,
+        mediaType = 0,
+        streamType = 0,
+        storageType = 1
+    }) {
+        const bodyBuf = Buffer.alloc(24);
+        let offset = 0;
+
+        // Logical Channel Number (BYTE)
+        bodyBuf.writeUInt8(channel, offset++);
+
+        // Start Time (BCD[6]: yyMMddHHmmss)
+        const startBcd = this._dateToBcd(startTime || new Date(Date.now() - 3600000));
+        startBcd.copy(bodyBuf, offset);
+        offset += 6;
+
+        // End Time (BCD[6]: yyMMddHHmmss)
+        const endBcd = this._dateToBcd(endTime || new Date());
+        endBcd.copy(bodyBuf, offset);
+        offset += 6;
+
+        // Alarm Flag (DWORD[2])
+        bodyBuf.writeUInt32BE(alarmFlag1, offset); offset += 4;
+        bodyBuf.writeUInt32BE(alarmFlag2, offset); offset += 4;
+
+        // Media Type (BYTE, 0: Audio/Video, 1: Audio, 2: Video)
+        bodyBuf.writeUInt8(mediaType, offset++);
+
+        // Stream Type (BYTE, 0: All, 1: Main, 2: Sub)
+        bodyBuf.writeUInt8(streamType, offset++);
+
+        // Storage Type (BYTE, 0: All, 1: Primary/SD, 2: Backup)
+        bodyBuf.writeUInt8(storageType, offset++);
+
+        return this._buildPacket(0x9205, terminalId, bodyBuf);
+    }
+
+    /**
+     * Builds 0x9206 Media File Upload Request (JT/T 1078-2016 Table 15)
+     */
+    buildMediaUploadRequest(terminalId, {
+        serverIp = '100.31.90.51',
+        tcpPort = 10780,
+        udpPort = 0,
+        channel = 1,
+        startTime,
+        endTime,
+        alarmFlag1 = 0,
+        alarmFlag2 = 0,
+        mediaType = 0,
+        streamType = 0,
+        storageType = 1,
+        condition = 0
+    }) {
+        const ipBuf = Buffer.from(serverIp, 'utf8');
+        const bodyLen = 1 + ipBuf.length + 2 + 2 + 1 + 6 + 6 + 8 + 1 + 1 + 1 + 1;
+        const bodyBuf = Buffer.alloc(bodyLen);
+        let offset = 0;
+
+        // Server IP length & IP
+        bodyBuf.writeUInt8(ipBuf.length, offset++);
+        ipBuf.copy(bodyBuf, offset);
+        offset += ipBuf.length;
+
+        bodyBuf.writeUInt16BE(tcpPort, offset); offset += 2;
+        bodyBuf.writeUInt16BE(udpPort, offset); offset += 2;
+        bodyBuf.writeUInt8(channel, offset++);
+
+        const startBcd = this._dateToBcd(startTime || new Date(Date.now() - 3600000));
+        startBcd.copy(bodyBuf, offset);
+        offset += 6;
+
+        const endBcd = this._dateToBcd(endTime || new Date());
+        endBcd.copy(bodyBuf, offset);
+        offset += 6;
+
+        bodyBuf.writeUInt32BE(alarmFlag1, offset); offset += 4;
+        bodyBuf.writeUInt32BE(alarmFlag2, offset); offset += 4;
+        bodyBuf.writeUInt8(mediaType, offset++);
+        bodyBuf.writeUInt8(streamType, offset++);
+        bodyBuf.writeUInt8(storageType, offset++);
+        bodyBuf.writeUInt8(condition, offset++);
+
+        return this._buildPacket(0x9206, terminalId, bodyBuf);
+    }
+
+    _dateToBcd(dateInput) {
+        const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+        const yy = String(d.getUTCFullYear()).slice(-2).padStart(2, '0');
+        const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const hh = String(d.getUTCHours()).padStart(2, '0');
+        const mm = String(d.getUTCMinutes()).padStart(2, '0');
+        const ss = String(d.getUTCSeconds()).padStart(2, '0');
+        const str = yy + MM + dd + hh + mm + ss;
+        return binaryUtils.stringToBcd(str);
+    }
+
     _buildPacket(messageId, terminalId, bodyBuf) {
         const headerBuf = Buffer.alloc(12);
         headerBuf.writeUInt16BE(messageId, 0);

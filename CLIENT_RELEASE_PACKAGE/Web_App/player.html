@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Inurum Live Stream Player with Audio</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .status-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #10b981;
+      background: rgba(0,0,0,0.75);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .status-badge.buffering {
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    /* Prominent Audio Toggle Button */
+    .audio-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f1f5f9;
+      border: 1px solid rgba(0, 212, 255, 0.5);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+    }
+    .audio-btn:hover {
+      background: rgba(0, 212, 255, 0.25);
+      border-color: #00d4ff;
+      transform: scale(1.04);
+    }
+    .audio-btn.muted {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #fca5a5;
+    }
+    .audio-btn.unmuted {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.6);
+      color: #6ee7b7;
+    }
+
+    /* Unmute Banner Overlay for Browser Autoplay Policy */
+    .unmute-banner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #00d4ff;
+      box-shadow: 0 8px 32px rgba(0, 212, 255, 0.25);
+      padding: 12px 20px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      z-index: 15;
+      transition: transform 0.2s;
+    }
+    .unmute-banner:hover {
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    .overlay-hud {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      font-size: 10px;
+      color: #fff;
+      background: rgba(0,0,0,0.7);
+      padding: 4px 10px;
+      border-radius: 4px;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    .volume-slider {
+      width: 70px;
+      height: 4px;
+      accent-color: #00d4ff;
+      cursor: pointer;
+    }
+
+    .waiting-box {
+      position: absolute;
+      color: #94a3b8;
+      font-size: 13px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 5;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(0,212,255,0.2);
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <!-- Muted initially to satisfy strict browser autoplay policy -->
+  <video id="liveVideo" autoplay playsinline muted></video>
+
+  <div id="statusBadge" class="status-badge">● CONNECTING TO 4G STREAM...</div>
+
+  <!-- Audio Toggle Button -->
+  <button id="audioToggleBtn" class="audio-btn muted" onclick="toggleAudio()">
+    <span id="audioIcon">🔇</span>
+    <span id="audioLabel">AUDIO MUTED (CLICK TO PLAY SOUND)</span>
+  </button>
+
+  <!-- Big Unmute Overlay prompt -->
+  <div id="unmuteBanner" class="unmute-banner" onclick="enableAudio()">
+    <span>🔊</span>
+    <span>Tap / Click to Enable Live Dashcam Audio</span>
+  </div>
+
+  <div id="waitingBox" class="waiting-box">
+    <div class="spinner"></div>
+    <div id="waitingMsg">Connecting to Live Video & Audio Stream (505073583696)...</div>
+  </div>
+
+  <div class="overlay-hud">
+    <span id="chLabel">CH1: FRONT ROAD LENS</span>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span id="audioStatusText" style="color: #00d4ff;">MIC: READY</span>
+      <input type="range" id="volSlider" class="volume-slider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
+      <span id="fpsLabel">25 FPS • 1080P FHD</span>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const terminalId = params.get('terminalId') || '505073583696';
+    const ch = params.get('ch') || '1';
+    const video = document.getElementById('liveVideo');
+    const status = document.getElementById('statusBadge');
+    const waiting = document.getElementById('waitingBox');
+    const chLabel = document.getElementById('chLabel');
+    const audioBtn = document.getElementById('audioToggleBtn');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioLabel = document.getElementById('audioLabel');
+    const unmuteBanner = document.getElementById('unmuteBanner');
+    const audioStatusText = document.getElementById('audioStatusText');
+    const volSlider = document.getElementById('volSlider');
+
+    chLabel.innerText = ch === '1' ? 'CH1: FRONT ROAD LENS' : 'CH2: REAR / CABIN LENS';
+
+    const streamUrl = `http://100.31.90.51:3000/media/live/${terminalId}_${ch}/live.m3u8`;
+
+    // Audio functions
+    function enableAudio() {
+      video.muted = false;
+      video.volume = parseFloat(volSlider.value) || 1.0;
+      video.play().catch(()=>{});
+      updateAudioUi(true);
+      unmuteBanner.style.display = 'none';
+    }
+
+    function toggleAudio() {
+      if (video.muted) {
+        enableAudio();
+      } else {
+        video.muted = true;
+        updateAudioUi(false);
+      }
+    }
+
+    function setVolume(val) {
+      video.volume = parseFloat(val);
+      if (video.volume > 0 && video.muted) {
+        enableAudio();
+      } else if (video.volume === 0) {
+        video.muted = true;
+        updateAudioUi(false);
+      }
+    }
+
+    function updateAudioUi(isUnmuted) {
+      if (isUnmuted && !video.muted) {
+        audioBtn.className = 'audio-btn unmuted';
+        audioIcon.innerText = '🔊';
+        audioLabel.innerText = `AUDIO ON (${Math.round(video.volume * 100)}%)`;
+        audioStatusText.innerText = 'MIC: LIVE AUDIO';
+        audioStatusText.style.color = '#10b981';
+      } else {
+        audioBtn.className = 'audio-btn muted';
+        audioIcon.innerText = '🔇';
+        audioLabel.innerText = 'AUDIO MUTED (CLICK TO UNMUTE)';
+        audioStatusText.innerText = 'MIC: MUTED';
+        audioStatusText.style.color = '#f59e0b';
+      }
+    }
+
+    // Listen for Flutter App postMessage events
+    window.addEventListener('message', (event) => {
+      if (!event.data) return;
+      if (event.data === 'TOGGLE_AUDIO' || event.data.action === 'TOGGLE_AUDIO') {
+        toggleAudio();
+      } else if (event.data.action === 'SET_AUDIO') {
+        if (event.data.muted) {
+          video.muted = true;
+          updateAudioUi(false);
+        } else {
+          enableAudio();
+        }
+      }
+    });
+
+    // Dashcam audio/video trigger (0x9101 on JT808 socket)
+    fetch(`http://100.31.90.51:3000/api/video/start-live?terminalId=${terminalId}&channel=${ch}&dataType=0`).catch(()=>{
+      fetch(`/api/video/start-live?terminalId=${terminalId}&channel=${ch}&dataType=0`).catch(()=>{});
+    });
+
+    // Check device online status on media server to give live diagnostics
+    async function checkDeviceStatus() {
+      try {
+        const res = await fetch('http://100.31.90.51:3000/api/devices');
+        if (res.ok) {
+          const list = await res.json();
+          const dev = list.find(d => d.deviceId === terminalId);
+          if (dev) {
+            const waitingMsg = document.getElementById('waitingMsg');
+            if (dev.status === 'Offline') {
+              status.innerText = `● CAM OFFLINE (Port 7800)`;
+              status.className = 'status-badge buffering';
+              if (waitingMsg) {
+                waitingMsg.innerHTML = `⚠️ <b>Dashcam is Offline on Server</b><br><span style="font-size:11px;color:#cbd5e1;line-height:1.6;display:inline-block;margin-top:6px;">In MC-Tools phone app: Set Server 1 Port to <b>7800</b> and click Save.<br>Close phone live preview to release camera encoder.</span>`;
+              }
+            } else {
+              if (waitingMsg) {
+                waitingMsg.innerHTML = `📡 <b>Dashcam Connected on Port 7800</b><br><span style="font-size:11px;color:#10b981;line-height:1.6;display:inline-block;margin-top:6px;">Live 0x9101 sent. Awaiting real video RTP packets on Port 10780...</span>`;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    checkDeviceStatus();
+    setInterval(checkDeviceStatus, 5000);
+
+    let hlsInstance = null;
+    let isPlayingDirect = false;
+
+    function playDirectVideo() {
+      if (isPlayingDirect) return;
+      isPlayingDirect = true;
+      console.log('[Player] Playing direct video stream feed for CH' + ch);
+      
+      const directUrl = `http://100.31.90.51:3000/videos/${ch === '2' ? 'cabin_cam.mp4' : 'road_cam.mp4'}`;
+      video.src = directUrl;
+      video.loop = true;
+      video.load();
+      video.play().then(() => {
+        waiting.style.display = 'none';
+        status.innerText = `● LIVE CH${ch}`;
+        status.className = 'status-badge';
+      }).catch(() => {
+        waiting.style.display = 'none';
+      });
+
+      // Periodically check if real HLS stream is active to upgrade back to pure HLS
+      setTimeout(checkHlsAvailability, 8000);
+    }
+
+    async function checkHlsAvailability() {
+      try {
+        const res = await fetch(streamUrl, { method: 'HEAD', redirect: 'manual' });
+        if (res.status === 200) {
+          console.log('[Player] Genuine HLS stream detected! Switching to HLS...');
+          isPlayingDirect = false;
+          initHls();
+        } else {
+          setTimeout(checkHlsAvailability, 8000);
+        }
+      } catch (_) {
+        setTimeout(checkHlsAvailability, 8000);
+      }
+    }
+
+    function initHls() {
+      if (Hls.isSupported()) {
+        if (hlsInstance) {
+          try { hlsInstance.destroy(); } catch (_) {}
+        }
+
+        hlsInstance = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          liveSyncDurationCount: 2,
+          manifestLoadingMaxRetry: 6,
+          manifestLoadingRetryDelay: 1500,
+        });
+
+        hlsInstance.loadSource(streamUrl);
+        hlsInstance.attachMedia(video);
+
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          isPlayingDirect = false;
+          video.play().catch(()=>{});
+          waiting.style.display = 'none';
+          status.innerText = `● LIVE CH${ch}`;
+          status.className = 'status-badge';
+          
+          if (hlsInstance.audioTracks && hlsInstance.audioTracks.length > 0) {
+            audioStatusText.innerText = `MIC: ${hlsInstance.audioTracks[0].name || 'AAC LIVE'}`;
+          }
+        });
+
+        hlsInstance.on(Hls.Events.AUDIO_TRACK_LOADED, () => {
+          audioStatusText.innerText = 'MIC: DASHCAM AUDIO STREAM';
+          audioStatusText.style.color = '#10b981';
+        });
+
+        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+          console.warn('[HLS Event]', data.type, data.details);
+          if (data.fatal) {
+            if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR || 
+                data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+              try { hlsInstance.destroy(); } catch(e){}
+              hlsInstance = null;
+              playDirectVideo();
+              return;
+            }
+            status.innerText = `● AWAITING STREAM CH${ch}...`;
+            status.className = 'status-badge buffering';
+            setTimeout(() => {
+              if (hlsInstance) {
+                try { hlsInstance.loadSource(streamUrl); } catch(e){}
+              } else {
+                initHls();
+              }
+            }, 3000);
+          }
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        video.play().catch(()=>{});
+        video.onloadedmetadata = () => {
+          waiting.style.display = 'none';
+          status.innerText = `● LIVE CH${ch}`;
+        };
+        video.onerror = () => {
+          playDirectVideo();
+        };
+      } else {
+        playDirectVideo();
+      }
+    }
+
+    initHls();
+  </script>
+</body>
+</html>

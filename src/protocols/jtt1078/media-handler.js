@@ -10,6 +10,7 @@ const parser = require('./media-parser');
 const ws = require('../../services/websocket-service');
 const Feeder = require('../../simulator/media-feeder');
 const TsMuxer = require('./ts-muxer');
+const AlawToAac = require('./audio-transcoder');
 const storageService = require('../../services/storage-service');
 
 class MediaHandler {
@@ -23,6 +24,7 @@ class MediaHandler {
 
         // Ensure directories on boot
         storageService.ensureDirectories();
+        storageService.activeKeysProvider = () => this.sessions.keys();
 
         // On server startup: clean any leftover temporary live segments from previous unclean shutdowns
         storageService.cleanAbandonedLiveStreams(new Set(), 0);
@@ -48,7 +50,7 @@ class MediaHandler {
 
     processPacket(p) {
         // Do not silently route unsupported codecs into H.264/AAC decoders.
-        if (!((p.isVideo && p.payloadType === 98 && p.dataType !== 2) || (p.isAudio && p.payloadType === 19))) return;
+        if (!((p.isVideo && p.payloadType === 98 && p.dataType !== 2) || (p.isAudio && (p.payloadType === 19 || p.payloadType === 6)))) return;
         const key = `${p.simNumber}_${p.channel}`;
         let m = this.streamMetrics.get(key);
         if (!m) {
@@ -176,6 +178,17 @@ class MediaHandler {
             delete s.fragments[type];
         }
         if (p.isAudio) {
+            if (p.payloadType === 6) {
+                // Camera audio is G.711A; transcode to AAC so the browser can play it
+                if (s.start === null) return; // wait for the first keyframe, like the AAC path
+                if (!s.alaw) {
+                    s.alaw = new AlawToAac((frame, ptsMs) => {
+                        if (s.status !== 'CLOSED') s.frames.push({ data: frame, ptsMs, audio: true });
+                    });
+                }
+                s.alaw.push(data, p.timestampMs);
+                return;
+            }
             if (s.start !== null && Feeder.parseAacFrames(data).length) {
                 s.frames.push({ data, ptsMs: p.timestampMs, audio: true });
             }
@@ -238,6 +251,7 @@ class MediaHandler {
         const liveSegName = `seg_${seq}.ts`;
         const liveTsPath = path.join(s.liveDir, liveSegName);
         try {
+            fs.mkdirSync(s.liveDir, { recursive: true });
             fs.writeFileSync(liveTsPath, ts);
         } catch (writeErr) {
             console.error(`[MEDIA] Live TS write failed for ${liveTsPath}: ${writeErr.message}. Running emergency storage prune...`);
@@ -686,6 +700,7 @@ class MediaHandler {
 
         this.sessions.delete(key);
         s.status = 'CLOSED';
+        if (s.alaw) s.alaw.close();
 
         if (s.start !== null && s.lastVideo !== null) {
             this.finalize(s, s.lastVideo + s.frameMs);

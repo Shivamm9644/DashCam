@@ -1,0 +1,24 @@
+[Unit]
+Description=Inurum Enterprise Dashcam Unified Java Backend
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/dashcam-backend
+Environment="SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/inurum_dashcam?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true"
+Environment="SPRING_DATASOURCE_DRIVER=com.mysql.cj.jdbc.Driver"
+# DB user/password live in /home/ubuntu/dashcam-backend/db.env (chmod 600), not in this file:
+#   SPRING_DATASOURCE_USERNAME=dashcam
+#   SPRING_DATASOURCE_PASSWORD=<secret>
+EnvironmentFile=/home/ubuntu/dashcam-backend/db.env
+ExecStart=/usr/bin/java -Xms128m -Xmx300m -jar /home/ubuntu/dashcam-backend/target/inurum-dashcam-backend-1.0.0.jar
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

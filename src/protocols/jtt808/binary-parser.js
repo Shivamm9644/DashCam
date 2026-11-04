@@ -1,4 +1,7 @@
 const binaryUtils = require('./binary-utils');
+
+// terminalPhone_messageId -> { total, parts: Map(packageNumber -> body), at }
+const subPackageBuffers = new Map();
 const NormalizedTelemetry = require('../../models/telemetry');
 const config = require('../../config');
 
@@ -78,11 +81,19 @@ class BinaryParser {
                 return { frame, error: 'ENCRYPTION_UNSUPPORTED' };
             }
 
+            let msgBody = unescaped.subarray(bodyOffset, unescaped.length - 1);
             if (subPackage) {
-                return { frame, error: 'SUBPACKAGE_NOT_IMPLEMENTED' };
+                const key = `${terminalPhone}_${messageId}`;
+                let entry = subPackageBuffers.get(key);
+                if (!entry || entry.total !== totalPackages || Date.now() - entry.at > 30000) {
+                    entry = { total: totalPackages, parts: new Map(), at: Date.now() };
+                }
+                entry.parts.set(packageNumber, Buffer.from(msgBody));
+                subPackageBuffers.set(key, entry);
+                if (entry.parts.size < totalPackages) return { frame, partial: true };
+                subPackageBuffers.delete(key);
+                msgBody = Buffer.concat([...entry.parts.keys()].sort((a, b) => a - b).map(n => entry.parts.get(n)));
             }
-
-            const msgBody = unescaped.subarray(bodyOffset, unescaped.length - 1);
             let decoded = null;
             let telemetry = null;
             const deviceTz = options.deviceTimeZone || config.DEVICE_TIMEZONE;
@@ -100,6 +111,64 @@ class BinaryParser {
                 case 0x0102: // Authentication
                     decoded = this.parseAuthentication(msgBody);
                     break;
+                
+                case 0x1205: // Terminal Media Resource List Response (JT/T 1078-2016 Table 14)
+                    {
+                        const body = msgBody;
+                        const ackSerialNo = body.length >= 2 ? body.readUInt16BE(0) : 0;
+                        const resourceCount = body.length >= 6 ? body.readUInt32BE(2) : 0;
+                        const resources = [];
+                        let offset = 6;
+                        for (let i = 0; i < resourceCount && offset + 28 <= body.length; i++) {
+                            const ch = body.readUInt8(offset++);
+                            const startBcd = binaryUtils.bcdToString(body.subarray(offset, offset + 6)); offset += 6;
+                            const endBcd = binaryUtils.bcdToString(body.subarray(offset, offset + 6)); offset += 6;
+                            const alarm1 = body.readUInt32BE(offset); offset += 4;
+                            const alarm2 = body.readUInt32BE(offset); offset += 4;
+                            const mType = body.readUInt8(offset++);
+                            const sType = body.readUInt8(offset++);
+                            const stgType = body.readUInt8(offset++);
+                            const fSize = body.readUInt32BE(offset); offset += 4;
+
+                            resources.push({
+                                channel: ch,
+                                startTimeBcd: startBcd,
+                                endTimeBcd: endBcd,
+                                startTimeIso: `20${startBcd.slice(0,2)}-${startBcd.slice(2,4)}-${startBcd.slice(4,6)}T${startBcd.slice(6,8)}:${startBcd.slice(8,10)}:${startBcd.slice(10,12)}Z`,
+                                endTimeIso: `20${endBcd.slice(0,2)}-${endBcd.slice(2,4)}-${endBcd.slice(4,6)}T${endBcd.slice(6,8)}:${endBcd.slice(8,10)}:${endBcd.slice(10,12)}Z`,
+                                alarmFlag1: alarm1,
+                                alarmFlag2: alarm2,
+                                mediaType: mType,
+                                streamType: sType,
+                                storageType: stgType,
+                                fileSizeBytes: fSize
+                            });
+                        }
+                        decoded = {
+                            messageId: 0x1205,
+                            messageName: 'TERMINAL_MEDIA_RESOURCE_LIST',
+                            ackSerialNo,
+                            resourceCount,
+                            resources
+                        };
+                    }
+                    break;
+
+                case 0x1206: // Terminal File Upload Notification (JT/T 1078-2016 Table 16)
+                    {
+                        const body = msgBody;
+                        const ackSerialNo = body.length >= 2 ? body.readUInt16BE(0) : 0;
+                        const result = body.length >= 3 ? body.readUInt8(2) : 0;
+                        decoded = {
+                            messageId: 0x1206,
+                            messageName: 'TERMINAL_FILE_UPLOAD_RESPONSE',
+                            ackSerialNo,
+                            result,
+                            resultText: result === 0 ? 'Success' : 'Failed'
+                        };
+                    }
+                    break;
+
                 case 0x0200: // Location Report
                     const res = this.parseLocationReport(terminalPhone, serialNo, msgBody, deviceTz);
                     if (res) {
