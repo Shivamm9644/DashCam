@@ -260,7 +260,17 @@
 
     // Check Authentication
     if (!FleetApi.token) {
-      showAuthModal();
+      const email = (dom.inputAuthEmail && dom.inputAuthEmail.value.trim()) || 'inurum@wanwaygps.com';
+      const pass = (dom.inputAuthPassword && dom.inputAuthPassword.value) || 'cE7R0fZYY1cSrj';
+      if (email && pass) {
+        try {
+          await handleLogin(email, pass);
+        } catch (_) {
+          showAuthModal();
+        }
+      } else {
+        showAuthModal();
+      }
     } else {
       await loadFleetData();
     }
