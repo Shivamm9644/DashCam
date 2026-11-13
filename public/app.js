@@ -260,17 +260,7 @@
 
     // Check Authentication
     if (!FleetApi.token) {
-      const email = (dom.inputAuthEmail && dom.inputAuthEmail.value.trim()) || 'inurum@wanwaygps.com';
-      const pass = (dom.inputAuthPassword && dom.inputAuthPassword.value) || 'cE7R0fZYY1cSrj';
-      if (email && pass) {
-        try {
-          await handleLogin(email, pass);
-        } catch (_) {
-          showAuthModal();
-        }
-      } else {
-        showAuthModal();
-      }
+      showAuthModal();
     } else {
       await loadFleetData();
     }
@@ -279,6 +269,8 @@
   // ── Authentication Handlers ───────────────────────────────────────────
   function showAuthModal() {
     if (dom.authBackdrop) dom.authBackdrop.style.display = 'flex';
+    if (dom.inputAuthEmail && !dom.inputAuthEmail.value) dom.inputAuthEmail.value = 'inurum@wanwaygps.com';
+    if (dom.inputAuthPassword && !dom.inputAuthPassword.value) dom.inputAuthPassword.value = 'cE7R0fZYY1cSrj';
   }
 
   function hideAuthModal() {
@@ -1243,11 +1235,17 @@
     }
 
     // Sign Out
+    const handleSignOut = () => {
+      FleetApi.logout();
+      showAuthModal();
+      showToast('Logged out successfully', 'info');
+    };
     if (dom.btnSignOut) {
-      dom.btnSignOut.addEventListener('click', () => {
-        FleetApi.logout();
-        showAuthModal();
-      });
+      dom.btnSignOut.addEventListener('click', handleSignOut);
+    }
+    const btnHeaderSignOut = document.getElementById('btnHeaderSignOut');
+    if (btnHeaderSignOut) {
+      btnHeaderSignOut.addEventListener('click', handleSignOut);
     }
 
     // Auth Form Submit
