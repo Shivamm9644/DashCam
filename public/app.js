@@ -688,9 +688,11 @@
       const isSelected = v.id === state.selectedVehicleId;
       const hasGps = v.lat != null && v.lng != null && v.lat !== 0;
       // Offline first: the gateway can replay a stale speed/position for a disconnected camera
-      const isOffline = v.status === 'OFFLINE';
-      const statusClass = isOffline ? 'offline' : (!hasGps ? 'idle' : (v.speed > 0 ? 'online' : 'idle'));
-      const statusLabel = isOffline ? 'Offline' : (!hasGps ? 'Online · No GPS' : (v.speed > 0 ? `Moving ${v.speed} km/h` : (v.ignition ? 'Idle' : 'Parked')));
+      const isDeactivated = v.status === 'DEACTIVATED';
+      const isOffline = v.status === 'OFFLINE' || isDeactivated;
+      const isOnline = v.status === 'ONLINE';
+      const statusClass = isDeactivated ? 'offline' : (isOffline ? 'offline' : (!hasGps ? 'idle' : (v.speed > 0 ? 'online' : 'idle')));
+      const statusLabel = isDeactivated ? 'Deactivated' : (isOffline ? 'Offline' : (!hasGps ? 'Online · No GPS' : (v.speed > 0 ? `Moving ${v.speed} km/h` : (v.ignition ? 'Idle' : 'Parked'))));
       const plate = v.plateNumber || v.terminalId || 'CAM-505073';
       const isCableRig = (v.type && v.type.toLowerCase().includes('cable')) || plate.startsWith('CAM-');
       const modelShort = (v.model || 'M16C').split(' ')[0];
