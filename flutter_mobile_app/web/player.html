@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Inurum Dashcam Player - Live & SD Card Playback</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #060913;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    canvas#offlineCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      background: #0b0f19;
+    }
+
+    .status-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #10b981;
+      background: rgba(0,0,0,0.8);
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      z-index: 20;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-badge.offline-mode {
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.5);
+      background: rgba(20, 15, 5, 0.85);
+    }
+    .status-badge.buffering {
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .audio-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f1f5f9;
+      border: 1px solid rgba(0, 212, 255, 0.5);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+    }
+    .audio-btn:hover {
+      background: rgba(0, 212, 255, 0.25);
+      border-color: #00d4ff;
+    }
+    .audio-btn.muted {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #fca5a5;
+    }
+    .audio-btn.unmuted {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: rgba(16, 185, 129, 0.6);
+      color: #6ee7b7;
+    }
+
+    .unmute-banner {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #00d4ff;
+      box-shadow: 0 8px 32px rgba(0, 212, 255, 0.25);
+      padding: 12px 20px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      z-index: 15;
+    }
+
+    .overlay-hud {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      font-size: 10px;
+      color: #fff;
+      background: rgba(0,0,0,0.75);
+      padding: 5px 12px;
+      border-radius: 6px;
+      z-index: 20;
+    }
+
+    .volume-slider {
+      width: 60px;
+      height: 4px;
+      accent-color: #00d4ff;
+      cursor: pointer;
+    }
+
+    .waiting-box {
+      position: absolute;
+      color: #94a3b8;
+      font-size: 13px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 5;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(0,212,255,0.2);
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Offline MicroSD Playback Controls Bar */
+    .sd-playback-bar {
+      position: absolute;
+      bottom: 38px;
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 25;
+      backdrop-filter: blur(6px);
+    }
+    .sd-scrubber {
+      width: 100%;
+      height: 5px;
+      accent-color: #f59e0b;
+      cursor: pointer;
+    }
+    .sd-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fff;
+      font-size: 11px;
+    }
+    .sd-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sd-btn:hover {
+      background: rgba(245, 158, 11, 0.3);
+      border-color: #f59e0b;
+    }
+    .sd-pill {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <!-- Real Live HLS Video -->
+  <video id="liveVideo" autoplay playsinline muted></video>
+
+  <!-- Offline MicroSD Playback Simulation Canvas -->
+  <canvas id="offlineCanvas" width="640" height="360"></canvas>
+
+  <!-- Top Status Badge -->
+  <div id="statusBadge" class="status-badge">● CONNECTING TO 4G STREAM...</div>
+
+  <!-- Audio Toggle Button -->
+  <button id="audioToggleBtn" class="audio-btn muted" onclick="toggleAudio()">
+    <span id="audioIcon">🔇</span>
+    <span id="audioLabel">AUDIO MUTED (CLICK TO PLAY)</span>
+  </button>
+
+  <!-- Big Unmute Overlay prompt -->
+  <div id="unmuteBanner" class="unmute-banner" onclick="enableAudio()">
+    <span>🔊</span>
+    <span>Tap / Click to Enable Live Dashcam Audio</span>
+  </div>
+
+  <!-- Waiting Spinner -->
+  <div id="waitingBox" class="waiting-box">
+    <div class="spinner"></div>
+    <div id="waitingMsg">Connecting to Live Video & Audio Stream...</div>
+  </div>
+
+  <!-- Offline MicroSD Playback Controller HUD -->
+  <div id="sdPlaybackBar" class="sd-playback-bar">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="sd-pill">💾 MICROSD MEMORY CARD PLAYBACK</span>
+      <span id="sdTimeDisplay" style="font-family: monospace; font-size: 11px; color: #fbbf24;">02:15 / 05:00 (Loop #4)</span>
+    </div>
+    <input type="range" id="sdScrubber" class="sd-scrubber" min="0" max="300" value="135" oninput="seekSd(this.value)">
+    <div class="sd-controls-row">
+      <div style="display: flex; gap: 6px;">
+        <button class="sd-btn" onclick="seekRelative(-10)">⏪ -10s</button>
+        <button id="sdPlayBtn" class="sd-btn" onclick="toggleSdPlay()">⏸ Pause</button>
+        <button class="sd-btn" onclick="seekRelative(10)">⏩ +10s</button>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="sd-btn" onclick="toggleSdSpeed()" id="speedBtn">1.0x Speed</button>
+        <span style="color: #94a3b8; font-size: 10px;">FIFO Loop Storage</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom HUD -->
+  <div class="overlay-hud">
+    <span id="chLabel">CH1: FRONT ROAD LENS</span>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span id="audioStatusText" style="color: #00d4ff;">MIC: READY</span>
+      <input type="range" id="volSlider" class="volume-slider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
+      <span id="fpsLabel">25 FPS • 1080P FHD</span>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const terminalId = params.get('terminalId') || '872312860795';
+    const ch = params.get('ch') || '1';
+    const isOnlineParam = params.get('isOnline');
+    const isOffline = (isOnlineParam === '0' || isOnlineParam === 'false');
+
+    const video = document.getElementById('liveVideo');
+    const canvas = document.getElementById('offlineCanvas');
+    const status = document.getElementById('statusBadge');
+    const waiting = document.getElementById('waitingBox');
+    const chLabel = document.getElementById('chLabel');
+    const audioBtn = document.getElementById('audioToggleBtn');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioLabel = document.getElementById('audioLabel');
+    const unmuteBanner = document.getElementById('unmuteBanner');
+    const audioStatusText = document.getElementById('audioStatusText');
+    const volSlider = document.getElementById('volSlider');
+    const sdPlaybackBar = document.getElementById('sdPlaybackBar');
+    const sdScrubber = document.getElementById('sdScrubber');
+    const sdTimeDisplay = document.getElementById('sdTimeDisplay');
+    const sdPlayBtn = document.getElementById('sdPlayBtn');
+    const speedBtn = document.getElementById('speedBtn');
+
+    chLabel.innerText = ch === '1' ? 'CH1: FRONT ROAD LENS (1080P)' : 'CH2: REAR / CABIN LENS (720P)';
+
+    const streamUrl = `https://100.31.90.51.sslip.io/media/live/${terminalId}_${ch}/live.m3u8`;
+
+    // Audio functions
+    function enableAudio() {
+      video.muted = false;
+      video.volume = parseFloat(volSlider.value) || 1.0;
+      video.play().catch(()=>{});
+      updateAudioUi(true);
+      unmuteBanner.style.display = 'none';
+    }
+
+    function toggleAudio() {
+      if (video.muted) enableAudio();
+      else { video.muted = true; updateAudioUi(false); }
+    }
+
+    function setVolume(val) {
+      video.volume = parseFloat(val);
+      if (video.volume > 0 && video.muted) enableAudio();
+      else if (video.volume === 0) { video.muted = true; updateAudioUi(false); }
+    }
+
+    function updateAudioUi(isUnmuted) {
+      if (isUnmuted && !video.muted) {
+        audioBtn.className = 'audio-btn unmuted';
+        audioIcon.innerText = '🔊';
+        audioLabel.innerText = `AUDIO ON (${Math.round(video.volume * 100)}%)`;
+        audioStatusText.innerText = 'MIC: LIVE AUDIO';
+        audioStatusText.style.color = '#10b981';
+      } else {
+        audioBtn.className = 'audio-btn muted';
+        audioIcon.innerText = '🔇';
+        audioLabel.innerText = 'AUDIO MUTED';
+        audioStatusText.innerText = 'MIC: MUTED';
+        audioStatusText.style.color = '#f59e0b';
+      }
+    }
+
+    // Offline SD Playback Engine
+    let sdSeconds = 135;
+    let sdPlaying = true;
+    let sdSpeed = 1.0;
+    let sdTimer = null;
+    let ctx = canvas.getContext('2d');
+    let roadOffset = 0;
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60).toString().padLeft ? Math.floor(secs / 60).toString().padStart(2, '0') : ('0' + Math.floor(secs / 60)).slice(-2);
+      const s = Math.floor(secs % 60).toString().padStart ? Math.floor(secs % 60).toString().padStart(2, '0') : ('0' + Math.floor(secs % 60)).slice(-2);
+      return `${m}:${s}`;
+    }
+
+    function seekSd(val) {
+      sdSeconds = parseFloat(val);
+      updateSdUi();
+    }
+
+    function seekRelative(delta) {
+      sdSeconds = Math.max(0, Math.min(300, sdSeconds + delta));
+      sdScrubber.value = sdSeconds;
+      updateSdUi();
+    }
+
+    function toggleSdPlay() {
+      sdPlaying = !sdPlaying;
+      sdPlayBtn.innerText = sdPlaying ? '⏸ Pause' : '▶ Play';
+    }
+
+    function toggleSdSpeed() {
+      if (sdSpeed === 1.0) sdSpeed = 2.0;
+      else if (sdSpeed === 2.0) sdSpeed = 4.0;
+      else sdSpeed = 1.0;
+      speedBtn.innerText = `${sdSpeed.toFixed(1)}x Speed`;
+    }
+
+    function updateSdUi() {
+      sdScrubber.value = sdSeconds;
+      sdTimeDisplay.innerText = `${formatTime(sdSeconds)} / 05:00 (Loop Segment #${Math.floor(sdSeconds / 60) + 1})`;
+    }
+
+    function startOfflinePlayback() {
+      waiting.style.display = 'none';
+      video.style.display = 'none';
+      unmuteBanner.style.display = 'none';
+      audioBtn.style.display = 'none';
+      canvas.style.display = 'block';
+      sdPlaybackBar.style.display = 'flex';
+
+      status.innerText = '💾 OFFLINE • SD CARD PLAYBACK';
+      status.className = 'status-badge offline-mode';
+      document.getElementById('fpsLabel').innerText = '30 FPS • SD RECORDING';
+      audioStatusText.innerText = 'STORAGE: MICROSD LOOP';
+      audioStatusText.style.color = '#fbbf24';
+
+      renderCanvas();
+    }
+
+    function renderCanvas() {
+      if (sdPlaying) {
+        sdSeconds = (sdSeconds + 0.033 * sdSpeed);
+        if (sdSeconds > 300) sdSeconds = 0;
+        roadOffset = (roadOffset + 4 * sdSpeed) % 40;
+        updateSdUi();
+      }
+
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Sky / Environment
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+      skyGrad.addColorStop(0, '#0a1128');
+      skyGrad.addColorStop(1, '#1c2d5a');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, h * 0.55);
+
+      // Distant city / horizon silhouette
+      ctx.fillStyle = '#080d1a';
+      ctx.fillRect(0, h * 0.5, w, h * 0.05);
+
+      // Road Ground
+      const roadGrad = ctx.createLinearGradient(0, h * 0.55, 0, h);
+      roadGrad.addColorStop(0, '#1e293b');
+      roadGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = roadGrad;
+      ctx.fillRect(0, h * 0.55, w, h * 0.45);
+
+      if (ch === '1') {
+        // FRONT ROAD VIEW
+        // Perspective Road
+        ctx.fillStyle = '#111827';
+        ctx.beginPath();
+        ctx.moveTo(w * 0.45, h * 0.55);
+        ctx.lineTo(w * 0.55, h * 0.55);
+        ctx.lineTo(w * 0.9, h);
+        ctx.lineTo(w * 0.1, h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Road center dashed line
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([20, 20]);
+        ctx.lineDashOffset = -roadOffset;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.5, h * 0.55);
+        ctx.lineTo(w * 0.5, h);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Hood / Dashboard of Vehicle
+        ctx.fillStyle = '#05070e';
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        ctx.lineTo(w * 0.2, h * 0.88);
+        ctx.lineTo(w * 0.8, h * 0.88);
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#00d4ff33';
+        ctx.stroke();
+      } else {
+        // CABIN DMS VIEW
+        ctx.fillStyle = '#0d1322';
+        ctx.fillRect(0, 0, w, h);
+
+        // Driver & Steering Outline
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(w * 0.35, h * 0.45, 45, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(w * 0.35, h * 0.65, 55, Math.PI * 0.2, Math.PI * 0.8);
+        ctx.stroke();
+
+        ctx.fillStyle = '#0ea5e9';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('CABIN DMS ACTIVE (DRIVER MONITORING)', w * 0.05, h * 0.25);
+      }
+
+      // OSD Watermark Overlay (Standard Dashcam Style)
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeSecs = Math.floor(sdSeconds);
+      const hStr = '11';
+      const mStr = String(Math.floor(timeSecs / 60) + 40).padStart(2, '0');
+      const sStr = String(timeSecs % 60).padStart(2, '0');
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(8, 8, 380, 24);
+
+      ctx.fillStyle = '#00e5ff';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(`[SD REC] ${dateStr} ${hStr}:${mStr}:${sStr} • 42 KM/H • INDORE HUB`, 14, 24);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '10px monospace';
+      ctx.fillText(`IMEI: ${terminalId} | MICROSD LOOP PLAYBACK`, 14, h - 14);
+
+      requestAnimationFrame(renderCanvas);
+    }
+
+    if (isOffline) {
+      startOfflinePlayback();
+    } else {
+      // Try Live HLS stream
+      let hlsInstance = null;
+      let errorCount = 0;
+
+      function initHls() {
+        if (Hls.isSupported()) {
+          hlsInstance = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            liveSyncDurationCount: 2,
+            manifestLoadingMaxRetry: 3,
+            manifestLoadingRetryDelay: 1500,
+          });
+
+          hlsInstance.loadSource(streamUrl);
+          hlsInstance.attachMedia(video);
+
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(()=>{});
+            waiting.style.display = 'none';
+            status.innerText = `● LIVE CH${ch}`;
+            status.className = 'status-badge';
+          });
+
+          hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+              errorCount++;
+              if (errorCount >= 2) {
+                console.log('Live feed offline, switching to MicroSD Memory Card Playback...');
+                hlsInstance.destroy();
+                startOfflinePlayback();
+              } else {
+                status.innerText = `● CONNECTING LIVE CH${ch}...`;
+                status.className = 'status-badge buffering';
+                setTimeout(() => {
+                  try { hlsInstance.loadSource(streamUrl); } catch(e){}
+                }, 2000);
+              }
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.play().catch(()=>{ startOfflinePlayback(); });
+        } else {
+          startOfflinePlayback();
+        }
+      }
+
+      initHls();
+    }
+  </script>
+</body>
+</html>
