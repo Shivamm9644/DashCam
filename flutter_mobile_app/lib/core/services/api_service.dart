@@ -8,9 +8,9 @@ class ApiService {
   /// Real Google Maps API Key
   static const String googleMapsApiKey = 'AIzaSyBa6Sfh7UbFlueqmLXSJbWEEoIYoeIpEXs';
 
-  // Live Spring Boot Java Backend on Cloud Server (3.85.81.10)
-  static const String serverHost = 'https://3.85.81.10';
-  static const String liveServerBaseUrl = 'https://3.85.81.10/api/v1';
+  // TrackAnywhere Live Cloud Server (100.31.90.51)
+  static const String serverHost = 'https://100.31.90.51.sslip.io';
+  static const String liveServerBaseUrl = 'https://100.31.90.51.sslip.io/api/v1';
 
   static String get defaultBaseUrl {
     return liveServerBaseUrl;
@@ -146,7 +146,110 @@ class ApiService {
       );
     }
   }
+
   // --- Fleet / Non-ELD Management Endpoints ---
+
+  Future<List<dynamic>> getVehicles() async {
+    final res = await get('/vehicles');
+    if (res['vehicles'] is List) return res['vehicles'] as List;
+    return [];
+  }
+
+  Future<List<dynamic>> getLatestPositions() async {
+    try {
+      final res = await get('/positions/latest');
+      if (res['positions'] is List) return res['positions'] as List;
+    } catch (_) {}
+    return [];
+  }
+
+  Future<List<dynamic>> getDeviceHealth() async {
+    try {
+      final res = await get('/devices/health');
+      if (res['devices'] is List) return res['devices'] as List;
+    } catch (_) {}
+    return [];
+  }
+
+  Future<Map<String, dynamic>> addFleetVehicle({
+    String? plateNumber,
+    String? label,
+    String? model,
+    int? year,
+    String? driverName,
+    String? driverPhone,
+    String? assignedDeviceId,
+    String? vin,
+    Map<String, dynamic>? data,
+  }) async {
+    if (data != null) return post('/vehicles', data);
+    return post('/vehicles', {
+      if (plateNumber != null) 'plateNumber': plateNumber,
+      if (label != null) 'label': label,
+      if (model != null) 'model': model,
+      if (year != null) 'year': year,
+      if (driverName != null) 'driverName': driverName,
+      if (driverPhone != null) 'driverPhone': driverPhone,
+      if (assignedDeviceId != null) 'assignedDeviceId': assignedDeviceId,
+      if (assignedDeviceId != null) 'terminalId': assignedDeviceId,
+      if (vin != null) 'vin': vin,
+    });
+  }
+
+  Future<Map<String, dynamic>> updateVehicleData(String id, Map<String, dynamic> data) async {
+    return put('/vehicles/$id', data);
+  }
+
+  Future<Map<String, dynamic>> toggleVehicle(String id) async {
+    return post('/vehicles/$id/toggle-status', {});
+  }
+
+  Future<Map<String, dynamic>> pairCameraToVehicle(String vehicleId, String terminalId) async {
+    return post('/vehicles/$vehicleId/pair-device', {'terminalId': terminalId});
+  }
+
+  Future<Map<String, dynamic>> unpairCameraFromVehicle(String vehicleId) async {
+    return post('/vehicles/$vehicleId/unpair-device', {});
+  }
+
+  Future<Map<String, dynamic>> startLiveSession(String terminalId, int channelId) async {
+    return post('/live-sessions', {'terminalId': terminalId, 'channelId': channelId});
+  }
+
+  Future<Map<String, dynamic>> sendLiveHeartbeat(String terminalId) async {
+    return post('/live-sessions/heartbeat', {'terminalId': terminalId});
+  }
+
+  Future<Map<String, dynamic>> stopLiveSession(String terminalId) async {
+    return post('/live-sessions/stop', {'terminalId': terminalId});
+  }
+
+  Future<Map<String, dynamic>> getQuotas() async {
+    return get('/quotas');
+  }
+
+  Future<List<dynamic>> getSafetyEvents() async {
+    try {
+      final res = await get('/events');
+      if (res['events'] is List) return res['events'] as List;
+    } catch (_) {}
+    return [];
+  }
+
+  Future<List<dynamic>> getSafetyIncidents([Map<String, String>? filters]) async {
+    try {
+      final query = (filters != null && filters.isNotEmpty)
+          ? '?' + Uri(queryParameters: filters).query
+          : '';
+      final res = await get('/safety/incidents$query');
+      if (res['incidents'] is List) return res['incidents'] as List;
+    } catch (_) {}
+    return [];
+  }
+
+  Future<Map<String, dynamic>> reviewIncident(String id, Map<String, dynamic> reviewData) async {
+    return post('/safety/incidents/$id/review', reviewData);
+  }
 
   Future<Map<String, dynamic>> createVehicle({
     required String plateNumber,
@@ -196,11 +299,11 @@ class ApiService {
       if (driverPhone != null) body['driverPhone'] = driverPhone;
       if (driverLicense != null) body['driverLicense'] = driverLicense;
     }
-    return post('/vehicles/' + vehicleId + '/assign-driver', body);
+    return post('/vehicles/$vehicleId/assign-driver', body);
   }
 
   Future<Map<String, dynamic>> unassignDriver(String vehicleId) async {
-    return post('/vehicles/' + vehicleId + '/unassign-driver', {});
+    return post('/vehicles/$vehicleId/unassign-driver', {});
   }
 
   Future<List<dynamic>> getDrivers() async {
@@ -251,7 +354,6 @@ class ApiService {
     } catch (_) {}
     return [];
   }
-
 }
 
 class ApiException implements Exception {

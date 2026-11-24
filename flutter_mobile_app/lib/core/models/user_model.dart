@@ -6,6 +6,7 @@ class UserModel {
   final String tenantId;
   final String tenantName;
   final String avatar;
+  final List<String> assignedTerminals;
 
   UserModel({
     required this.id,
@@ -15,6 +16,7 @@ class UserModel {
     required this.tenantId,
     required this.tenantName,
     required this.avatar,
+    this.assignedTerminals = const [],
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -25,6 +27,9 @@ class UserModel {
     tenantId: json['tenantId'] ?? '',
     tenantName: json['tenantName'] ?? '',
     avatar: json['avatar'] ?? 'U',
+    assignedTerminals: (json['assignedTerminals'] is List)
+        ? (json['assignedTerminals'] as List).map((e) => e.toString()).toList()
+        : [],
   );
 
   Map<String, dynamic> toJson() => {
@@ -35,12 +40,14 @@ class UserModel {
     'tenantId': tenantId,
     'tenantName': tenantName,
     'avatar': avatar,
+    'assignedTerminals': assignedTerminals,
   };
 
   String get roleLabel {
     switch (role) {
       case 'SUPER_ADMIN': return 'Super Admin';
       case 'ADMIN': return 'Fleet Admin';
+      case 'RETAILER': return 'Retailer Client';
       case 'CUSTOMER': return 'Retail Customer';
       default: return role;
     }
@@ -50,6 +57,7 @@ class UserModel {
     switch (role) {
       case 'SUPER_ADMIN': return '👑';
       case 'ADMIN': return '🏢';
+      case 'RETAILER': return '🚚';
       case 'CUSTOMER': return '👤';
       default: return '❓';
     }

@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/dashboard_provider.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../main.dart';
 
 class QuotasScreen extends StatelessWidget {
   const QuotasScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final dash = context.watch<DashboardProvider>();
+    final user = auth.user;
+    final totalDevs = (user?.role == 'CUSTOMER' || user?.role == 'RETAILER')
+        ? (user?.assignedTerminals.length ?? 1)
+        : dash.devices.length;
     return Scaffold(
       backgroundColor: AppTheme.bgPrimary,
       body: SafeArea(
@@ -16,11 +27,24 @@ class QuotasScreen extends StatelessWidget {
               automaticallyImplyLeading: false,
               backgroundColor: AppTheme.bgCard,
               title: Row(
-                children: const [
-                  Icon(Icons.bar_chart_rounded,
-                      color: AppTheme.accentPurple, size: 22),
-                  SizedBox(width: 10),
-                  Text('Fleet Bandwidth & Quotas'),
+                children: [
+                  InkWell(
+                    onTap: () => context.go('/dashboard'),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: Color(0xFF0F172A), size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('Fleet Bandwidth & Quotas'),
                 ],
               ),
               floating: true,
@@ -224,11 +248,11 @@ class QuotasScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        _SubRow('Plan', 'Inurum Enterprise Tier'),
-                        _SubRow('Billing', 'Enterprise Fleet Plan'),
-                        _SubRow('Tenant', 'Inurum Cloud Fleet'),
-                        _SubRow('Devices', '5 Licensed'),
-                        _SubRow('Renewal', '10/22/2027'),
+                        _SubRow('Plan', user?.role == 'SUPER_ADMIN' ? 'Platform Master Enterprise' : (user?.role == 'RETAILER' ? 'Commercial Fleet Dual-Cam SaaS' : 'Retail Vehicle Telematics')),
+                        _SubRow('Billing', 'Commercial Fleet Video Telematics'),
+                        _SubRow('Tenant', user?.tenantName ?? 'TrackAnywhere Fleet'),
+                        _SubRow('Devices', '$totalDevs Licensed Dashcams'),
+                        _SubRow('Licensing', 'Annual SaaS Active'),
                         _SubRow('Status', 'ACTIVE', valueColor: AppTheme.statusOnline),
                       ],
                     ),

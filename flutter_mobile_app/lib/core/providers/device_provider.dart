@@ -3,6 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 
 class DeviceProvider extends ChangeNotifier {
+  static String resolveStreamHost(String termId) {
+    if (termId.startsWith('5050') || termId.startsWith('8608') || termId.startsWith('8723')) {
+      return 'https://100.31.90.51.sslip.io';
+    }
+    return 'https://100.31.90.51.sslip.io';
+  }
+
   // Device Management Settings (mirrors 192.168.1.1 UI)
   DeviceSettings settings = DeviceSettings();
   bool isLoading = false;
@@ -19,7 +26,7 @@ class DeviceProvider extends ChangeNotifier {
         systemStatus = SystemStatus(
           firmware: systemStatus.firmware,
           imei: savedImei,
-          simIccid: '8991${savedImei}001',
+          simIccid: savedImei,
           networkType: systemStatus.networkType,
           signalStrength: systemStatus.signalStrength,
           voltage: systemStatus.voltage,
@@ -36,15 +43,15 @@ class DeviceProvider extends ChangeNotifier {
 
   // System Status
   SystemStatus systemStatus = SystemStatus(
-    firmware: 'v1.2.6-GD19',
+    firmware: 'JT/T 808 Protocol',
     imei: '',
-    simIccid: '8991001',
-    networkType: '4G LTE Cat 4',
+    simIccid: '',
+    networkType: '4G Cellular',
     signalStrength: 0,
-    voltage: '12.4V',
-    temperature: '36°C',
-    sdCardTotal: '128 GB',
-    sdCardFree: '96 GB',
+    voltage: '--',
+    temperature: '--',
+    sdCardTotal: 'MicroSD',
+    sdCardFree: 'FIFO Auto-Recycle',
     uptime: 'Offline',
     isOnline: false, // Strictly offline until server signals connection
   );
@@ -53,22 +60,22 @@ class DeviceProvider extends ChangeNotifier {
   GpsStatus gpsStatus = GpsStatus(
     lat: 0.0,
     lng: 0.0,
-    altitude: 85,
+    altitude: 0,
     speed: 0,
     heading: 0,
-    satellites: 14,
-    accuracy: 1.8,
-    isFixed: true,
-    fixTime: '2026-10-30 07:05:19 UTC',
+    satellites: 0,
+    accuracy: 0.0,
+    isFixed: false,
+    fixTime: '',
   );
 
   // Live Camera Streaming State
-  int activeChannel = 1; // 1 = Front/Road, 2 = Cabin/DMS, 3 = Dual Split
+  int activeChannel = 3; // 1 = Front/Road, 2 = Cabin/DMS, 3 = Dual Split (Default: Dual View)
   bool isStreaming = true;
   bool isRecording = true;
   bool isAudioMuted = false;
   String streamQuality = '1080P (FHD)';
-  String connectionMode = 'WIFI_HOTSPOT'; // 'WIFI_HOTSPOT' or 'CLOUD_4G'
+  String connectionMode = 'CLOUD_4G'; // Default: CLOUD_4G (Real-time live 4G streaming)
   String deviceIp = '192.168.1.1';
   int rtspPort = 554;
   int httpPort = 8080;
@@ -151,8 +158,8 @@ class DeviceProvider extends ChangeNotifier {
       simIccid: systemStatus.simIccid,
       networkType: '4G LTE Cat 4',
       signalStrength: isOnline ? 4 : 0,
-      voltage: '12.4V',
-      temperature: '38°C',
+      voltage: isOnline ? '12.4V' : '--',
+      temperature: isOnline ? '38°C' : '--',
       sdCardTotal: systemStatus.sdCardTotal,
       sdCardFree: systemStatus.sdCardFree,
       uptime: isOnline ? 'Online' : 'Offline',
@@ -334,9 +341,9 @@ class DeviceProvider extends ChangeNotifier {
 
 class DeviceSettings {
   // Platform
-  String serverIp = '103.21.58.100';
+  String serverIp = '100.31.90.51';
   int serverPort = 7800;
-  String apn = 'airtelgprs.com';
+  String apn = 'internet';
 
   // Power
   String ignitionOff = 'Deep Sleep (5 min)';
@@ -351,7 +358,7 @@ class DeviceSettings {
   int postBuffer = 20;
 
   // WLAN
-  String wlanSsid = 'LA-CAT4-58278';
+  String wlanSsid = 'Dashcam-WiFi';
   bool wlanEnabled = true;
 
   // ADAS/DMS

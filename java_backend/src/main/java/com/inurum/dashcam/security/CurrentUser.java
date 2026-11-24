@@ -6,9 +6,7 @@ import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
 
-/**
- * The authenticated caller, taken from the verified JWT by {@link JwtAuthenticationFilter}.
- */
+
 public record CurrentUser(String id, String email, String role, String tenantId) {
 
     static final String REQUEST_ATTRIBUTE = "inurum.currentUser";

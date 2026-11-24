@@ -2,31 +2,83 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/device_provider.dart';
 import '../../../core/providers/dashboard_provider.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../widgets/live_player_view.dart';
+import '../../../main.dart';
 
 class CameraLiveScreen extends StatefulWidget {
-  const CameraLiveScreen({super.key});
+  final String? initialMode;
+  const CameraLiveScreen({super.key, this.initialMode});
 
   @override
   State<CameraLiveScreen> createState() => _CameraLiveScreenState();
 }
 
 class _CameraLiveScreenState extends State<CameraLiveScreen> {
+  static const _toolsChannel = MethodChannel('com.trackify.dashcam/tools');
   late Timer _clockTimer;
   String _currentTime = '';
   bool _showShutterFlash = false;
   bool _isFullscreen = false;
+  bool _isOfflineWifiMode = false;
+  bool _showAlignmentGrid = false;
+  bool _isMCToolInstalled = false;
 
   @override
   void initState() {
     super.initState();
+    _isOfflineWifiMode = widget.initialMode == 'offline';
+    if (_isOfflineWifiMode) {
+      _showAlignmentGrid = true;
+    }
+    _checkMCToolInstalled();
     _updateClock();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _updateClock());
+  }
+
+  Future<void> _checkMCToolInstalled() async {
+    try {
+      final installed = await _toolsChannel.invokeMethod<bool>('isMCToolInstalled');
+      if (mounted) {
+        setState(() => _isMCToolInstalled = installed ?? false);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openMCTool() async {
+    try {
+      final launched = await _toolsChannel.invokeMethod<bool>('openMCTool');
+      if (launched != true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('MCTool companion app is not installed.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error launching MCTool: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openWifiSettings() async {
+    try {
+      await _toolsChannel.invokeMethod('openWifiSettings');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening Wi-Fi settings: $e')),
+        );
+      }
+    }
   }
 
   void _updateClock() {
@@ -65,7 +117,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
           children: [
             Icon(Icons.check_circle_rounded, color: AppTheme.accentGreen, size: 20),
             SizedBox(width: 10),
-            Text('Snapshot saved', style: TextStyle(color: Colors.white, fontSize: 13)),
+            Text('Snapshot saved', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
           ],
         ),
         duration: const Duration(seconds: 2),
@@ -79,7 +131,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF1F0C10),
+        backgroundColor: const Color(0xFFFFF1F2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -89,7 +141,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
           children: [
             Icon(Icons.emergency_rounded, color: AppTheme.statusCritical, size: 20),
             SizedBox(width: 10),
-            Text('SOS Alert Event Locked', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            Text('SOS Alert Event Locked', style: TextStyle(color: AppTheme.statusCritical, fontSize: 13, fontWeight: FontWeight.bold)),
           ],
         ),
         duration: const Duration(seconds: 2),
@@ -110,7 +162,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
               id: dp.systemStatus.imei,
               plate: 'Dashcam',
               terminalId: dp.systemStatus.imei,
-              driver: 'Driver',
+              driver: 'Unassigned',
               speed: 0,
               status: dp.systemStatus.isOnline ? 'ONLINE' : 'OFFLINE',
               lat: 0.0,
@@ -121,6 +173,10 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
             ),
     );
     final isDeviceOnline = activeDevice.isOnline;
+
+    final effectiveTerminalId = (dp.systemStatus.imei.isNotEmpty && dp.systemStatus.imei != 'null')
+        ? dp.systemStatus.imei
+        : (dash.selectedDevice?.terminalId ?? '505073729067');
 
     return Scaffold(
       backgroundColor: AppTheme.bgPrimary,
@@ -137,7 +193,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                     _buildVideoViewport(dp, isDeviceOnline, dash),
                     if (!_isFullscreen) ...[
                       _buildControlToolbar(dp),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       _buildVehicleTelemetryCard(activeDevice, dp),
                       const SizedBox(height: 24),
                     ],
@@ -166,16 +222,22 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDeviceOnline ? AppTheme.accentGreen.withOpacity(0.15) : Colors.grey.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.videocam_rounded,
-              color: isDeviceOnline ? AppTheme.accentGreen : Colors.grey,
-              size: 20,
+          InkWell(
+            onTap: () => context.go('/dashboard'),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: Color(0xFF0F172A),
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -200,7 +262,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isDeviceOnline ? AppTheme.accentGreen.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                        color: isDeviceOnline ? AppTheme.accentGreen.withOpacity(0.15) : Colors.grey.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -216,7 +278,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Driver: ${activeDevice.driver}',
+                  'Driver: ${activeDevice.driver.isNotEmpty && activeDevice.driver != 'Assigned Driver' ? activeDevice.driver : 'Unassigned'}',
                   style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                 ),
               ],
@@ -229,19 +291,19 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
               icon: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentCyan.withOpacity(0.12),
+                  color: AppTheme.accentTeal.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.accentCyan.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.accentTeal.withOpacity(0.3)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.swap_horiz_rounded, color: AppTheme.accentCyan, size: 16),
+                    Icon(Icons.swap_horiz_rounded, color: AppTheme.accentTeal, size: 16),
                     SizedBox(width: 4),
                     Text(
                       'Vehicle',
                       style: TextStyle(
-                        color: AppTheme.accentCyan,
+                        color: AppTheme.accentTeal,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -262,7 +324,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                       Icon(
                         Icons.local_shipping_outlined,
                         size: 16,
-                        color: isCurrent ? AppTheme.accentCyan : AppTheme.textMuted,
+                        color: isCurrent ? AppTheme.accentTeal : AppTheme.textMuted,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -271,7 +333,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            color: isCurrent ? AppTheme.accentCyan : Colors.white,
+                            color: isCurrent ? AppTheme.accentTeal : AppTheme.textPrimary,
                           ),
                         ),
                       ),
@@ -294,9 +356,117 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
     );
   }
 
+  Widget _buildModeSwitcher() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: AppTheme.bgCard,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() {
+                  _isOfflineWifiMode = false;
+                  _showAlignmentGrid = false;
+                }),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: BoxDecoration(
+                    color: !_isOfflineWifiMode ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: !_isOfflineWifiMode
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.cloud_sync_rounded,
+                        size: 15,
+                        color: !_isOfflineWifiMode ? AppTheme.accentSaffron : AppTheme.textMuted,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '4G Cloud Stream',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: !_isOfflineWifiMode ? FontWeight.bold : FontWeight.w600,
+                          color: !_isOfflineWifiMode ? AppTheme.textPrimary : AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() {
+                  _isOfflineWifiMode = true;
+                  _showAlignmentGrid = true;
+                }),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _isOfflineWifiMode ? const Color(0xFF0D9488) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: _isOfflineWifiMode
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF0D9488).withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.wifi_tethering_rounded,
+                        size: 15,
+                        color: _isOfflineWifiMode ? Colors.white : AppTheme.textMuted,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Offline Wi-Fi (MC Tool)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: _isOfflineWifiMode ? FontWeight.bold : FontWeight.w600,
+                          color: _isOfflineWifiMode ? Colors.white : AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildChannelSelector(DeviceProvider dp) {
     return Container(
-      color: const Color(0xFF0C101C),
+      color: AppTheme.bgCard,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
@@ -338,10 +508,10 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.accentCyan.withOpacity(0.15) : AppTheme.bgCard,
+            color: isSelected ? const Color(0xFF0D9488).withOpacity(0.12) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? AppTheme.accentCyan : AppTheme.borderSubtle,
+              color: isSelected ? const Color(0xFF0D9488) : AppTheme.borderSubtle,
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -351,7 +521,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
               Icon(
                 icon,
                 size: 15,
-                color: isSelected ? AppTheme.accentCyan : AppTheme.textMuted,
+                color: isSelected ? const Color(0xFF0D9488) : AppTheme.textMuted,
               ),
               const SizedBox(width: 6),
               Text(
@@ -359,7 +529,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : AppTheme.textSecondary,
+                  color: isSelected ? const Color(0xFF0D9488) : AppTheme.textSecondary,
                 ),
               ),
             ],
@@ -371,6 +541,9 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
 
   Widget _buildVideoViewport(DeviceProvider dp, bool isOnline, DashboardProvider dash) {
     final isDual = dp.activeChannel == 3;
+    final termId = (dp.systemStatus.imei.isNotEmpty && dp.systemStatus.imei != 'null')
+        ? dp.systemStatus.imei
+        : (dash.selectedDevice?.terminalId ?? '505073729067');
 
     return Stack(
       children: [
@@ -383,7 +556,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                   ? _buildDualSplitVideo(dp, isOnline, dash)
                   : LivePlayerView(
                       channel: dp.activeChannel,
-                      terminalId: dp.systemStatus.imei,
+                      terminalId: termId,
                       isOnline: isOnline,
                       onRefresh: () => dash.loadDevicesFromDatabase(),
                     ))
@@ -412,11 +585,13 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  dp.activeChannel == 1
-                      ? 'Road'
-                      : dp.activeChannel == 2
-                          ? 'Cabin'
-                          : 'Dual',
+                  _isOfflineWifiMode
+                      ? 'OFFLINE WI-FI • CH${dp.activeChannel}'
+                      : (dp.activeChannel == 1
+                          ? 'Road'
+                          : dp.activeChannel == 2
+                              ? 'Cabin'
+                              : 'Dual'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -447,6 +622,10 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
   }
 
   Widget _buildDualSplitVideo(DeviceProvider dp, bool isOnline, DashboardProvider dash) {
+    final termId = (dp.systemStatus.imei.isNotEmpty && dp.systemStatus.imei != 'null')
+        ? dp.systemStatus.imei
+        : (dash.selectedDevice?.terminalId ?? '505073729067');
+
     return Row(
       children: [
         Expanded(
@@ -455,7 +634,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
             children: [
               LivePlayerView(
                 channel: 1,
-                terminalId: dp.systemStatus.imei,
+                terminalId: termId,
                 isOnline: isOnline,
                 onRefresh: () => dash.loadDevicesFromDatabase(),
               ),
@@ -481,7 +660,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
             children: [
               LivePlayerView(
                 channel: 2,
-                terminalId: dp.systemStatus.imei,
+                terminalId: termId,
                 isOnline: isOnline,
                 onRefresh: () => dash.loadDevicesFromDatabase(),
               ),
@@ -518,8 +697,8 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
           const SizedBox(height: 10),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentCyan,
-              foregroundColor: Colors.black,
+              backgroundColor: const Color(0xFF0D9488),
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             ),
@@ -551,7 +730,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
           _buildToolButton(
             icon: Icons.camera_alt_outlined,
             label: 'Snapshot',
-            color: AppTheme.accentCyan,
+            color: AppTheme.accentTeal,
             onTap: () => _triggerSnapshot(dp),
           ),
           _buildToolButton(
@@ -569,7 +748,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
           _buildToolButton(
             icon: _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
             label: _isFullscreen ? 'Exit' : 'Full',
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             onTap: () => setState(() => _isFullscreen = !_isFullscreen),
           ),
         ],
@@ -611,6 +790,167 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
     );
   }
 
+  Widget _buildMCToolCompanionCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D9488).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.wifi_tethering_rounded, color: Color(0xFF0D9488), size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MC Tool Direct AP Mode',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Local Wi-Fi Live Feed (Zero Cellular / Server Offline)',
+                        style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D9488).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    '192.168.169.1',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0D9488),
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0D9488),
+                      side: const BorderSide(color: Color(0xFF0D9488)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    icon: const Icon(Icons.wifi_rounded, size: 16),
+                    label: const Text('Wi-Fi Settings', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: _openWifiSettings,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF9933),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: const Text('Launch MC Tool', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: _openMCTool,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Toggle ADAS Horizon Grid
+            InkWell(
+              onTap: () => setState(() => _showAlignmentGrid = !_showAlignmentGrid),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _showAlignmentGrid ? const Color(0xFF10B981).withOpacity(0.12) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _showAlignmentGrid ? const Color(0xFF10B981) : AppTheme.borderSubtle,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _showAlignmentGrid ? Icons.grid_on_rounded : Icons.grid_off_rounded,
+                      size: 16,
+                      color: _showAlignmentGrid ? const Color(0xFF10B981) : AppTheme.textMuted,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _showAlignmentGrid ? 'ADAS Horizon & Hood Guide: ACTIVE' : 'Show ADAS Horizon & Hood Guide',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _showAlignmentGrid ? const Color(0xFF10B981) : AppTheme.textSecondary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch.adaptive(
+                      value: _showAlignmentGrid,
+                      onChanged: (v) => setState(() => _showAlignmentGrid = v),
+                      activeColor: const Color(0xFF10B981),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Help notes for technician
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.borderSubtle),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '💡 Technician Quick Setup Guide:',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '1. Turn vehicle ignition ON (DashCam powers up AP within 30s).\n'
+                    '2. Connect phone Wi-Fi to "MCTool_AP_xxxx" or "CAR-DVR-xxxx" (Pass: 12345678).\n'
+                    '3. Return to this screen or tap "Launch MC Tool" to align camera lens.\n'
+                    '4. Align green horizon line at 50% road/sky, orange line with hood center.',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildVehicleTelemetryCard(DeviceItem device, DeviceProvider dp) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -620,7 +960,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.speed_rounded, color: AppTheme.accentCyan, size: 18),
+                const Icon(Icons.speed_rounded, color: AppTheme.accentTeal, size: 18),
                 const SizedBox(width: 8),
                 const Text(
                   'Live Telemetry',
@@ -669,9 +1009,9 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                 Expanded(
                   child: _telemetryTile(
                     label: 'Driver',
-                    value: device.driver.isNotEmpty ? device.driver : 'Unassigned',
+                    value: (device.driver.isNotEmpty && device.driver != 'Assigned Driver') ? device.driver : 'Unassigned',
                     icon: Icons.person_outline_rounded,
-                    color: AppTheme.accentCyan,
+                    color: AppTheme.accentTeal,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -713,7 +1053,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.bgPrimary.withOpacity(0.5),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.borderSubtle),
       ),
@@ -731,7 +1071,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: AppTheme.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

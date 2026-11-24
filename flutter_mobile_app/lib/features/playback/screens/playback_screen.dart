@@ -2,12 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/device_provider.dart';
 import '../../../core/providers/dashboard_provider.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../main.dart';
 
 class PlaybackScreen extends StatefulWidget {
   const PlaybackScreen({super.key});
@@ -30,42 +34,107 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Duration _totalDuration = const Duration(minutes: 5);
   Timer? _positionTimer;
 
-  // Clip segments recorded on Dashcam MicroSD Card
-  late List<Map<String, dynamic>> _clips;
+  // Clip segments recorded on Dashcam MicroSD Card (strictly real/fresh from server)
+  List<Map<String, dynamic>> _clips = [];
 
   @override
   void initState() {
     super.initState();
-    _generateClipsForDate(_selectedDate);
-    _initializePlaybackStream();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchClipsForDate(_selectedDate);
+    });
+  }
+
+  Future<void> _fetchClipsForDate(DateTime date) async {
+    _positionTimer?.cancel();
+    _videoController?.dispose();
+    _videoController = null;
+
+    setState(() {
+      _clips = [];
+      _isBuffering = true;
+      _isPlayerInitialized = false;
+      _isPlaying = false;
+      _currentPosition = Duration.zero;
+      _totalDuration = Duration.zero;
+    });
+
+    final dp = context.read<DeviceProvider>();
+    final dash = context.read<DashboardProvider>();
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+
+    // Resolve active vehicle terminal ID
+    String terminalId = dp.systemStatus.imei;
+    if (terminalId.isEmpty) {
+      if (dash.selectedDevice != null && dash.selectedDevice!.terminalId.isNotEmpty) {
+        terminalId = dash.selectedDevice!.terminalId;
+      } else if (user?.assignedTerminals.isNotEmpty == true) {
+        terminalId = user!.assignedTerminals.first;
+      } else if (dash.devices.isNotEmpty) {
+        terminalId = dash.devices.first.terminalId;
+      }
+    }
+
+    final camId = _activeChannel == 2 ? 1 : 0;
+    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+
+    if (terminalId.isNotEmpty) {
+      try {
+        final res = await ApiService.instance.get('/video/recordings?terminalId=$terminalId&channel=$camId&date=$dateStr');
+        if (res.containsKey('recordings') && res['recordings'] is List) {
+          final list = res['recordings'] as List;
+          final List<Map<String, dynamic>> parsed = [];
+          for (var item in list) {
+            if (item is Map) {
+              parsed.add({
+                'start': item['startTime']?.toString() ?? '',
+                'end': item['endTime']?.toString() ?? '',
+                'type': (item['alarm'] == true) ? 'SOS Impact Lock' : 'Normal Loop',
+                'size': item['fileSize'] != null ? '${((item['fileSize'] as num) / (1024 * 1024)).toStringAsFixed(1)} MB' : 'Local SD',
+                'isSos': item['alarm'] == true,
+                'url': item['url']?.toString() ?? '',
+              });
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _clips = parsed;
+              _isBuffering = false;
+            });
+            if (_clips.isNotEmpty) {
+              _initializePlaybackStream();
+            }
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() {
+        _clips = [];
+        _isBuffering = false;
+      });
+    }
   }
 
   void _generateClipsForDate(DateTime date) {
-    final now = DateTime.now();
-    final hour = now.hour;
-    final prevHour = (hour > 0 ? hour - 1 : 23);
-
-    String fmt(int h, int m) {
-      final h12 = (h % 12 == 0) ? 12 : (h % 12);
-      final ampm = h >= 12 ? 'PM' : 'AM';
-      return '${h12.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')} $ampm';
-    }
-
-    _clips = [
-      {'start': fmt(hour, 20), 'end': fmt(hour, 25), 'type': 'Normal Loop', 'size': '18.4 MB', 'isSos': false},
-      {'start': fmt(hour, 15), 'end': fmt(hour, 20), 'type': 'Normal Loop', 'size': '18.1 MB', 'isSos': false},
-      {'start': fmt(hour, 10), 'end': fmt(hour, 15), 'type': 'Normal Loop', 'size': '17.9 MB', 'isSos': false},
-      {'start': fmt(hour, 5),  'end': fmt(hour, 10), 'type': 'SOS Impact Lock', 'size': '22.3 MB', 'isSos': true},
-      {'start': fmt(hour, 0),  'end': fmt(hour, 5),  'type': 'Normal Loop', 'size': '18.0 MB', 'isSos': false},
-      {'start': fmt(prevHour, 55), 'end': fmt(hour, 0), 'type': 'Normal Loop', 'size': '18.2 MB', 'isSos': false},
-      {'start': fmt(prevHour, 50), 'end': fmt(prevHour, 55), 'type': 'Normal Loop', 'size': '17.8 MB', 'isSos': false},
-      {'start': fmt(prevHour, 45), 'end': fmt(prevHour, 50), 'type': 'Normal Loop', 'size': '18.3 MB', 'isSos': false},
-      {'start': fmt(prevHour, 40), 'end': fmt(prevHour, 45), 'type': 'Normal Loop', 'size': '17.7 MB', 'isSos': false},
-      {'start': fmt(prevHour, 35), 'end': fmt(prevHour, 40), 'type': 'Normal Loop', 'size': '18.5 MB', 'isSos': false},
-    ];
+    _fetchClipsForDate(date);
   }
 
   Future<void> _initializePlaybackStream() async {
+    if (_clips.isEmpty) {
+      setState(() {
+        _isBuffering = false;
+        _isPlayerInitialized = false;
+        _isPlaying = false;
+        _currentPosition = Duration.zero;
+        _totalDuration = Duration.zero;
+      });
+      return;
+    }
+
     setState(() {
       _isBuffering = true;
       _isPlayerInitialized = false;
@@ -77,10 +146,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
     final dp = context.read<DeviceProvider>();
     final terminalId = dp.systemStatus.imei;
-    final camId = _activeChannel == 2 ? 1 : 0;
+    final currentClip = _clips.isNotEmpty ? _clips[_selectedClipIndex % _clips.length] : null;
+    final clipUrl = currentClip?['url']?.toString() ?? '';
 
-    // Use .m3u8 HLS stream from RoadEazy or Port 3000 JT1078 media server
-    final streamUrl = 'https://100.31.90.51.sslip.io/media/live/${terminalId}_$_activeChannel/live.m3u8';
+    final streamUrl = clipUrl.isNotEmpty
+        ? clipUrl
+        : 'https://3.85.81.10/media/live/${terminalId}_$_activeChannel/live.m3u8';
 
     try {
       _videoController = VideoPlayerController.networkUrl(
@@ -105,16 +176,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
       _startPositionTracker();
     } catch (_) {
-      // Mock playback timer fallback for smooth seekbar operation if stream buffering
       if (mounted) {
         setState(() {
-          _isPlayerInitialized = true;
+          _isPlayerInitialized = false;
           _isBuffering = false;
-          _isPlaying = true;
-          _totalDuration = const Duration(minutes: 5);
+          _isPlaying = false;
         });
       }
-      _startPositionTracker();
     }
   }
 
@@ -184,10 +252,44 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   Widget build(BuildContext context) {
     final dp = context.watch<DeviceProvider>();
     final dash = context.watch<DashboardProvider>();
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+
+    final visibleDevices = dash.devices.where((d) {
+      if (user?.role == 'RETAILER') {
+        final assigned = user?.assignedTerminals ?? [];
+        if (assigned.isNotEmpty) {
+          return assigned.contains(d.terminalId) || assigned.contains(d.id);
+        }
+      }
+      return true;
+    }).toList();
+
+    final activeDevice = visibleDevices.firstWhere(
+      (d) => d.terminalId == dp.systemStatus.imei,
+      orElse: () => (visibleDevices.isNotEmpty
+          ? visibleDevices.first
+          : (dash.devices.isNotEmpty
+              ? dash.devices.first
+              : DeviceItem(
+                  id: dp.systemStatus.imei,
+                  plate: 'Dashcam ${dp.systemStatus.imei.isNotEmpty ? dp.systemStatus.imei : "101"}',
+                  terminalId: dp.systemStatus.imei,
+                  driver: 'Unassigned',
+                  speed: 0,
+                  status: dp.systemStatus.isOnline ? 'ONLINE' : 'OFFLINE',
+                  lat: 0.0,
+                  lng: 0.0,
+                  lastPing: '',
+                  heading: 0,
+                  altitude: 0,
+                ))),
+    );
+
     final dateFormat = DateFormat('EEE, MM/dd/yyyy');
     final formattedDate = dateFormat.format(_selectedDate);
 
-    final currentClip = _clips[_selectedClipIndex % _clips.length];
+    final currentClip = _clips.isNotEmpty ? _clips[_selectedClipIndex % _clips.length] : null;
 
     return Scaffold(
       backgroundColor: AppTheme.bgPrimary,
@@ -195,7 +297,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         child: Column(
           children: [
             // Top App Bar
-            _buildHeader(dp, dash),
+            _buildHeader(dp, dash, visibleDevices, activeDevice),
 
             // UPPER HALF: Video Viewport & Camera Switcher
             _buildUpperCameraSection(dp, currentClip),
@@ -212,10 +314,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                     // 2. Interactive Scrubber Controls (Aage / Piche Control)
                     _buildScrubberControls(currentClip),
 
-                    // 3. SD Card FIFO Loop Storage Status
-                    _buildSdCardStatusCard(dp),
-
-                    // 4. Time Segments / Clips List for Selected Date
+                    // 3. Time Segments / Clips List for Selected Date
                     _buildTimeSegmentsList(),
                   ],
                 ),
@@ -227,24 +326,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
   }
 
-  Widget _buildHeader(DeviceProvider dp, DashboardProvider dash) {
-    final activeDevice = dash.devices.firstWhere(
-      (d) => d.terminalId == dp.systemStatus.imei,
-      orElse: () => DeviceItem(
-        id: dp.systemStatus.imei,
-        plate: 'Dashcam ${dp.systemStatus.imei.isNotEmpty ? dp.systemStatus.imei : "101"}',
-        terminalId: dp.systemStatus.imei,
-        driver: 'Assigned Driver',
-        speed: 0,
-        status: dp.systemStatus.isOnline ? 'ONLINE' : 'OFFLINE',
-        lat: 0.0,
-        lng: 0.0,
-        lastPing: '',
-        heading: 0,
-        altitude: 0,
-      ),
-    );
-
+  Widget _buildHeader(
+    DeviceProvider dp,
+    DashboardProvider dash,
+    List<DeviceItem> visibleDevices,
+    DeviceItem activeDevice,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
       decoration: BoxDecoration(
@@ -253,52 +340,111 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.accentGreen.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
+          InkWell(
+            onTap: () => context.go('/dashboard'),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A), size: 22),
             ),
-            child: const Icon(Icons.play_circle_filled_rounded, color: AppTheme.accentGreen, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        activeDevice.plate,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGreen.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
-                      ),
-                      child: Text(
-                        _activeChannel == 1 ? 'CH1 ROAD' : 'CH2 CABIN',
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.accentGreen,
+                PopupMenuButton<DeviceItem>(
+                  tooltip: 'Select Truck for Playback',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          activeDevice.plate,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF0284C7), size: 20),
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentGreen.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          _activeChannel == 1 ? 'CH1 ROAD' : 'CH2 CABIN',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.accentGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  onSelected: (device) {
+                    dash.selectDevice(device);
+                    dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
+                    _initializePlaybackStream();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppTheme.bgCard,
+                        content: Text('Switched playback to ${device.plate} (${device.terminalId})'),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  itemBuilder: (context) => visibleDevices.map((device) {
+                    final isCurrent = device.terminalId == activeDevice.terminalId;
+                    return PopupMenuItem<DeviceItem>(
+                      value: device,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.local_shipping_rounded,
+                            size: 18,
+                            color: isCurrent ? const Color(0xFF0284C7) : AppTheme.textMuted,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  device.plate,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+                                    color: isCurrent ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                Text(
+                                  'IMEI: ${device.terminalId} • ${(device.driver.isNotEmpty && device.driver != 'Assigned Driver') ? device.driver : "Unassigned"}',
+                                  style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isCurrent)
+                            const Icon(Icons.check_rounded, size: 16, color: Color(0xFF0284C7)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -311,14 +457,28 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           // Truck Quick Switcher
           PopupMenuButton<DeviceItem>(
             tooltip: 'Switch Dashcam Truck',
-            icon: Container(
-              padding: const EdgeInsets.all(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.accentGreen.withOpacity(0.12),
+                color: const Color(0xFF0284C7).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.35)),
+                border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.35)),
               ),
-              child: const Icon(Icons.swap_horiz_rounded, color: AppTheme.accentGreen, size: 20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.swap_horiz_rounded, color: Color(0xFF0284C7), size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    'Switch',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                ],
+              ),
             ),
             onSelected: (device) {
               dash.selectDevice(device);
@@ -332,7 +492,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 ),
               );
             },
-            itemBuilder: (context) => dash.devices.map((device) {
+            itemBuilder: (context) => visibleDevices.map((device) {
               final isCurrent = device.terminalId == activeDevice.terminalId;
               return PopupMenuItem<DeviceItem>(
                 value: device,
@@ -353,7 +513,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                              color: isCurrent ? AppTheme.accentGreen : Colors.white,
+                              color: isCurrent ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
                             ),
                           ),
                           Text(
@@ -374,13 +534,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   // UPPER SECTION: Video Frame & Camera Switcher
-  Widget _buildUpperCameraSection(DeviceProvider dp, Map<String, dynamic> currentClip) {
+  Widget _buildUpperCameraSection(DeviceProvider dp, Map<String, dynamic>? currentClip) {
     return Column(
       children: [
         // Camera Channel Switcher (CH1 Front Road / CH2 Cabin DMS)
         Container(
-          color: const Color(0xFF0A0E1A),
+          color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+          ),
           child: Row(
             children: [
               Expanded(
@@ -394,24 +557,28 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: _activeChannel == 1 ? AppTheme.accentCyan.withOpacity(0.2) : AppTheme.bgCard,
+                      color: _activeChannel == 1 ? const Color(0xFF0284C7) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _activeChannel == 1 ? AppTheme.accentCyan : AppTheme.borderSubtle,
+                        color: _activeChannel == 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
                         width: _activeChannel == 1 ? 1.5 : 1,
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.directions_car_rounded, size: 15, color: _activeChannel == 1 ? AppTheme.accentCyan : AppTheme.textMuted),
+                        Icon(
+                          Icons.directions_car_rounded,
+                          size: 15,
+                          color: _activeChannel == 1 ? Colors.white : const Color(0xFF475569),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'CH1: Road Cam (Front)',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: _activeChannel == 1 ? Colors.white : AppTheme.textMuted,
+                            color: _activeChannel == 1 ? Colors.white : const Color(0xFF475569),
                           ),
                         ),
                       ],
@@ -431,24 +598,28 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: _activeChannel == 2 ? AppTheme.accentCyan.withOpacity(0.2) : AppTheme.bgCard,
+                      color: _activeChannel == 2 ? const Color(0xFF0284C7) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _activeChannel == 2 ? AppTheme.accentCyan : AppTheme.borderSubtle,
+                        color: _activeChannel == 2 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
                         width: _activeChannel == 2 ? 1.5 : 1,
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.face_rounded, size: 15, color: _activeChannel == 2 ? AppTheme.accentCyan : AppTheme.textMuted),
+                        Icon(
+                          Icons.face_rounded,
+                          size: 15,
+                          color: _activeChannel == 2 ? Colors.white : const Color(0xFF475569),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'CH2: Cabin Cam (DMS)',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: _activeChannel == 2 ? Colors.white : AppTheme.textMuted,
+                            color: _activeChannel == 2 ? Colors.white : const Color(0xFF475569),
                           ),
                         ),
                       ],
@@ -477,7 +648,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                     child: VideoPlayer(_videoController!),
                   ),
                 )
-              else
+              else if (currentClip != null)
                 Container(
                   color: const Color(0xFF090D18),
                   child: Center(
@@ -505,6 +676,35 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       ],
                     ),
                   ),
+                )
+              else
+                Container(
+                  color: const Color(0xFF090D18),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.videocam_off_rounded, color: Color(0xFF94A3B8), size: 28),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'No Playback Video Available',
+                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'No clips recorded for this date. Ignition was off.',
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
 
               // Top OSD Badge
@@ -516,7 +716,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.75),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppTheme.accentGreen),
+                    border: Border.all(color: currentClip != null ? AppTheme.accentGreen : const Color(0xFF64748B)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -524,16 +724,18 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.accentGreen,
+                        decoration: BoxDecoration(
+                          color: currentClip != null ? AppTheme.accentGreen : const Color(0xFF64748B),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'SD PLAYBACK • ${currentClip['start']} - ${currentClip['end']} • CH$_activeChannel',
-                        style: const TextStyle(
-                          color: AppTheme.accentGreen,
+                        currentClip != null
+                            ? 'SD PLAYBACK • ${currentClip['start']} - ${currentClip['end']} • CH$_activeChannel'
+                            : 'SD PLAYBACK • STANDBY • CH$_activeChannel',
+                        style: TextStyle(
+                          color: currentClip != null ? AppTheme.accentGreen : const Color(0xFF94A3B8),
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
@@ -570,12 +772,12 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   // LOWER SECTION 1: Date Selector
   Widget _buildDateSelectorBar(String formattedDate) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: const Color(0xFF0F1523),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left_rounded, color: AppTheme.accentCyan, size: 24),
+            icon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF0284C7), size: 24),
             onPressed: () {
               setState(() {
                 _selectedDate = _selectedDate.subtract(const Duration(days: 1));
@@ -587,22 +789,13 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           ),
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
                   initialDate: _selectedDate,
                   firstDate: DateTime(2025),
                   lastDate: DateTime.now(),
-                  builder: (context, child) => Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.dark(
-                        primary: AppTheme.accentCyan,
-                        surface: AppTheme.bgCard,
-                      ),
-                    ),
-                    child: child!,
-                  ),
                 );
                 if (picked != null) {
                   setState(() {
@@ -614,34 +807,34 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 14),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgCard,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.accentCyan.withOpacity(0.4)),
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.calendar_month_rounded, size: 16, color: AppTheme.accentCyan),
+                    const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF0284C7)),
                     const SizedBox(width: 8),
                     Text(
                       formattedDate,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF0F172A),
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down_rounded, color: AppTheme.accentCyan, size: 18),
+                    const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B), size: 20),
                   ],
                 ),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right_rounded, color: AppTheme.accentCyan, size: 24),
+            icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF0284C7), size: 24),
             onPressed: _selectedDate.isBefore(DateTime.now().subtract(const Duration(hours: 12)))
                 ? () {
                     setState(() {
@@ -659,14 +852,19 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   }
 
   // LOWER SECTION 2: Interactive Scrubber (Aage / Piche Seek Control)
-  Widget _buildScrubberControls(Map<String, dynamic> currentClip) {
+  Widget _buildScrubberControls(Map<String, dynamic>? currentClip) {
     final posSeconds = _currentPosition.inSeconds.toDouble();
     final maxSeconds = _totalDuration.inSeconds > 0 ? _totalDuration.inSeconds.toDouble() : 300.0;
-    final clampedPos = posSeconds.clamp(0.0, maxSeconds);
+    final clampedPos = (currentClip != null && _totalDuration > Duration.zero)
+        ? posSeconds.clamp(0.0, maxSeconds)
+        : 0.0;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      color: AppTheme.bgCard,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
       child: Column(
         children: [
           // Time counters
@@ -674,17 +872,21 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${currentClip['start']} + ${_formatDuration(_currentPosition)}',
+                currentClip != null
+                    ? '${currentClip['start']} + ${_formatDuration(_currentPosition)}'
+                    : '00:00 + 00:00',
                 style: const TextStyle(
-                  color: AppTheme.accentCyan,
+                  color: Color(0xFF0284C7),
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
                 ),
               ),
               Text(
-                'Segment Duration: ${_formatDuration(_totalDuration)}',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                currentClip != null
+                    ? 'Segment Duration: ${_formatDuration(_totalDuration)}'
+                    : 'Duration: 00:00',
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -695,17 +897,19 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               trackHeight: 4,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-              activeTrackColor: AppTheme.accentGreen,
-              inactiveTrackColor: const Color(0xFF1E293B),
-              thumbColor: AppTheme.accentGreen,
+              activeTrackColor: const Color(0xFF0284C7),
+              inactiveTrackColor: const Color(0xFFE2E8F0),
+              thumbColor: const Color(0xFF0284C7),
             ),
             child: Slider(
               value: clampedPos,
               min: 0.0,
-              max: maxSeconds,
-              onChanged: (val) {
-                _seekTo(Duration(seconds: val.toInt()));
-              },
+              max: maxSeconds > 0 ? maxSeconds : 1.0,
+              onChanged: currentClip != null
+                  ? (val) {
+                      _seekTo(Duration(seconds: val.toInt()));
+                    }
+                  : null,
             ),
           ),
 
@@ -715,18 +919,22 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             children: [
               // Speed toggle
               InkWell(
-                onTap: _toggleSpeed,
-                borderRadius: BorderRadius.circular(6),
+                onTap: currentClip != null ? _toggleSpeed : null,
+                borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgPrimary,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
                   ),
                   child: Text(
                     '${_playbackSpeed}x',
-                    style: const TextStyle(color: AppTheme.accentCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: currentClip != null ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -734,45 +942,65 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
 
               // -10s Rewind
               IconButton(
-                icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 28),
+                icon: const Icon(Icons.replay_10_rounded, color: Color(0xFF0F172A), size: 28),
                 tooltip: 'Rewind 10 Seconds',
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  _seekTo(_currentPosition - const Duration(seconds: 10));
-                },
+                onPressed: currentClip != null
+                    ? () {
+                        HapticFeedback.lightImpact();
+                        _seekTo(_currentPosition - const Duration(seconds: 10));
+                      }
+                    : null,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
 
               // Play / Pause Button
               GestureDetector(
                 onTap: () {
-                  HapticFeedback.mediumImpact();
-                  _togglePlayPause();
+                  if (currentClip != null) {
+                    HapticFeedback.mediumImpact();
+                    _togglePlayPause();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No recorded clips available for this date'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  }
                 },
                 child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.accentGreen,
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: currentClip != null ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (currentClip != null ? const Color(0xFF0284C7) : const Color(0xFF94A3B8)).withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Icon(
                     _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: Colors.black,
-                    size: 28,
+                    color: Colors.white,
+                    size: 30,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
 
               // +10s Forward
               IconButton(
-                icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 28),
+                icon: const Icon(Icons.forward_10_rounded, color: Color(0xFF0F172A), size: 28),
                 tooltip: 'Forward 10 Seconds',
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  _seekTo(_currentPosition + const Duration(seconds: 10));
-                },
+                onPressed: currentClip != null
+                    ? () {
+                        HapticFeedback.lightImpact();
+                        _seekTo(_currentPosition + const Duration(seconds: 10));
+                      }
+                    : null,
               ),
             ],
           ),
@@ -781,86 +1009,10 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     );
   }
 
-  // LOWER SECTION 3: SD Card Status
-  Widget _buildSdCardStatusCard(DeviceProvider dp) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: GlassCard(
-        borderColor: AppTheme.accentGreen.withOpacity(0.35),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGreen.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.sd_storage_rounded, color: AppTheme.accentGreen, size: 18),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Dashcam MicroSD Storage (Continuous Loop)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Capacity: 128 GB (96 GB Free) • Overwrites Oldest Footage',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGreen.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'FIFO ON',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.accentGreen,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  'Continuous Loop Recording • High Endurance MicroSD',
-                  style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
-                ),
-                Text(
-                  'Storage: 128 GB (FIFO Active)',
-                  style: TextStyle(fontSize: 10, color: AppTheme.accentCyan, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // LOWER SECTION 4: Time Segment Clips List
+  // LOWER SECTION 3: Time Segment Clips List
   Widget _buildTimeSegmentsList() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -871,18 +1023,61 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 'Recorded Time Segments',
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
                 ),
               ),
               Text(
                 '${_clips.length} Clips Available',
-                style: const TextStyle(fontSize: 11, color: AppTheme.accentCyan),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _clips.isNotEmpty ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ...List.generate(_clips.length, (idx) {
+          const SizedBox(height: 10),
+          if (_clips.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.video_file_outlined, size: 28, color: Color(0xFF94A3B8)),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No Recorded Clips Found',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'No video segments found for the selected date.\nClips are automatically recorded when vehicle is moving with ignition ON.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...List.generate(_clips.length, (idx) {
             final clip = _clips[idx];
             final isSos = clip['isSos'] == true;
             final isSelected = _selectedClipIndex == idx;
@@ -890,19 +1085,26 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.accentCyan.withOpacity(0.12) : AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(10),
+                color: isSelected ? const Color(0xFFF0F9FF) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected
-                      ? AppTheme.accentCyan
-                      : (isSos ? AppTheme.statusCritical.withOpacity(0.4) : AppTheme.borderSubtle),
-                  width: isSelected ? 1.5 : 1,
+                      ? const Color(0xFF0284C7)
+                      : (isSos ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
+                  width: isSelected ? 1.8 : 1.0,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected ? const Color(0xFF0284C7).withOpacity(0.08) : Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -910,13 +1112,6 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       _currentPosition = Duration.zero;
                     });
                     _initializePlaybackStream();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: AppTheme.bgCard,
-                        content: Text('Loaded segment: ${clip['start']} - ${clip['end']} (CH$_activeChannel)'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -927,13 +1122,15 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           height: 36,
                           decoration: BoxDecoration(
                             color: isSos
-                                ? AppTheme.statusCritical.withOpacity(0.15)
-                                : (isSelected ? AppTheme.accentCyan.withOpacity(0.2) : AppTheme.bgPrimary),
+                                ? const Color(0xFFFEF2F2)
+                                : (isSelected ? const Color(0xFFE0F2FE) : const Color(0xFFF1F5F9)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             isSelected ? Icons.play_arrow_rounded : (isSos ? Icons.warning_amber_rounded : Icons.videocam_outlined),
-                            color: isSos ? AppTheme.statusCritical : (isSelected ? AppTheme.accentCyan : AppTheme.textMuted),
+                            color: isSos
+                                ? const Color(0xFFDC2626)
+                                : (isSelected ? const Color(0xFF0284C7) : const Color(0xFF64748B)),
                             size: 20,
                           ),
                         ),
@@ -948,9 +1145,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                     '${clip['start']} - ${clip['end']}',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w800,
                                       fontFamily: 'monospace',
-                                      color: isSelected ? Colors.white : AppTheme.textPrimary,
+                                      color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -958,8 +1155,8 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: isSos
-                                          ? AppTheme.statusCritical.withOpacity(0.2)
-                                          : AppTheme.accentGreen.withOpacity(0.15),
+                                          ? const Color(0xFFFEF2F2)
+                                          : const Color(0xFFECFDF5),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -967,7 +1164,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
-                                        color: isSos ? AppTheme.statusCritical : AppTheme.accentGreen,
+                                        color: isSos ? const Color(0xFFDC2626) : const Color(0xFF059669),
                                       ),
                                     ),
                                   ),
@@ -976,15 +1173,19 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               const SizedBox(height: 3),
                               Text(
                                 'Duration: 5m 00s • Size: ${clip['size']} • MicroSD Loop Storage',
-                                style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        if (isSelected)
-                          const Icon(Icons.volume_up_rounded, color: AppTheme.accentCyan, size: 18)
-                        else
-                          const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textMuted, size: 12),
+                        Icon(
+                          isSelected ? Icons.volume_up_rounded : Icons.chevron_right_rounded,
+                          size: 18,
+                          color: isSelected ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                        ),
                       ],
                     ),
                   ),

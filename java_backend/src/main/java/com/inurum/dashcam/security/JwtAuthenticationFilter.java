@@ -12,12 +12,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Map;
 
-/**
- * Validates authentication on all /api/v1 routes:
- * 1. Bearer JWT token in Authorization header.
- * 2. Server-to-server X-API-KEY header for enterprise integrations (TruckerCloud).
- * Login and non-API paths are exempted.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -42,12 +36,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Check for server-to-server API Key (e.g. TruckerCloud aggregator)
         String apiKey = request.getHeader("X-API-KEY");
         if (apiKey == null) apiKey = request.getHeader("X-Integration-Key");
 
         if (apiKey != null && !apiKey.isBlank() && apiKey.equals(integrationApiKey)) {
-            // Authenticate as system integration service account with SUPER_ADMIN privileges
             request.setAttribute(CurrentUser.REQUEST_ATTRIBUTE, new CurrentUser(
                     "srv-truckercloud",
                     "integration@truckercloud.com",
@@ -57,7 +49,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Standard Bearer JWT Token
         String authHeader = request.getHeader("Authorization");
         Map<String, Object> claims = authHeader != null && authHeader.startsWith("Bearer ")
                 ? jwtTokenProvider.verify(authHeader.substring(7).trim())

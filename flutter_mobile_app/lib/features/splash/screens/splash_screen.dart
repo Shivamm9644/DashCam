@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -132,27 +132,26 @@ class _SplashScreenState extends State<SplashScreen>
                     child: FadeTransition(
                       opacity: _logoFade,
                       child: Container(
-                        width: 100,
-                        height: 100,
+                        width: 104,
+                        height: 104,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [AppTheme.accentCyan, AppTheme.accentPurple],
-                          ),
-                          borderRadius: BorderRadius.circular(28),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(26),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.accentCyan.withOpacity(0.4),
-                              blurRadius: 40,
-                              spreadRadius: 5,
+                              color: const Color(0xFF0284C7).withOpacity(0.35),
+                              blurRadius: 30,
+                              spreadRadius: 4,
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.videocam_rounded,
-                          color: Colors.white,
-                          size: 52,
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),
@@ -171,34 +170,34 @@ class _SplashScreenState extends State<SplashScreen>
                           children: [
                             ShaderMask(
                               shaderCallback: (bounds) => const LinearGradient(
-                                colors: [AppTheme.accentCyan, AppTheme.accentPurple],
+                                colors: [Color(0xFF0284C7), Color(0xFF38BDF8)],
                               ).createShader(bounds),
-                              child: const Text(
-                                'INURUM',
-                                style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: 8,
+                                child: const Text(
+                                  'TRACKANYWHERE',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 3,
+                                  ),
                                 ),
-                              ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              'DASHCAM SAAS',
+                            const Text(
+                              'SMART FLEET & TELEMATICS',
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppTheme.textMuted,
-                                letterSpacing: 4,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.accentTeal,
+                                letterSpacing: 3,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Enterprise Fleet & Video Safety Platform',
+                              'Automotive Video Safety & Tracking Platform',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.textMuted.withOpacity(0.6),
+                                color: AppTheme.textMuted.withOpacity(0.8),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -235,15 +234,6 @@ class _SplashScreenState extends State<SplashScreen>
                 opacity: _textFade,
                 child: Column(
                   children: [
-                    Text(
-                      'â‚¹500/Device/Year â€¢ JT/T 808 & 1078',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.textMuted.withOpacity(0.5),
-                        letterSpacing: 1,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                     const SizedBox(height: 4),
                     Text(
                       'v1.0.0',

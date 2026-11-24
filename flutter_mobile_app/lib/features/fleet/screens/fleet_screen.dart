@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/dashboard_provider.dart';
 import '../../../core/providers/device_provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/widgets/glass_card.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/widgets/truck_map_view.dart';
 import '../../../core/services/api_service.dart';
+import '../../../main.dart';
+import '../../profile/widgets/customer_management_dialog.dart';
+import '../../profile/widgets/retailer_management_dialog.dart';
 
 class FleetScreen extends StatefulWidget {
   const FleetScreen({super.key});
@@ -69,7 +73,7 @@ class _FleetScreenState extends State<FleetScreen> {
                   style: const TextStyle(color: AppTheme.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Vehicle Label / Name (Optional)',
-                    hintText: 'e.g. Desk Test Cable',
+                    hintText: 'e.g. Express Truck 101',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -116,7 +120,7 @@ class _FleetScreenState extends State<FleetScreen> {
                   style: const TextStyle(color: AppTheme.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Driver Name (Optional)',
-                    hintText: 'e.g. Desk Test',
+                    hintText: 'e.g. Rajesh Kumar',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -905,19 +909,51 @@ class _FleetScreenState extends State<FleetScreen> {
   Widget build(BuildContext context) {
     final dash = context.watch<DashboardProvider>();
     final dp = context.watch<DeviceProvider>();
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
 
-    final activeDev = _selected ?? dash.selectedDevice ?? (dash.devices.isNotEmpty ? dash.devices.first : null);
+    // SaaS Multi-Tenant Isolation
+    final visibleDevices = dash.devices.where((d) {
+      if (user?.role == 'CUSTOMER') {
+        final assigned = user?.assignedTerminals ?? [];
+        if (assigned.isNotEmpty) {
+          return assigned.contains(d.terminalId) || assigned.contains(d.id);
+        }
+        return d.terminalId == '505073729067';
+      }
+      if (user?.role == 'RETAILER') {
+        final assigned = user?.assignedTerminals ?? [];
+        if (assigned.isNotEmpty) {
+          return assigned.contains(d.terminalId) || assigned.contains(d.id);
+        }
+        final tName = (user?.tenantName ?? '').toLowerCase().trim();
+        return tName.isNotEmpty && d.clientName.toLowerCase().trim() == tName;
+      }
+      return true;
+    }).toList();
+
+    final activeDev = (_selected != null && visibleDevices.contains(_selected))
+        ? _selected
+        : (dash.selectedDevice != null && visibleDevices.contains(dash.selectedDevice))
+            ? dash.selectedDevice
+            : (visibleDevices.isNotEmpty ? visibleDevices.first : null);
     final lat = (activeDev != null && activeDev.lat != 0.0) ? activeDev.lat : 0.0;
     final lng = (activeDev != null && activeDev.lng != 0.0) ? activeDev.lng : 0.0;
 
-    final filtered = dash.devices.where((d) {
+    final filtered = visibleDevices.where((d) {
+      if (user?.role == 'SUPER_ADMIN' && dash.selectedClientFilter != 'ALL' && d.clientName != dash.selectedClientFilter) {
+        return false;
+      }
       final matchFilter = _filter == 'ALL' || d.status == _filter;
       final matchSearch = _search.isEmpty ||
           d.plate.toLowerCase().contains(_search.toLowerCase()) ||
           d.terminalId.contains(_search) ||
-          d.driver.toLowerCase().contains(_search.toLowerCase());
+          d.driver.toLowerCase().contains(_search.toLowerCase()) ||
+          d.clientName.toLowerCase().contains(_search.toLowerCase());
       return matchFilter && matchSearch;
     }).toList();
+
+    final onlineCount = visibleDevices.where((d) => d.isOnline).length;
 
     return Scaffold(
       backgroundColor: AppTheme.bgPrimary,
@@ -932,13 +968,25 @@ class _FleetScreenState extends State<FleetScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.map_rounded,
-                          color: AppTheme.accentCyan, size: 22),
+                      InkWell(
+                        onTap: () => context.go('/dashboard'),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: const Icon(Icons.arrow_back_rounded,
+                              color: Color(0xFF0F172A), size: 20),
+                        ),
+                      ),
                       const SizedBox(width: 10),
                       const Text(
-                        'Fleet',
+                        'TrackAnywhere Fleet Terminals',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: AppTheme.textPrimary,
                         ),
@@ -948,7 +996,7 @@ class _FleetScreenState extends State<FleetScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.statusOnline.withOpacity(0.15),
+                          color: (onlineCount > 0 ? AppTheme.statusOnline : const Color(0xFF64748B)).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -956,18 +1004,18 @@ class _FleetScreenState extends State<FleetScreen> {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: AppTheme.statusOnline,
+                              decoration: BoxDecoration(
+                                color: onlineCount > 0 ? AppTheme.statusOnline : const Color(0xFF64748B),
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              '${dash.onlineVehicles} ONLINE',
-                              style: const TextStyle(
+                              onlineCount > 0 ? '$onlineCount ONLINE' : 'ALL OFFLINE',
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: AppTheme.statusOnline,
+                                color: onlineCount > 0 ? AppTheme.statusOnline : const Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -977,102 +1025,290 @@ class _FleetScreenState extends State<FleetScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  if (user?.role == 'RETAILER') ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentTeal.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.accentTeal.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.business_rounded, size: 16, color: AppTheme.accentTeal),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Company Fleet: ${user?.tenantName.isNotEmpty == true ? user!.tenantName : (user?.name ?? "Private Fleet")} (${visibleDevices.length} Dashcams)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.accentTeal,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '🔒 Isolated',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.accentTeal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
 
-                  // Quick Actions for Fleet & Drivers (Non-ELD support)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: _showAddVehicleDialog,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentCyan.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.accentCyan.withOpacity(0.5)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.directions_car_rounded, size: 16, color: AppTheme.accentCyan),
-                                SizedBox(width: 4),
-                                Text(
-                                  '+ Vehicle',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.accentCyan,
+                    
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => CustomerManagementSheet.show(context),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0284C7).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.person_add_alt_1_rounded, size: 16, color: Color(0xFF0284C7)),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '+ Customer',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0284C7),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: InkWell(
-                          onTap: _showAddDeviceDialog,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentPurple.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.accentPurple.withOpacity(0.5)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.add_to_queue_rounded, size: 16, color: AppTheme.accentPurple),
-                                SizedBox(width: 4),
-                                Text(
-                                  '+ DashCam',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.accentPurple,
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _showAddDeviceDialog,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentPurple.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.accentPurple.withOpacity(0.5)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.add_to_queue_rounded, size: 16, color: AppTheme.accentPurple),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '+ DashCam',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.accentPurple,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: InkWell(
-                          onTap: _showAddDriverDialog,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentGreen.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.person_add_rounded, size: 16, color: AppTheme.accentGreen),
-                                SizedBox(width: 4),
-                                Text(
-                                  '+ Driver',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.accentGreen,
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _showAddDriverDialog,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentGreen.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.person_add_rounded, size: 16, color: AppTheme.accentGreen),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '+ Driver',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.accentGreen,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (user?.role == 'SUPER_ADMIN') ...[
+                    // Active Client Filter Pill (if selected)
+                    if (dash.selectedClientFilter != 'ALL') ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.business_center_rounded, size: 16, color: Color(0xFF16A34A)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Viewing Client: ${dash.selectedClientFilter} (${visibleDevices.length} Dashcams)',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF16A34A),
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => dash.setClientFilter('ALL'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                                ),
+                                child: const Text(
+                                  'Clear Filter ✕',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF16A34A),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
+
+                    // Quick Actions for Super Admin: + Client / Admin, + DashCam, + Driver
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => RetailerManagementSheet.show(context),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0284C7).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.admin_panel_settings_rounded, size: 16, color: Color(0xFF0284C7)),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '+ Admin / Client',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0284C7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _showAddDeviceDialog,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentPurple.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.accentPurple.withOpacity(0.5)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.add_to_queue_rounded, size: 16, color: AppTheme.accentPurple),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '+ DashCam',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.accentPurple,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _showAddDriverDialog,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentGreen.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.person_add_rounded, size: 16, color: AppTheme.accentGreen),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '+ Driver',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.accentGreen,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   // Search
                   TextField(
                     onChanged: (v) => setState(() => _search = v),
@@ -1086,6 +1322,83 @@ class _FleetScreenState extends State<FleetScreen> {
                           horizontal: 16, vertical: 10),
                     ),
                   ),
+
+                  if (user?.role == 'SUPER_ADMIN') ...[
+                    const SizedBox(height: 12),
+
+                    // Client Accounts Strip
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'FILTER BY CLIENT ACCOUNT',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textMuted,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        if (dash.selectedClientFilter != 'ALL')
+                          GestureDetector(
+                            onTap: () => dash.setClientFilter('ALL'),
+                            child: const Text(
+                              'Show All Clients',
+                              style: TextStyle(fontSize: 10, color: AppTheme.accentCyan, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: dash.clientList.map((client) {
+                          final isSel = dash.selectedClientFilter == client;
+                          final count = client == 'ALL'
+                              ? dash.devices.length
+                              : dash.devices.where((d) => d.clientName == client).length;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              onTap: () => dash.setClientFilter(client),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: isSel ? AppTheme.accentTeal.withOpacity(0.2) : AppTheme.bgCard,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSel ? AppTheme.accentTeal : AppTheme.borderSubtle,
+                                    width: isSel ? 1.5 : 1.0,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.business_rounded,
+                                      size: 12,
+                                      color: isSel ? AppTheme.accentTeal : AppTheme.textMuted,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      client == 'ALL' ? 'All Clients ($count)' : '$client ($count)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                        color: isSel ? AppTheme.accentTeal : AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 12),
 
@@ -1137,17 +1450,31 @@ class _FleetScreenState extends State<FleetScreen> {
               ),
             ),
 
-            // Live Interactive Truck Map
+            // Live Interactive Truck Map (Tap opens Full Screen)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: LiveTruckMapView(
-                lat: (lat != 0.0) ? lat : 37.7749,
-                lng: (lng != 0.0) ? lng : -122.4194,
+                lat: (lat != 0.0) ? lat : 22.7339,
+                lng: (lng != 0.0) ? lng : 75.8615,
                 heading: (activeDev?.heading ?? 0).toDouble(),
-                speedMph: ((activeDev?.speed ?? 0) * 0.621371),
+                speedKmh: (activeDev?.speed ?? 0).toDouble(),
                 plate: activeDev?.plate ?? 'Active Dashcam',
-                status: activeDev?.status ?? 'ONLINE',
+                status: activeDev?.status ?? 'OFFLINE',
+                driver: (activeDev?.driver.isNotEmpty == true && activeDev!.driver != 'Assigned Driver') ? activeDev.driver : 'Unassigned',
+                terminalId: activeDev?.terminalId ?? '',
                 height: 185,
+                onWatchLive: () {
+                  if (activeDev != null) {
+                    dp.selectServerDevice(activeDev.terminalId, activeDev.plate, isOnline: activeDev.isOnline);
+                  }
+                  context.go('/camera');
+                },
+                onPlayback: () {
+                  if (activeDev != null) {
+                    dp.selectServerDevice(activeDev.terminalId, activeDev.plate, isOnline: activeDev.isOnline);
+                  }
+                  context.go('/playback');
+                },
               ),
             ),
             // Device list
@@ -1166,7 +1493,7 @@ class _FleetScreenState extends State<FleetScreen> {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       itemCount: filtered.length,
                       itemBuilder: (_, i) {
                         final device = filtered[i];
@@ -1210,98 +1537,159 @@ class _FleetDeviceCard extends StatelessWidget {
     this.onShowHistory,
   });
 
+  Widget _buildHsrpPlate(String plate) {
+    final isCam = plate.startsWith('CAM-');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF1E293B), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF003399),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              isCam ? 'CAM' : 'IND',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            plate,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dash = context.read<DashboardProvider>();
     final dp = context.read<DeviceProvider>();
-    final statusColor = device.isOnline
-        ? AppTheme.statusOnline
-        : device.isIdle
-            ? AppTheme.statusWarning
-            : AppTheme.statusOffline;
+    final bool isOnline = device.isOnline;
+    final bool hasNoGps = device.lastPing.contains('No GPS');
+
+    final Color statusColor = isOnline
+        ? (hasNoGps ? AppTheme.accentSaffron : AppTheme.accentGreen)
+        : AppTheme.statusOffline;
+
+    final String statusLabel = isOnline
+        ? (hasNoGps ? 'ONLINE • NO GPS' : 'ONLINE • LIVE')
+        : 'OFFLINE';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? AppTheme.accentCyan : AppTheme.borderSubtle,
-          width: isSelected ? 1.5 : 1,
+          color: isSelected ? AppTheme.accentSaffron : AppTheme.borderSubtle,
+          width: isSelected ? 1.6 : 1.0,
         ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppTheme.accentCyan.withOpacity(0.15),
-                  blurRadius: 12,
-                )
-              ]
-            : [],
+        boxShadow: [
+          BoxShadow(
+            color: isSelected ? AppTheme.accentSaffron.withOpacity(0.12) : Colors.black.withOpacity(0.25),
+            blurRadius: isSelected ? 14 : 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ── Top Header Strip: HSRP Plate & Status Pill ──
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                _buildHsrpPlate(device.plate),
                 Container(
-                  width: 46,
-                  height: 46,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    color: statusColor.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.4)),
                   ),
-                  child: Icon(Icons.local_shipping_rounded,
-                      color: statusColor, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          Text(
-                            device.plate,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          StatusBadge(
-                            label: device.status,
-                            color: statusColor,
-                            pulsing: device.isOnline,
-                          ),
-                          _PairingStatusBadge(status: device.pairingStatus),
-                        ],
-                      ),
-                      if (device.vin.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'VIN: ${device.vin}',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppTheme.textMuted,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
                         ),
-                      ],
-                      const SizedBox(height: 4),
-                      Row(
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: AppTheme.borderSubtle),
+
+          // ── Middle Details: Clear 2-Row Layout (No upar-niche crowding!) ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Column(
+              children: [
+                // Driver row & Speed
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
                         children: [
+                          const Icon(Icons.person_pin_rounded, size: 16, color: AppTheme.accentSaffron),
+                          const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              device.driver,
+                              (device.driver.isNotEmpty && device.driver != 'Assigned Driver') ? device.driver : 'Unassigned',
                               style: const TextStyle(
-                                  fontSize: 12, color: AppTheme.textMuted),
+                                color: AppTheme.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1309,175 +1697,236 @@ class _FleetDeviceCard extends StatelessWidget {
                           GestureDetector(
                             onTap: onChangeDriver,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppTheme.accentOrange.withOpacity(0.15),
+                                color: Colors.white.withOpacity(0.06),
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: AppTheme.accentOrange.withOpacity(0.5)),
+                                border: Border.all(color: Colors.white12),
                               ),
-                              child: const Text('Change', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentOrange)),
+                              child: const Text('Edit', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            'Model: ${device.deviceModel.isNotEmpty ? device.deviceModel : "GD19"}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.accentCyan,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.speed_rounded, size: 15, color: AppTheme.accentTeal),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${device.speed.round()} km/h',
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: 'monospace',
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // Hardware Model & Terminal IMEI
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.videocam_rounded, size: 14, color: AppTheme.textMuted),
+                          const SizedBox(width: 6),
+                          Flexible(
                             child: Text(
-                              'Terminal: ${device.terminalId}',
+                              device.deviceModel.isNotEmpty ? device.deviceModel : 'MDVR (M16C)',
                               style: const TextStyle(
-                                  fontSize: 10,
-                                  color: AppTheme.textMuted,
-                                  fontFamily: 'monospace'),
+                                color: AppTheme.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${(device.speed * 0.621371).round()}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
-                      ),
                     ),
-                    const Text('mph',
-                        style: TextStyle(
-                            fontSize: 10, color: AppTheme.textMuted)),
-                    Text(
-                      device.lastPing,
-                      style: const TextStyle(
-                          fontSize: 10, color: AppTheme.textMuted),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.memory_rounded, size: 13, color: AppTheme.textMuted),
+                        const SizedBox(width: 4),
+                        Text(
+                          'IMEI: ${device.terminalId}',
+                          style: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+
+                // ── Client Account & Subscription Days Remaining ──
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.bgCardHover,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderSubtle),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.business_rounded, size: 14, color: AppTheme.accentTeal),
+                              const SizedBox(width: 5),
+                              Text(
+                                device.clientName,
+                                style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (device.daysRemaining > 30
+                                      ? AppTheme.accentGreen
+                                      : (device.daysRemaining > 0 ? AppTheme.accentOrange : AppTheme.statusCritical))
+                                  .withOpacity(0.16),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: (device.daysRemaining > 30
+                                        ? AppTheme.accentGreen
+                                        : (device.daysRemaining > 0 ? AppTheme.accentOrange : AppTheme.statusCritical))
+                                    .withOpacity(0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  device.daysRemaining > 30
+                                      ? Icons.timer_rounded
+                                      : (device.daysRemaining > 0 ? Icons.warning_amber_rounded : Icons.cancel_rounded),
+                                  size: 11,
+                                  color: device.daysRemaining > 30
+                                      ? AppTheme.accentGreen
+                                      : (device.daysRemaining > 0 ? AppTheme.accentOrange : AppTheme.statusCritical),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${device.daysRemaining}d left (Exp: ${device.formattedExpiry})',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: device.daysRemaining > 30
+                                        ? AppTheme.accentGreen
+                                        : (device.daysRemaining > 0 ? AppTheme.accentOrange : AppTheme.statusCritical),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Mini Progress Bar of 365 Days
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: (1.0 - device.subscriptionProgress).clamp(0.0, 1.0),
+                          minHeight: 3,
+                          backgroundColor: AppTheme.borderSubtle,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            device.daysRemaining > 30
+                                ? AppTheme.accentGreen
+                                : (device.daysRemaining > 0 ? AppTheme.accentOrange : AppTheme.statusCritical),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          // Expanded telemetry HUD
-          if (isSelected)
-            Container(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              decoration: BoxDecoration(
-                color: AppTheme.bgPrimary.withOpacity(0.5),
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(14)),
-                border: Border(
-                  top: BorderSide(color: AppTheme.borderSubtle),
+
+          // ── Always-Visible 1-Tap Action Bar (For non-tech ease) ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isOnline ? AppTheme.accentSaffron : const Color(0xFFE2E8F0),
+                      foregroundColor: isOnline ? Colors.black : const Color(0xFF64748B),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      elevation: isOnline ? 2 : 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                    ),
+                    onPressed: () {
+                      dash.selectDevice(device);
+                      dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
+                      context.go('/camera');
+                    },
+                    icon: Icon(
+                      Icons.videocam_rounded,
+                      size: 17,
+                      color: isOnline ? Colors.black : const Color(0xFF64748B),
+                    ),
+                    label: Text(
+                      isOnline ? 'Watch Live' : 'Live (Offline)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: isOnline ? Colors.black : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      _HudItem(
-                          label: 'Heading',
-                          value: '${device.heading.toStringAsFixed(0)}° E'),
-                      _HudItem(
-                          label: 'Altitude',
-                          value: '${(device.altitude * 3.28084).round()} ft'),
-                      _HudItem(
-                          label: 'Lat',
-                          value: device.lat.toStringAsFixed(4)),
-                      _HudItem(
-                          label: 'Lng',
-                          value: device.lng.toStringAsFixed(4)),
-                    ],
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 5,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.textPrimary,
+                      side: BorderSide(
+                        color: isSelected ? AppTheme.accentTeal.withOpacity(0.6) : AppTheme.borderSubtle,
+                      ),
+                      backgroundColor: AppTheme.bgCardHover,
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                    ),
+                    onPressed: () {
+                      dash.selectDevice(device);
+                      dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
+                      context.go('/playback');
+                    },
+                    icon: const Icon(Icons.history_rounded, size: 16, color: AppTheme.accentTeal),
+                    label: const Text(
+                      'Playback',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionBtn(
-                          icon: Icons.play_circle_rounded,
-                          label: 'Live View',
-                          color: AppTheme.accentCyan,
-                          onTap: () {
-                            dash.selectDevice(device);
-                            dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
-                            context.go('/camera');
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ActionBtn(
-                          icon: Icons.settings_remote_rounded,
-                          label: 'Settings',
-                          color: AppTheme.accentGreen,
-                          onTap: () {
-                            dash.selectDevice(device);
-                            dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
-                            context.go('/device-management');
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ActionBtn(
-                          icon: Icons.timeline_rounded,
-                          label: 'History',
-                          color: AppTheme.accentPurple,
-                          onTap: () {
-                            dash.selectDevice(device);
-                            dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
-                            context.go('/playback');
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ActionBtn(
-                          icon: Icons.badge_rounded,
-                          label: 'Driver',
-                          color: AppTheme.accentOrange,
-                          onTap: onChangeDriver ?? () {},
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionBtn(
-                          icon: Icons.history_rounded,
-                          label: 'Pairing Log',
-                          color: AppTheme.accentCyan,
-                          onTap: onShowHistory ?? () {},
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ActionBtn(
-                          icon: Icons.link_off_rounded,
-                          label: 'Unpair DashCam',
-                          color: AppTheme.statusCritical,
-                          onTap: onUnpair ?? () {},
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -1550,16 +1999,24 @@ class _HudItem extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(label,
-              style: const TextStyle(fontSize: 9, color: AppTheme.textMuted)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.3,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(
             value,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

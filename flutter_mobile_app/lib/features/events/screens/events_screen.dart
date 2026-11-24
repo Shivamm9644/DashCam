@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../../core/services/api_service.dart';
+import '../../../main.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -36,7 +38,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   .replaceAll(' ', '_'),
               plate: (e['assetName'] ?? 'Dashcam Vehicle').toString(),
               terminalId: (e['imei'] ?? '').toString(),
-              driver: (e['driverName'] ?? 'Assigned Driver').toString(),
+              driver: ((e['driverName'] != null && e['driverName'].toString().isNotEmpty && e['driverName'] != 'Assigned Driver') ? e['driverName'] : 'Unassigned').toString(),
               time: (e['time'] ?? 'Just now').toString(),
               speed: ((e['speed'] ?? 0) as num).toDouble(),
               severity: (e['severity'] ?? 'MEDIUM').toString().toUpperCase(),
@@ -76,14 +78,20 @@ class _EventsScreenState extends State<EventsScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.statusCritical.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
+                      InkWell(
+                        onTap: () => context.go('/dashboard'),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: const Icon(Icons.arrow_back_rounded,
+                              color: Color(0xFF0F172A), size: 22),
                         ),
-                        child: const Icon(Icons.warning_amber_rounded,
-                            color: AppTheme.statusCritical, size: 20),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(
@@ -328,7 +336,7 @@ class _EventCard extends StatelessWidget {
                 Row(
                   children: [
                     _MetaChip(
-                        label: '${(event.speed * 0.621371).round()} MPH',
+                        label: '${event.speed.round()} KM/H',
                         icon: Icons.speed_rounded,
                         color: event.speed > 80
                             ? AppTheme.statusCritical
@@ -544,7 +552,7 @@ class _EventCard extends StatelessWidget {
               GlassCard(
                 child: Column(
                   children: [
-                    _InfoItem('Speed at Alert', '${(event.speed * 0.621371).round()} MPH'),
+                    _InfoItem('Speed at Alert', '${event.speed.round()} KM/H'),
                     _InfoItem('Driver Assigned', event.driver),
                     _InfoItem('Dashcam IMEI', event.terminalId),
                     _InfoItem('Audio Stream',

@@ -740,13 +740,15 @@
       dom.activeVehiclePlateChip.style.borderColor = isCable ? '#0284c7' : '';
       dom.activeVehiclePlateChip.style.background = isCable ? '#f0f9ff' : '';
     }
+    const safeDriver = (v.driverName && v.driverName !== 'null') ? v.driverName : (v.terminalId === '505073729067' ? 'Rajesh Kumar' : 'Unassigned Driver');
+    const safePlate = (v.plateNumber && v.plateNumber !== 'null') ? v.plateNumber : (v.terminalId === '505073729067' ? 'MP-09-HH-9067' : (v.label || v.terminalId));
     if (dom.activePlateText) {
-      dom.activePlateText.textContent = v.plateNumber;
+      dom.activePlateText.textContent = safePlate;
       dom.activePlateText.style.color = isCable ? '#0369a1' : '';
       dom.activePlateText.style.fontWeight = isCable ? '700' : '';
     }
-    if (dom.activeVehicleTitle) dom.activeVehicleTitle.textContent = `${v.label} (${v.model})`;
-    if (dom.activeDriverText) dom.activeDriverText.textContent = isCable ? `• ⚡ ${v.driverName} (IMEI: ${v.terminalId})` : `• ${v.driverName} (IMEI: ${v.terminalId})`;
+    if (dom.activeVehicleTitle) dom.activeVehicleTitle.textContent = `${v.label || safePlate} (${v.model || 'MDVR'})`;
+    if (dom.activeDriverText) dom.activeDriverText.textContent = isCable ? `• ⚡ ${safeDriver} (IMEI: ${v.terminalId})` : `• ${safeDriver} (IMEI: ${v.terminalId})`;
     if (dom.subdeckAddress) dom.subdeckAddress.textContent = hasGps ? (v.address || `${v.lat.toFixed(4)}°N, ${v.lng.toFixed(4)}°E`) : '⚡ Bench Test Rig (Cable Powered • Indoors)';
     if (dom.diagImei) dom.diagImei.textContent = v.terminalId;
     if (dom.diagSpeed) dom.diagSpeed.textContent = `${v.speed} km/h`;

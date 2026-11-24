@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../main.dart';
 
 class AuditScreen extends StatelessWidget {
   const AuditScreen({super.key});
@@ -20,14 +22,20 @@ class AuditScreen extends StatelessWidget {
               color: AppTheme.bgCard,
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentPurple.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
+                  InkWell(
+                    onTap: () => context.go('/dashboard'),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: Color(0xFF0F172A), size: 22),
                     ),
-                    child: const Icon(Icons.shield_rounded,
-                        color: AppTheme.accentPurple, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
