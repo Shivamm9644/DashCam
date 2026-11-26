@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trackify - Product Documentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      color: #334155;
+      background-color: #f8fafc;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+      background-color: #ffffff;
+      padding: 24mm 20mm 20mm 20mm;
+    }
+    
+    /* Cover Page Specifics */
+    .cover-page {
+      background: linear-gradient(135deg, #090d16 0%, #020408 100%);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 28mm 22mm;
+    }
+    .cover-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon {
+      width: 52px;
+      height: 52px;
+      fill: #10b981;
+    }
+    .brand-name {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 34px;
+      font-weight: 950;
+      letter-spacing: 4px;
+      color: #10b981;
+    }
+    .cover-body {
+      margin-top: 5mm;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .cover-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 58px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    .cover-subtitle {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #10b981;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      margin-bottom: 25px;
+    }
+    .cover-desc {
+      max-width: 170mm;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin-bottom: 30px;
+    }
+    .splash-container {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 14px;
+    }
+    .splash-img {
+      height: 110mm;
+      border-radius: 16px;
+      display: block;
+    }
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #64748b;
+    }
+    
+    /* Layout Elements */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .header-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    .header-logo {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      color: #10b981;
+    }
+    
+    .footer {
+      position: absolute;
+      bottom: 12mm;
+      left: 20mm;
+      right: 20mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    
+    .section-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 22px;
+      font-weight: 850;
+      color: #0f172a;
+      margin-bottom: 14px;
+      position: relative;
+      padding-bottom: 8px;
+    }
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 45px;
+      height: 3.5px;
+      background-color: #10b981;
+      border-radius: 2px;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 22px;
+      align-items: center;
+    }
+    .content-grid-reverse {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 22px;
+      align-items: center;
+    }
+    
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+      margin-bottom: 12px;
+    }
+    .card:last-child {
+      margin-bottom: 0;
+    }
+    
+    .card-dark {
+      background: #1e293b;
+      color: #f8fafc;
+      border: none;
+      padding: 20px;
+      border-radius: 16px;
+    }
+    
+    .card-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .card-dark .card-title {
+      color: #f8fafc;
+    }
+    
+    p {
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: #475569;
+      margin-bottom: 10px;
+    }
+    .card-dark p {
+      color: #cbd5e1;
+    }
+    
+    .bullet-list {
+      margin-left: 18px;
+      margin-bottom: 6px;
+    }
+    .bullet-list li {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .card-dark .bullet-list li {
+      color: #cbd5e1;
+    }
+    
+    /* Image mockups */
+    .phone-mockup-wrapper {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .phone-mockup {
+      width: 100%;
+      max-width: 68mm;
+      border: 6px solid #1e293b;
+      border-radius: 28px;
+      background: #000;
+      overflow: hidden;
+    }
+    .phone-mockup img {
+      width: 100%;
+      display: block;
+    }
+    
+    .web-mockup-fit {
+      width: 100%;
+      border: 5px solid #1e293b;
+      border-radius: 14px;
+      background: #000;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .web-mockup-fit img {
+      width: 100%;
+      display: block;
+    }
+    
+    /* Table Styling */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+    th, td {
+      padding: 9px 11px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background-color: #f1f5f9;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 750;
+      color: #0f172a;
+    }
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: COVER -->
+  <div class="page cover-page">
+    <div class="cover-header">
+      <svg class="logo-icon" viewBox="0 0 24 24">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+      </svg>
+      <div class="brand-name">TRACKIFY</div>
+    </div>
+    
+    <div class="cover-body">
+      <div class="cover-title">TRACKIFY</div>
+      <div class="cover-subtitle">Fleet Intelligence & Vehicle Security</div>
+      <p class="cover-desc">
+        A comprehensive product capabilities and administrative operations guide. Exploring real-time GPS tracking, 
+        security geofencing, active warranty protections, user help systems, and device configurations.
+      </p>
+      <div class="splash-container">
+        <img class="splash-img" src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_splash.png" alt="Trackify Splash Screen">
+      </div>
+    </div>
+    
+    <div class="cover-footer">
+      <div>CONFIDENTIAL & PROPRIETARY DOCUMENTATION</div>
+      <div>PROJECT WORKSPACE: TRACKIFY</div>
+      <div>PAGE 1</div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: EXEC SUMMARY & KEY FEATURES -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Executive Summary</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Introduction & Core Features</div>
+    <p>
+      Trackify is a state-of-the-art vehicle management and tracking ecosystem designed to deliver peace of mind, operational security, and extensive analytical insights for individual owners and commercial fleet managers alike. By combining robust hardware tracking units with an intuitive mobile application and a centralized web dashboard, Trackify bridges the gap between hardware tracking capabilities and modern cloud analytics.
+    </p>
+    
+    <div class="grid-2" style="margin-top: 15px; margin-bottom: 20px;">
+      <div class="card">
+        <div class="card-title">Real-Time GPS Tracking</div>
+        <p style="font-size:12.5px; line-height:1.45; margin-bottom:0;">
+          Continuous tracking with precision location updates. Available at standard 5-second intervals, or premium 1-second real-time tracking for instantaneous status updates.
+        </p>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Smart Geofencing Guard</div>
+        <p style="font-size:12.5px; line-height:1.45; margin-bottom:0;">
+          Define circular safe-zones (Home, Office, Parking) on the map. Get instant notifications, email alerts, or SMS warnings whenever a vehicle enters or exits a predefined zone.
+        </p>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Anti-Theft & Towing Alerts</div>
+        <p style="font-size:12.5px; line-height:1.45; margin-bottom:0;">
+          Activate "Safe Parking" to secure the vehicle. Instant vibration, motion, and ignition detection alerts are sent immediately if unauthorized movements occur.
+        </p>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Diagnostics & Maintenance</div>
+        <p style="font-size:12.5px; line-height:1.45; margin-bottom:0;">
+          Monitors internal device voltage, vehicle battery levels, and notifies users when power drops or when the device goes into sleep mode to conserve vehicle battery.
+        </p>
+      </div>
+    </div>
+    
+    <div class="card card-dark">
+      <div class="card-title" style="color: #10b981;">Hardware & Cloud Integration</div>
+      <p style="margin-bottom: 8px;">
+        Trackify uses cellular-enabled telematics hardware with internal backup batteries. The device transmits location changes, speed thresholds, and diagnostics packets directly to a highly-available MQTT/HTTP ingestion cluster. The microservices process geofence boundaries and behavior statistics, routing immediate push updates to users.
+      </p>
+      <p style="margin-bottom: 0; font-size:12.5px; color:#cbd5e1;">
+        The system handles network disconnection gracefully by caching tracking data locally on the hardware device storage, uploading accumulated logs immediately upon cellular reconnection to avoid data gaps.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 2</div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: MOBILE USER INTERFACE -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">User Experience</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Mobile Dashboard Experience</div>
+    
+    <div class="content-grid">
+      <div>
+        <p>
+          The Trackify mobile dashboard serves as the central control room for personal vehicles. Users receive instant visual confirmations of vehicle metrics, security states, and interactive diagnostics cards.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">Dashboard Overview Widgets</div>
+          <p style="font-size:12px; margin-bottom:4px;">Displays dynamic state information including ignition (Inactive/Active), time of last report, current fuel type, and expiration countdown banners.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Today's Summary Panel</div>
+          <p style="font-size:12px; margin-bottom:4px;">Tracks daily riding statistics including total distance traveled, current average velocity, and active ride duration.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Quick Action Navigation Grid</div>
+          <p style="font-size:12px; margin-bottom:4px;">Reusable action grids routing users directly to Geofencing setup, ReachMe Stickers, Fuel Logs, Expense Trackers, and Service Logs.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Promotional Banner Manager</div>
+          <p style="font-size:12px; margin-bottom:0;">Contextual notifications assisting users to upgrade to premium tiers (e.g. Plus) to activate advanced capabilities.</p>
+        </div>
+      </div>
+      
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_dashboard.png" alt="Mobile Dashboard Screen">
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 3</div>
+    </div>
+  </div>
+
+  <!-- PAGE 4: HOW IT WORKS & MOBILE MAP -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Core Operations</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Real-Time Mobile Mapping & Telemetry</div>
+    
+    <div class="content-grid-reverse">
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_map_stats.png" alt="Mobile Map Stats Sheet">
+        </div>
+      </div>
+      
+      <div>
+        <p>
+          The Live Map interface matches GPS data streams with mapping overlays, letting users watch their vehicle move smoothly in real-time.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">Live Velocity & Direction</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Instantaneous speed calculations refreshed every second (Plus) or five seconds (Lite), complete with vector movement arrows.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Power and Diagnostic Monitors</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Direct readings of the device's internal backup battery and the vehicle's battery voltage levels to ensure hardware health.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Ignition & Sleep State Tickers</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Logs the exact elapsed duration since the vehicle's engine was shut down (e.g. "Parked since 1:30 PM") and detects low-power hibernation states.</p>
+        </div>
+        
+        <p style="font-size: 13px; margin-top: 8px;">
+          Telemetry computations filter out mapping drift. This ensures coordinate sequences align perfectly with roads, avoiding incorrect geofence triggers when the vehicle is static.
+        </p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 4</div>
+    </div>
+  </div>
+
+  <!-- PAGE 5: ADMIN PORTAL & GEOFENCING -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Fleet Administration</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Admin Console & Geofencing Guards</div>
+    
+    <p style="margin-bottom: 12px;">
+      The Web Administration Panel provides fleet managers with unified operations screens. Managers can control security settings, geofences, and coordinate histories for hundreds of vehicles simultaneously.
+    </p>
+    
+    <div class="web-mockup-fit">
+      <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/admin_geofence.png" alt="Admin Geofence Live Tracking Dashboard">
+    </div>
+    
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Geofence Guard Mechanics</div>
+        <p style="font-size: 12.5px; line-height: 1.45; margin-bottom: 0;">
+          Managers draw custom circular perimeters centered at critical facilities (Home, Office, Parking). The system cross-references vehicle GPS coordinate streams against these radii. If a boundary is crossed, the server sends real-time push alerts, emails, and SMS updates.
+        </p>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Route Playback Telemetry</div>
+        <p style="font-size: 12.5px; line-height: 1.45; margin-bottom: 0;">
+          The route playback module lets admins replay any historical trip. Admins can control playback speed (1x, 2x, 4x) to analyze driver behaviors, check speed limits, verify route deviations, and review fuel usage indicators.
+        </p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 5</div>
+    </div>
+  </div>
+
+  <!-- PAGE 6: JOURNEY LOGS & TRAVEL HISTORY -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Fleet Analytics</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Journey Logs & Ride History Audits</div>
+    
+    <div class="content-grid">
+      <div>
+        <p>
+          Trackify automatically aggregates telemetry packets into separate trip logs. This simplifies route monitoring and expense claims for drivers and managers.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">Interactive Route Visualizer</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Every ride page maps the route with color-coded alerts showing speed violations, sharp cornering, or harsh brakes.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Trip Metadata Metrics</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Log start and end timestamps, exact trip durations, total distance traveled, and precise starting/ending address strings.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Performance Records</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Records average velocity and peak top speeds clocked during each trip to evaluate driver behaviors.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Search & Filtering</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Allows users to search and filter through historical records using simple date selectors, vehicle profiles, and keyword inputs.</p>
+        </div>
+      </div>
+      
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_journey.png" alt="User Journey History Screen">
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 6</div>
+    </div>
+  </div>
+
+  <!-- PAGE 7: DRIVER BEHAVIOR & DIAGNOSTICS -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Performance Analytics</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Riding Behavior & Diagnostic Analytics</div>
+    
+    <div class="content-grid-reverse">
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_statistics.png" alt="User Statistics Screen">
+        </div>
+      </div>
+      
+      <div>
+        <p>
+          The Statistics panel evaluates telemetry histories to compile behavior scores and diagnostic breakdowns.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">Riding Behavior Index</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Uses acceleration, cornering, and braking patterns to calculate an overall driver safety score (e.g. "100% Excellent").</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Fuel Efficiency Logs</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Tracks approximate fuel consumption (Litre) and total fuel cost (₹) calculated using configureable mileage factors (Km/L).</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Historical Performance Graphs</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Interactive timelines showing distance traveled and riding durations, helping fleet managers evaluate vehicle utilization.</p>
+        </div>
+        
+        <p style="font-size: 13px; margin-top: 8px;">
+          Regular analytics reports help identify driver training needs and lower vehicle wear and tear. This helps extend tire lifetimes and reduces total fuel costs.
+        </p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 7</div>
+    </div>
+  </div>
+
+  <!-- PAGE 8: GARAGE & VEHICLE REGISTRY -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Hardware Management</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">My Garage & Vehicle Registry</div>
+    
+    <div class="content-grid">
+      <div>
+        <p>
+          Trackify manages all your vehicles in one place. The Garage screen acts as the primary registry where users organize their vehicle profiles.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">Multi-Vehicle Registry</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Consolidates all vehicle assets (such as Hero MotoCorp Splendor Plus, Maruti Suzuki Swift, and Ola Electric S1 Pro) in an interactive card grid.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Dynamic SIM Status Tickers</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Monitors SIM card data expiration dates and active connectivity signals to warn users of pending recharges before data cutoffs.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Easy Pairing Workflows</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Allows quick pairing of newly purchased tracking devices to a vehicle using quick barcode scanning or manual IMEI registration.</p>
+        </div>
+        
+        <p style="font-size: 13.5px; margin-top: 8px;">
+          The Garage page keeps tracking systems organized for fleet operations. You can switch between profiles with one tap, giving you immediate control over your entire fleet.
+        </p>
+      </div>
+      
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_garage.png" alt="My Garage Screen">
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 8</div>
+    </div>
+  </div>
+
+  <!-- PAGE 9: DEVICE WARRANTY EXTENSIONS -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Hardware Management</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Device Warranty Extensions</div>
+    
+    <div class="content-grid-reverse">
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_warranty.png" alt="Device Warranty Screen">
+        </div>
+      </div>
+      
+      <div>
+        <p>
+          Protect your investment. Trackify makes it easy to purchase extended warranties for your hardware tracking devices to prevent hardware failure costs.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">Extend Warranty at ₹365/Year</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Get full coverage for just ₹1 per day. Extends standard warranty protections for 365 days with instant digital confirmation.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Guaranteed Hardware Replacements</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Covers complete device replacements for hardware glitches, network modem failures, or power system errors.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Significant Repair Savings</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Saves up to ₹1,200 in hardware repair charges. Includes priority support and diagnostic testing services.</p>
+        </div>
+        
+        <p style="font-size: 13.5px; margin-top: 8px;">
+          The warranty system is linked directly to your hardware's unique identifier. This ensures quick claims without needing paper invoices or manual registry reviews.
+        </p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 9</div>
+    </div>
+  </div>
+
+  <!-- PAGE 10: PLUS MEMBERSHIP -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Premium Services</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Trackify Plus Membership</div>
+    
+    <div class="content-grid">
+      <div>
+        <p>
+          Upgrade to Trackify Plus to unlock advanced capabilities for your tracking hardware, giving you elite level telemetry and analytics.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">1-Second Live Tracking Refresh</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Reduces update intervals to 1-second. Ensures smooth vehicle tracking overlays on the live map.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Advanced Security & Anti-Theft Call Alerts</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Recieve immediate automated phone calls the moment your vehicle moves or registers a vibration outside scheduled hours.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Detailed Speed & Behavior Analytics</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Unlocks top speed tracking across all dates and granular acceleration/braking analysis models.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Unlimited Geofence Configurations</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Create unlimited custom circular perimeter zones to monitor entries and exits across your entire fleet.</p>
+        </div>
+      </div>
+      
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_plus.png" alt="Plus Membership Screen">
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 10</div>
+    </div>
+  </div>
+
+  <!-- PAGE 11: HELP & SUGGESTIONS -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Premium Services</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Help & Suggestions Support Desk</div>
+    
+    <div class="content-grid-reverse">
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_help.png" alt="Help and Suggestion Screen">
+        </div>
+      </div>
+      
+      <div>
+        <p>
+          A built-in Support Desk ensures user requests are processed quickly, helping resolve hardware or mapping questions.
+        </p>
+        
+        <div class="card">
+          <div class="card-title">In-App Support Tickets</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Submit technical issues directly linked to a specific vehicle, complete with diagnostic log packages sent to admins.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">WhatsApp Support Integration</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Get instant support from our help desk with one-tap WhatsApp integration.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">Direct Callback Scheduling</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Request callback slots directly in the app. An agent will call back at a time that works for you.</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-title">User Suggestion Modules</div>
+          <p style="font-size:12.5px; margin-bottom:0;">Submit feedback or request features directly. Helps shape the future updates of the Trackify application.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 11</div>
+    </div>
+  </div>
+
+  <!-- PAGE 12: FLEET DATA PLANS & SUBSCRIPTION TIERS -->
+  <div class="page">
+    <div class="header">
+      <div class="header-title">Fleet Administration</div>
+      <div class="header-logo">Trackify</div>
+    </div>
+    
+    <div class="section-title">Fleet Recharge Plans & Capabilities</div>
+    
+    <div class="content-grid">
+      <div>
+        <div class="card" style="padding: 12px; margin-bottom: 12px;">
+          <div class="card-title" style="font-size: 13px; margin-bottom: 6px;">SIM Data & Subscription Packages</div>
+          <p style="font-size: 12px; line-height: 1.45; margin-bottom: 0;">
+            Users purchase SIM recharges directly within the mobile application. The **Super Combo Plan** (₹1,355 for 12 months) bundles data plans, extended warranties, and Plus memberships. Alternative packages include 12 Months (₹1,186), 6 Months (₹999), and 3 Months (₹599) plans.
+          </p>
+        </div>
+        
+        <div class="section-title" style="font-size: 15px; margin-bottom: 6px; margin-top: 10px;">Subscription Feature Matrix</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Telemetry Feature</th>
+              <th style="text-align: center;">Lite Plan</th>
+              <th style="text-align: center;">Pro Plan</th>
+              <th style="text-align: center;">Plus Tier</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Refresh Interval</td>
+              <td style="text-align: center; color: #64748b;">5s</td>
+              <td style="text-align: center; color: #10b981; font-weight: bold;">1s</td>
+              <td style="text-align: center; color: #10b981; font-weight: bold;">1s</td>
+            </tr>
+            <tr>
+              <td>Warranty Coverage</td>
+              <td style="text-align: center; color: #64748b;">Optional</td>
+              <td style="text-align: center; color: #64748b;">Optional</td>
+              <td style="text-align: center; color: #10b981; font-weight: bold;">Included</td>
+            </tr>
+            <tr>
+              <td>Anti-Theft Calls</td>
+              <td style="text-align: center; color: #ef4444;">&times;</td>
+              <td style="text-align: center; color: #10b981;">&#10003;</td>
+              <td style="text-align: center; color: #10b981;">&#10003;</td>
+            </tr>
+            <tr>
+              <td>Engine Lock Control</td>
+              <td style="text-align: center; color: #ef4444;">&times;</td>
+              <td style="text-align: center; color: #10b981;">&#10003;</td>
+              <td style="text-align: center; color: #10b981;">&#10003;</td>
+            </tr>
+            <tr>
+              <td>Geofence Limits</td>
+              <td style="text-align: center;">3 Zones</td>
+              <td style="text-align: center; color: #10b981;">Unlimited</td>
+              <td style="text-align: center; color: #10b981;">Unlimited</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="phone-mockup-wrapper">
+        <div class="phone-mockup">
+          <img src="file:///Users/inurum11/Rishabh_Projects/Trackify/assets/images/user_plans.png" alt="Device Data Plan Screen">
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div>TRACKIFY PRODUCT CAPABILITIES DOCUMENT</div>
+      <div>PAGE 12</div>
+    </div>
+  </div>
+
+</body>
+</html>

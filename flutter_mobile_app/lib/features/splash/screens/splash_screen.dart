@@ -173,7 +173,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 colors: [Color(0xFF0284C7), Color(0xFF38BDF8)],
                               ).createShader(bounds),
                                 child: const Text(
-                                  'TRACKANYWHERE',
+                                  'GBT DASHCAM',
                                   style: TextStyle(
                                     fontSize: 28,
                                     fontWeight: FontWeight.w900,

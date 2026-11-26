@@ -18,7 +18,7 @@ class TrackifyLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Real Official TrackAnywhere Brand Logo Image
+        // Real Official GBT Dashcam Brand Logo Image
         Container(
           width: size,
           height: size,
@@ -46,9 +46,9 @@ class TrackifyLogo extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'TrackAnywhere',
+                'GBT Dashcam',
                 style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
+                  fontFamily: 'Montserrat',
                   fontSize: size * 0.42,
                   fontWeight: FontWeight.w900,
                   color: textColor ?? const Color(0xFF0F172A),

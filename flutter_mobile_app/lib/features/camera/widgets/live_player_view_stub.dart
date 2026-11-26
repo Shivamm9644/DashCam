@@ -36,6 +36,11 @@ class LivePlayerView extends StatefulWidget {
 }
 
 class _LivePlayerViewState extends State<LivePlayerView> {
+  // Coordinate start/stop across Dual View (CH1 + CH2) so channel switches and
+  // simultaneous views do not repeatedly tear down the JT/T 1078 camera socket.
+  static final Map<String, int> _mountedViewsByTerminal = {};
+  static final Map<String, DateTime> _lastStartDispatchByTerminal = {};
+
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _isConnecting = true;
@@ -44,11 +49,33 @@ class _LivePlayerViewState extends State<LivePlayerView> {
   bool _isFitCover = false;
   Timer? _retryTimer;
   Timer? _heartbeatTimer;
+  Timer? _watchdogTimer;
   int _retryCount = 0;
+  Duration _lastWatchPosition = Duration.zero;
+  int _stalledTicks = 0;
+  bool _disposed = false;
+
+  void _registerMount(String terminalId) {
+    if (terminalId.isEmpty) return;
+    _mountedViewsByTerminal[terminalId] = (_mountedViewsByTerminal[terminalId] ?? 0) + 1;
+  }
+
+  void _unregisterMount(String terminalId) {
+    if (terminalId.isEmpty) return;
+    final next = (_mountedViewsByTerminal[terminalId] ?? 1) - 1;
+    if (next <= 0) {
+      _mountedViewsByTerminal.remove(terminalId);
+    } else {
+      _mountedViewsByTerminal[terminalId] = next;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    if (!widget.isOfflineWifiMode) {
+      _registerMount(widget.terminalId);
+    }
     if (widget.isOfflineWifiMode) {
       _startOfflineWifiWorkflow();
     } else {
@@ -64,18 +91,36 @@ class _LivePlayerViewState extends State<LivePlayerView> {
         oldWidget.isOnline != widget.isOnline ||
         oldWidget.isOfflineWifiMode != widget.isOfflineWifiMode ||
         oldWidget.localWifiGateway != widget.localWifiGateway) {
-      _stopSession();
+      final terminalChanged = oldWidget.terminalId != widget.terminalId;
+      final switchedToOffline = !oldWidget.isOfflineWifiMode && widget.isOfflineWifiMode;
+
+      if (terminalChanged || switchedToOffline) {
+        if (!oldWidget.isOfflineWifiMode) {
+          _unregisterMount(oldWidget.terminalId);
+          if ((_mountedViewsByTerminal[oldWidget.terminalId] ?? 0) == 0) {
+            _stopSessionFor(oldWidget.terminalId);
+          }
+        }
+        if (!widget.isOfflineWifiMode) {
+          _registerMount(widget.terminalId);
+        }
+      }
+
       _retryTimer?.cancel();
       _heartbeatTimer?.cancel();
+      _watchdogTimer?.cancel();
       _controller?.pause();
       _controller?.dispose();
       _controller = null;
       _isInitialized = false;
+      _stalledTicks = 0;
 
       if (widget.isOfflineWifiMode) {
         _startOfflineWifiWorkflow();
       } else {
-        _startLiveWorkflow();
+        // If only switching CH1 <-> CH2 on the same terminal, keep the 4G socket alive
+        // and attach immediately without killing the camera session.
+        _startLiveWorkflow(skipStartDispatch: !terminalChanged && !switchedToOffline && oldWidget.isOnline == widget.isOnline);
       }
     }
   }
@@ -129,14 +174,14 @@ class _LivePlayerViewState extends State<LivePlayerView> {
     }
   }
 
-  Future<void> _startLiveWorkflow() async {
+  Future<void> _startLiveWorkflow({bool skipStartDispatch = false}) async {
     if (!mounted) return;
     setState(() {
       _isConnecting = true;
-      _statusMessage = 'Connecting live video stream...';
+      _statusMessage = 'Connecting 1080p live stream...';
     });
 
-    String streamUrl = '${ApiService.serverHost}/media/live/${widget.terminalId}_${widget.channel}/live.m3u8';
+    final streamUrl = '${ApiService.serverHost}/media/live/${widget.terminalId}_${widget.channel}/live.m3u8';
 
     try {
       // 1. Get or authenticate token
@@ -157,35 +202,56 @@ class _LivePlayerViewState extends State<LivePlayerView> {
         } catch (_) {}
       }
 
-      final headers = <String, String>{'Content-Type': 'application/json'};
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'X-API-KEY': 'gbt-tc-prod-key-9f82d14b',
+      };
       if (token != null) headers['Authorization'] = 'Bearer $token';
 
-      // 1. Dispatch 4G hardware live start (0x9101 on JT/T 808 & 1078) in parallel (non-blocking)
-      http.get(
-        Uri.parse('${ApiService.serverHost}/api/video/start-live?terminalId=${widget.terminalId}&channel=${widget.channel}&dataType=0'),
-        headers: headers,
-      ).catchError((_) => http.Response('{}', 500));
+      // Deduplicate 0x9101 start-live across Dual View (CH1 + CH2) within a 6s window
+      final now = DateTime.now();
+      final lastStart = _lastStartDispatchByTerminal[widget.terminalId];
+      final shouldDispatch = !skipStartDispatch &&
+          (lastStart == null || now.difference(lastStart).inSeconds >= 6);
 
-      // 2. Register live session on server in parallel
-      http.post(
-        Uri.parse('${ApiService.serverHost}/api/v1/live-sessions'),
-        headers: headers,
-        body: jsonEncode({
-          'terminalId': widget.terminalId,
-          'channel': widget.channel,
-        }),
-      ).catchError((_) => http.Response('{}', 500));
+      if (shouldDispatch) {
+        _lastStartDispatchByTerminal[widget.terminalId] = now;
+
+        // 1. Dispatch 4G hardware live start (0x9101, streamType=0 Main Stream Full HD)
+        http.get(
+          Uri.parse('${ApiService.serverHost}/api/video/start-live?terminalId=${widget.terminalId}&channel=${widget.channel}&dataType=0&streamType=0'),
+          headers: headers,
+        ).catchError((_) => http.Response('{}', 500));
+
+        // 2. Register live session on Spring Boot backend (pass channelId so LiveController receives it)
+        http.post(
+          Uri.parse('${ApiService.serverHost}/api/v1/live-sessions'),
+          headers: headers,
+          body: jsonEncode({
+            'terminalId': widget.terminalId,
+            'channelId': widget.channel,
+            'channel': widget.channel,
+          }),
+        ).catchError((_) => http.Response('{}', 500));
+      }
 
       // 3. Attach player immediately without waiting for HTTP POST round-trip latency
       await _attachPlayer(streamUrl);
 
-      // Start periodic 6-second heartbeat to keep live session and hardware socket alive
+      // Start periodic 5-second heartbeat to BOTH Spring Boot (/api/v1/live-sessions/heartbeat)
+      // and Node gateway (/api/video/heartbeat) so the 30s sweep never kills an active stream.
       _heartbeatTimer?.cancel();
-      _heartbeatTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      _heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        final payload = jsonEncode({'terminalId': widget.terminalId});
+        http.post(
+          Uri.parse('${ApiService.serverHost}/api/v1/live-sessions/heartbeat'),
+          headers: headers,
+          body: payload,
+        ).catchError((_) => http.Response('{}', 500));
         http.post(
           Uri.parse('${ApiService.serverHost}/api/video/heartbeat'),
           headers: headers,
-          body: jsonEncode({'terminalId': widget.terminalId}),
+          body: payload,
         ).catchError((_) => http.Response('{}', 500));
       });
     } catch (e) {
@@ -193,28 +259,40 @@ class _LivePlayerViewState extends State<LivePlayerView> {
     }
   }
 
+  Future<bool> _isHlsPlaylistReady(String url) async {
+    final client = http.Client();
+    try {
+      final req = http.Request('GET', Uri.parse(url))..followRedirects = false;
+      final streamed = await client.send(req).timeout(const Duration(milliseconds: 900));
+      if (streamed.statusCode != 200) {
+        await streamed.stream.drain();
+        return false;
+      }
+      final body = await streamed.stream.bytesToString();
+      return body.contains('#EXTM3U') && !body.contains('.mp4') && body.contains('.ts');
+    } catch (_) {
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
   Future<void> _attachPlayer(String streamUrl) async {
-    String activeUrl = streamUrl;
+    final String activeUrl = streamUrl;
 
     try {
-      // Fast reactive check: poll every 350ms (up to 30 times) so video starts the exact split-second 4G packets arrive
+      // Fast non-redirecting check: avoids downloading fallback road_cam.mp4 on 302 redirects
       bool streamReady = false;
       for (int i = 0; i < 30; i++) {
-        try {
-          final headReq = await http.get(Uri.parse(activeUrl)).timeout(const Duration(milliseconds: 800));
-          if (headReq.statusCode == 200 &&
-              headReq.body.contains('#EXTM3U') &&
-              !headReq.body.contains('.mp4') &&
-              headReq.body.contains('.ts')) {
-            streamReady = true;
-            break;
-          }
-        } catch (_) {}
+        if (!mounted || _disposed) return;
+        if (await _isHlsPlaylistReady(activeUrl)) {
+          streamReady = true;
+          break;
+        }
         if (i < 29) await Future.delayed(const Duration(milliseconds: 350));
       }
 
       if (!streamReady) {
-        // Stream not broadcasting yet - show clean standby, NEVER play any fallback mp4!
         if (mounted) {
           setState(() {
             _isInitialized = false;
@@ -226,6 +304,7 @@ class _LivePlayerViewState extends State<LivePlayerView> {
         return;
       }
 
+      _watchdogTimer?.cancel();
       _controller?.dispose();
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(activeUrl),
@@ -233,16 +312,40 @@ class _LivePlayerViewState extends State<LivePlayerView> {
       );
 
       _controller!.addListener(() {
-        if (!mounted) return;
+        if (!mounted || _disposed) return;
         if (_controller!.value.hasError && _isInitialized) {
           _scheduleAutoRetry();
         }
       });
 
-
       await _controller!.initialize().timeout(const Duration(seconds: 8));
       await _controller!.setVolume(_isMuted ? 0.0 : 1.0);
       await _controller!.play();
+
+      _lastWatchPosition = Duration.zero;
+      _stalledTicks = 0;
+      _watchdogTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+        if (!mounted || _disposed || _controller == null || !_controller!.value.isInitialized) return;
+        final val = _controller!.value;
+        if (val.hasError) {
+          _watchdogTimer?.cancel();
+          _scheduleAutoRetry();
+          return;
+        }
+        if (val.isPlaying) {
+          if (val.position == _lastWatchPosition || val.isBuffering) {
+            _stalledTicks++;
+            if (_stalledTicks >= 4) {
+              // Stalled >12s on 4G: smoothly re-attach HLS playlist without tearing down socket
+              _watchdogTimer?.cancel();
+              _attachPlayer(activeUrl);
+            }
+          } else {
+            _lastWatchPosition = val.position;
+            _stalledTicks = 0;
+          }
+        }
+      });
 
       if (mounted) {
         setState(() {
@@ -252,6 +355,7 @@ class _LivePlayerViewState extends State<LivePlayerView> {
         });
       }
     } catch (e) {
+      _watchdogTimer?.cancel();
       _controller?.dispose();
       _controller = null;
       if (mounted) {
@@ -277,20 +381,25 @@ class _LivePlayerViewState extends State<LivePlayerView> {
     }
   }
 
-  void _stopSession() {
+  void _stopSessionFor(String terminalId) {
+    if (terminalId.isEmpty) return;
+    _lastStartDispatchByTerminal.remove(terminalId);
     try {
       final token = ApiService.instance.currentToken;
-      final headers = <String, String>{'Content-Type': 'application/json'};
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'X-API-KEY': 'gbt-tc-prod-key-9f82d14b',
+      };
       if (token != null) headers['Authorization'] = 'Bearer $token';
       http.post(
-        Uri.parse('${ApiService.serverHost}/api/video/stop-live?terminalId=${widget.terminalId}'),
+        Uri.parse('${ApiService.serverHost}/api/video/stop-live?terminalId=$terminalId'),
         headers: headers,
-        body: jsonEncode({'terminalId': widget.terminalId}),
+        body: jsonEncode({'terminalId': terminalId}),
       ).catchError((_) => http.Response('{}', 500));
       http.post(
         Uri.parse('${ApiService.serverHost}/api/v1/live-sessions/stop'),
         headers: headers,
-        body: jsonEncode({'terminalId': widget.terminalId}),
+        body: jsonEncode({'terminalId': terminalId}),
       ).catchError((_) => http.Response('{}', 500));
     } catch (_) {}
   }
@@ -305,9 +414,16 @@ class _LivePlayerViewState extends State<LivePlayerView> {
 
   @override
   void dispose() {
+    _disposed = true;
     _heartbeatTimer?.cancel();
     _retryTimer?.cancel();
-    _stopSession();
+    _watchdogTimer?.cancel();
+    if (!widget.isOfflineWifiMode) {
+      _unregisterMount(widget.terminalId);
+      if ((_mountedViewsByTerminal[widget.terminalId] ?? 0) == 0) {
+        _stopSessionFor(widget.terminalId);
+      }
+    }
     _controller?.pause();
     _controller?.dispose();
     super.dispose();
@@ -376,7 +492,7 @@ class _LivePlayerViewState extends State<LivePlayerView> {
                   Text(
                     widget.isOfflineWifiMode
                         ? '📶 OFFLINE WI-FI (MC TOOL) • CH${widget.channel}'
-                        : '🔴 LIVE 4G • 4K HD • CH${widget.channel}',
+                        : '🔴 LIVE 4G • 1080P FHD • CH${widget.channel}',
                     style: TextStyle(
                       color: widget.isOfflineWifiMode
                           ? const Color(0xFF2DD4BF)

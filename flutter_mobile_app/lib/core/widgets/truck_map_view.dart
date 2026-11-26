@@ -99,9 +99,9 @@ class _LiveTruckMapViewState extends State<LiveTruckMapView>
 
   @override
   Widget build(BuildContext context) {
-    // If coordinates are uninitialized or 0, fallback to default active truck location
-    final effectiveLat = (widget.lat != 0.0) ? widget.lat : 22.7339;
-    final effectiveLng = (widget.lng != 0.0) ? widget.lng : 75.8615;
+    // If coordinates are uninitialized or 0, fallback to default active truck location (USA / Ashburn)
+    final effectiveLat = (widget.lat != 0.0) ? widget.lat : 38.9072;
+    final effectiveLng = (widget.lng != 0.0) ? widget.lng : -77.0369;
 
     // Slippy Map tile calculation (OpenStreetMap / CartoDB standard EPSG:3857)
     final n = math.pow(2.0, _zoom.toDouble()).toDouble();
@@ -527,8 +527,8 @@ class _FullScreenTruckMapPageState extends State<FullScreenTruckMapPage>
 
   @override
   Widget build(BuildContext context) {
-    final effectiveLat = (widget.lat != 0.0) ? widget.lat : 22.7339;
-    final effectiveLng = (widget.lng != 0.0) ? widget.lng : 75.8615;
+    final effectiveLat = (widget.lat != 0.0) ? widget.lat : 38.9072;
+    final effectiveLng = (widget.lng != 0.0) ? widget.lng : -77.0369;
     final isOnline = widget.status.toUpperCase() == 'ONLINE';
     final hasGps = widget.lat != 0.0 && widget.lng != 0.0;
 

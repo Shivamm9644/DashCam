@@ -33,6 +33,8 @@ import 'features/quotas/screens/quotas_screen.dart';
 
 import 'features/audit/screens/audit_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
+import 'features/journey/screens/journey_screen.dart';
+import 'features/statistics/screens/statistics_screen.dart';
 import 'features/profile/widgets/retailer_management_dialog.dart';
 import 'features/profile/widgets/customer_management_dialog.dart';
 import 'features/splash/screens/splash_screen.dart';
@@ -222,11 +224,16 @@ class InurumDashcamApp extends StatelessWidget {
             ),
 
             GoRoute(
-
+              path: '/journey',
+              builder: (_, __) => const JourneyScreen(),
+            ),
+            GoRoute(
+              path: '/statistics',
+              builder: (_, __) => const StatisticsScreen(),
+            ),
+            GoRoute(
               path: '/profile',
-
               builder: (_, __) => const ProfileScreen(),
-
             ),
 
           ],
@@ -240,7 +247,7 @@ class InurumDashcamApp extends StatelessWidget {
 
 
     return MaterialApp.router(
-      title: 'TrackAnywhere',
+      title: 'GBT Dashcam',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
@@ -293,8 +300,8 @@ class _MainShellState extends State<MainShell> {
   }
 
   int _calculateBottomNavIndex(String location) {
-    if (location.startsWith('/playback')) return 1;
-    if (location.startsWith('/fleet')) return 2;
+    if (location.startsWith('/camera')) return 1;
+    if (location.startsWith('/playback')) return 2;
     if (location.startsWith('/profile')) return 3;
     return 0; // /dashboard or default
   }
@@ -334,7 +341,7 @@ class _MainShellState extends State<MainShell> {
                   Icon(Icons.touch_app_rounded, color: Colors.white, size: 18),
                   SizedBox(width: 10),
                   Text(
-                    'Press back again to exit TrackAnywhere',
+                    'Press back again to exit GBT Dashcam',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ],
@@ -389,14 +396,15 @@ class _MainShellState extends State<MainShell> {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 58,
+          height: 60,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildBottomNavItem(
                 context,
                 index: 0,
-                icon: Icons.home_rounded,
+                iconPath: 'assets/icons/homeIcon.png',
+                fallbackIcon: Icons.home_rounded,
                 label: 'Home',
                 isSelected: selectedIndex == 0,
                 route: '/dashboard',
@@ -404,23 +412,26 @@ class _MainShellState extends State<MainShell> {
               _buildBottomNavItem(
                 context,
                 index: 1,
-                icon: Icons.play_circle_fill_rounded,
-                label: 'Playback',
+                iconPath: 'assets/icons/videoIcon.png',
+                fallbackIcon: Icons.videocam_rounded,
+                label: 'Live Feed',
                 isSelected: selectedIndex == 1,
-                route: '/playback',
+                route: '/camera',
               ),
               _buildBottomNavItem(
                 context,
                 index: 2,
-                icon: Icons.local_shipping_rounded,
-                label: 'Fleet',
+                iconPath: 'assets/icons/playbackIcon.png',
+                fallbackIcon: Icons.play_circle_fill_rounded,
+                label: 'Playback',
                 isSelected: selectedIndex == 2,
-                route: '/fleet',
+                route: '/playback',
               ),
               _buildBottomNavItem(
                 context,
                 index: 3,
-                icon: Icons.person_rounded,
+                iconPath: 'assets/icons/profileIcon.png',
+                fallbackIcon: Icons.person_rounded,
                 label: 'Profile',
                 isSelected: selectedIndex == 3,
                 route: '/profile',
@@ -435,11 +446,15 @@ class _MainShellState extends State<MainShell> {
   Widget _buildBottomNavItem(
     BuildContext context, {
     required int index,
-    required IconData icon,
+    required String iconPath,
+    required IconData fallbackIcon,
     required String label,
     required bool isSelected,
     required String route,
   }) {
+    final Color activeColor = const Color(0xFF0284C7);
+    final Color inactiveColor = const Color(0xFF94A3B8);
+
     return InkWell(
       onTap: () {
         if (!isSelected) {
@@ -448,23 +463,29 @@ class _MainShellState extends State<MainShell> {
       },
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
+            Image.asset(
+              iconPath,
+              width: 22,
+              height: 22,
+              color: isSelected ? activeColor : inactiveColor,
+              errorBuilder: (_, __, ___) => Icon(
+                fallbackIcon,
+                size: 22,
+                color: isSelected ? activeColor : inactiveColor,
+              ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
+                color: isSelected ? activeColor : inactiveColor,
               ),
             ),
           ],
@@ -646,7 +667,7 @@ class _MainShellState extends State<MainShell> {
                   const TrackifyLogo(size: 38),
                   const SizedBox(height: 6),
                   Text(
-                    user?.tenantName ?? 'TrackAnywhere Master',
+                    user?.tenantName ?? 'GBT Dashcam Master',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -916,7 +937,7 @@ class _MainShellState extends State<MainShell> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            'TrackAnywhere Profile • Manage >',
+                            'GBT Dashcam Profile • Manage >',
                             style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFF0284C7),

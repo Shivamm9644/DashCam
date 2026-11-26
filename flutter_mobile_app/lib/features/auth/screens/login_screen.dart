@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   const SizedBox(height: 48),
 
-                  // Official TrackAnywhere Brand Logo
+                  // Official GBT Dashcam Brand Logo
                   const TrackifyLogo(size: 48),
 
                   const SizedBox(height: 44),

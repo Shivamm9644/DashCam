@@ -5,12 +5,11 @@ import '../services/api_service.dart';
 class DeviceProvider extends ChangeNotifier {
   static String resolveStreamHost(String termId) {
     if (termId.startsWith('5050') || termId.startsWith('8608') || termId.startsWith('8723')) {
-      return 'https://100.31.90.51.sslip.io';
+      return 'https://3.85.81.10';
     }
-    return 'https://100.31.90.51.sslip.io';
+    return 'https://3.85.81.10';
   }
 
-  // Device Management Settings (mirrors 192.168.1.1 UI)
   DeviceSettings settings = DeviceSettings();
   bool isLoading = false;
 
@@ -53,10 +52,10 @@ class DeviceProvider extends ChangeNotifier {
     sdCardTotal: 'MicroSD',
     sdCardFree: 'FIFO Auto-Recycle',
     uptime: 'Offline',
-    isOnline: false, // Strictly offline until server signals connection
+    isOnline: false, 
   );
 
-  // GPS Status
+ 
   GpsStatus gpsStatus = GpsStatus(
     lat: 0.0,
     lng: 0.0,
@@ -69,8 +68,8 @@ class DeviceProvider extends ChangeNotifier {
     fixTime: '',
   );
 
-  // Live Camera Streaming State
-  int activeChannel = 3; // 1 = Front/Road, 2 = Cabin/DMS, 3 = Dual Split (Default: Dual View)
+  
+  int activeChannel = 3; 
   bool isStreaming = true;
   bool isRecording = true;
   bool isAudioMuted = false;
@@ -97,10 +96,10 @@ class DeviceProvider extends ChangeNotifier {
         if (res.containsKey('url') && res['url'] != null) {
           customStreamUrl = res['url'].toString();
         } else {
-          customStreamUrl = 'https://100.31.90.51.sslip.io/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
+          customStreamUrl = 'https://3.85.81.10/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
         }
       } catch (_) {
-        customStreamUrl = 'https://100.31.90.51.sslip.io/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
+        customStreamUrl = 'https://3.85.81.10/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
       }
     } else {
       if (channel == 1) {
@@ -176,13 +175,13 @@ class DeviceProvider extends ChangeNotifier {
         if (res.containsKey('url') && res['url'] != null) {
           customStreamUrl = res['url'].toString();
         } else {
-          customStreamUrl = 'https://100.31.90.51.sslip.io/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
+          customStreamUrl = 'https://3.85.81.10/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
         }
       } catch (_) {
-        customStreamUrl = 'https://100.31.90.51.sslip.io/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
+        customStreamUrl = 'https://3.85.81.10/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
       }
     } else {
-      customStreamUrl = 'https://100.31.90.51.sslip.io/media/live/${terminalId}_$activeChannel/live.m3u8';
+      customStreamUrl = 'https://3.85.81.10/media/live/${terminalId}_$activeChannel/live.m3u8';
     }
     notifyListeners();
     fetchDeviceSettings(terminalId);
@@ -341,7 +340,7 @@ class DeviceProvider extends ChangeNotifier {
 
 class DeviceSettings {
   // Platform
-  String serverIp = '100.31.90.51';
+  String serverIp = '3.85.81.10';
   int serverPort = 7800;
   String apn = 'internet';
 

@@ -250,7 +250,7 @@ class QuotasScreen extends StatelessWidget {
                         const SizedBox(height: 14),
                         _SubRow('Plan', user?.role == 'SUPER_ADMIN' ? 'Platform Master Enterprise' : (user?.role == 'RETAILER' ? 'Commercial Fleet Dual-Cam SaaS' : 'Retail Vehicle Telematics')),
                         _SubRow('Billing', 'Commercial Fleet Video Telematics'),
-                        _SubRow('Tenant', user?.tenantName ?? 'TrackAnywhere Fleet'),
+                        _SubRow('Tenant', user?.tenantName ?? 'GBT Fleet'),
                         _SubRow('Devices', '$totalDevs Licensed Dashcams'),
                         _SubRow('Licensing', 'Annual SaaS Active'),
                         _SubRow('Status', 'ACTIVE', valueColor: AppTheme.statusOnline),

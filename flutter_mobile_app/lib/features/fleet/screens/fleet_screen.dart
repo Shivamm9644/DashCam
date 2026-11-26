@@ -10,7 +10,6 @@ import '../../../core/widgets/truck_map_view.dart';
 import '../../../core/services/api_service.dart';
 import '../../../main.dart';
 import '../../profile/widgets/customer_management_dialog.dart';
-import '../../profile/widgets/retailer_management_dialog.dart';
 
 class FleetScreen extends StatefulWidget {
   const FleetScreen({super.key});
@@ -20,7 +19,6 @@ class FleetScreen extends StatefulWidget {
 }
 
 class _FleetScreenState extends State<FleetScreen> {
-  String _filter = 'ALL';
   String _search = '';
   DeviceItem? _selected;
 
@@ -63,7 +61,7 @@ class _FleetScreenState extends State<FleetScreen> {
                   style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold),
                   decoration: const InputDecoration(
                     labelText: 'License Plate Number *',
-                    hintText: 'e.g. IND VEH-9067 or MP-09-WW-4359',
+                    hintText: 'e.g. TRK-9001 or CAM-860795',
                     labelStyle: TextStyle(color: AppTheme.accentCyan),
                   ),
                 ),
@@ -944,13 +942,12 @@ class _FleetScreenState extends State<FleetScreen> {
       if (user?.role == 'SUPER_ADMIN' && dash.selectedClientFilter != 'ALL' && d.clientName != dash.selectedClientFilter) {
         return false;
       }
-      final matchFilter = _filter == 'ALL' || d.status == _filter;
       final matchSearch = _search.isEmpty ||
           d.plate.toLowerCase().contains(_search.toLowerCase()) ||
           d.terminalId.contains(_search) ||
           d.driver.toLowerCase().contains(_search.toLowerCase()) ||
           d.clientName.toLowerCase().contains(_search.toLowerCase());
-      return matchFilter && matchSearch;
+      return matchSearch;
     }).toList();
 
     final onlineCount = visibleDevices.where((d) => d.isOnline).length;
@@ -984,7 +981,7 @@ class _FleetScreenState extends State<FleetScreen> {
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        'TrackAnywhere Fleet Terminals',
+                        'GBT Fleet Terminals',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -1025,290 +1022,6 @@ class _FleetScreenState extends State<FleetScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  if (user?.role == 'RETAILER') ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentTeal.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.accentTeal.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.business_rounded, size: 16, color: AppTheme.accentTeal),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Company Fleet: ${user?.tenantName.isNotEmpty == true ? user!.tenantName : (user?.name ?? "Private Fleet")} (${visibleDevices.length} Dashcams)',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.accentTeal,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              '🔒 Isolated',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.accentTeal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => CustomerManagementSheet.show(context),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0284C7).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.person_add_alt_1_rounded, size: 16, color: Color(0xFF0284C7)),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '+ Customer',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF0284C7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: InkWell(
-                            onTap: _showAddDeviceDialog,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentPurple.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppTheme.accentPurple.withOpacity(0.5)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.add_to_queue_rounded, size: 16, color: AppTheme.accentPurple),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '+ DashCam',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.accentPurple,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: InkWell(
-                            onTap: _showAddDriverDialog,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentGreen.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.person_add_rounded, size: 16, color: AppTheme.accentGreen),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '+ Driver',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.accentGreen,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  if (user?.role == 'SUPER_ADMIN') ...[
-                    // Active Client Filter Pill (if selected)
-                    if (dash.selectedClientFilter != 'ALL') ...[
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFA7F3D0)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.business_center_rounded, size: 16, color: Color(0xFF16A34A)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Viewing Client: ${dash.selectedClientFilter} (${visibleDevices.length} Dashcams)',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF16A34A),
-                                ),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () => dash.setClientFilter('ALL'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFA7F3D0)),
-                                ),
-                                child: const Text(
-                                  'Clear Filter ✕',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF16A34A),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // Quick Actions for Super Admin: + Client / Admin, + DashCam, + Driver
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => RetailerManagementSheet.show(context),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0284C7).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.admin_panel_settings_rounded, size: 16, color: Color(0xFF0284C7)),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '+ Admin / Client',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF0284C7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: InkWell(
-                            onTap: _showAddDeviceDialog,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentPurple.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppTheme.accentPurple.withOpacity(0.5)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.add_to_queue_rounded, size: 16, color: AppTheme.accentPurple),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '+ DashCam',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.accentPurple,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: InkWell(
-                            onTap: _showAddDriverDialog,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentGreen.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppTheme.accentGreen.withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.person_add_rounded, size: 16, color: AppTheme.accentGreen),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '+ Driver',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.accentGreen,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ],
                   // Search
                   TextField(
                     onChanged: (v) => setState(() => _search = v),
@@ -1322,130 +1035,6 @@ class _FleetScreenState extends State<FleetScreen> {
                           horizontal: 16, vertical: 10),
                     ),
                   ),
-
-                  if (user?.role == 'SUPER_ADMIN') ...[
-                    const SizedBox(height: 12),
-
-                    // Client Accounts Strip
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'FILTER BY CLIENT ACCOUNT',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.textMuted,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        if (dash.selectedClientFilter != 'ALL')
-                          GestureDetector(
-                            onTap: () => dash.setClientFilter('ALL'),
-                            child: const Text(
-                              'Show All Clients',
-                              style: TextStyle(fontSize: 10, color: AppTheme.accentCyan, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: dash.clientList.map((client) {
-                          final isSel = dash.selectedClientFilter == client;
-                          final count = client == 'ALL'
-                              ? dash.devices.length
-                              : dash.devices.where((d) => d.clientName == client).length;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: InkWell(
-                              onTap: () => dash.setClientFilter(client),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: isSel ? AppTheme.accentTeal.withOpacity(0.2) : AppTheme.bgCard,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isSel ? AppTheme.accentTeal : AppTheme.borderSubtle,
-                                    width: isSel ? 1.5 : 1.0,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.business_rounded,
-                                      size: 12,
-                                      color: isSel ? AppTheme.accentTeal : AppTheme.textMuted,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      client == 'ALL' ? 'All Clients ($count)' : '$client ($count)',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                                        color: isSel ? AppTheme.accentTeal : AppTheme.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 12),
-
-                  // Filter pills
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['ALL', 'ONLINE', 'IDLE', 'OFFLINE']
-                          .map((f) {
-                        final isActive = _filter == f;
-                        final color = f == 'ONLINE'
-                            ? AppTheme.statusOnline
-                            : f == 'IDLE'
-                                ? AppTheme.statusWarning
-                                : f == 'OFFLINE'
-                                    ? AppTheme.statusOffline
-                                    : AppTheme.accentCyan;
-                        return GestureDetector(
-                          onTap: () => setState(() => _filter = f),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 7),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? color.withOpacity(0.2)
-                                  : AppTheme.bgCardHover,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isActive ? color : AppTheme.borderSubtle,
-                                width: isActive ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Text(
-                              f,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isActive ? color : AppTheme.textMuted,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -1454,8 +1043,8 @@ class _FleetScreenState extends State<FleetScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: LiveTruckMapView(
-                lat: (lat != 0.0) ? lat : 22.7339,
-                lng: (lng != 0.0) ? lng : 75.8615,
+                lat: (lat != 0.0) ? lat : 38.9072,
+                lng: (lng != 0.0) ? lng : -77.0369,
                 heading: (activeDev?.heading ?? 0).toDouble(),
                 speedKmh: (activeDev?.speed ?? 0).toDouble(),
                 plate: activeDev?.plate ?? 'Active Dashcam',
@@ -1563,7 +1152,7 @@ class _FleetDeviceCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(3),
             ),
             child: Text(
-              isCam ? 'CAM' : 'IND',
+              isCam ? 'CAM' : 'USA',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 9,

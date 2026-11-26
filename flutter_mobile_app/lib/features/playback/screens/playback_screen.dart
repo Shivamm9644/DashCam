@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -10,8 +11,6 @@ import '../../../core/providers/device_provider.dart';
 import '../../../core/providers/dashboard_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
-import '../../../core/widgets/glass_card.dart';
-import '../../../main.dart';
 
 class PlaybackScreen extends StatefulWidget {
   const PlaybackScreen({super.key});
@@ -30,11 +29,14 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   bool _isPlaying = false;
   bool _isPlayerInitialized = false;
   bool _isBuffering = true;
+  bool _isLoadingClips = false;
+  String? _playbackStatusNote;
+  String _activeTerminalId = '';
   Duration _currentPosition = Duration.zero;
-  Duration _totalDuration = const Duration(minutes: 5);
+  Duration _totalDuration = Duration.zero;
   Timer? _positionTimer;
 
-  // Clip segments recorded on Dashcam MicroSD Card (strictly real/fresh from server)
+  // Clip segments recorded on Dashcam MicroSD Card / Cloud Evidence (strictly real from server)
   List<Map<String, dynamic>> _clips = [];
 
   @override
@@ -45,26 +47,11 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
     });
   }
 
-  Future<void> _fetchClipsForDate(DateTime date) async {
-    _positionTimer?.cancel();
-    _videoController?.dispose();
-    _videoController = null;
-
-    setState(() {
-      _clips = [];
-      _isBuffering = true;
-      _isPlayerInitialized = false;
-      _isPlaying = false;
-      _currentPosition = Duration.zero;
-      _totalDuration = Duration.zero;
-    });
-
+  String _resolveTerminalId() {
     final dp = context.read<DeviceProvider>();
     final dash = context.read<DashboardProvider>();
-    final auth = context.read<AuthProvider>();
-    final user = auth.user;
+    final user = context.read<AuthProvider>().user;
 
-    // Resolve active vehicle terminal ID
     String terminalId = dp.systemStatus.imei;
     if (terminalId.isEmpty) {
       if (dash.selectedDevice != null && dash.selectedDevice!.terminalId.isNotEmpty) {
@@ -75,52 +62,236 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
         terminalId = dash.devices.first.terminalId;
       }
     }
+    return terminalId;
+  }
 
-    final camId = _activeChannel == 2 ? 1 : 0;
+  String _toCameraTime(String raw, String fallbackDate) {
+    final clean = raw.trim().replaceAll('T', ' ').replaceAll('Z', '');
+    final dotIdx = clean.indexOf('.');
+    final noMs = dotIdx > 0 ? clean.substring(0, dotIdx) : clean;
+    if (noMs.length >= 19 && noMs.contains('-')) return noMs.substring(0, 19);
+    if (noMs.length == 8 && noMs.contains(':')) return '$fallbackDate $noMs';
+    return noMs;
+  }
+
+  String _shortClock(String cameraTime) {
+    if (cameraTime.length >= 19) return cameraTime.substring(11, 19);
+    return cameraTime;
+  }
+
+  String _computeDurationLabel(String startFull, String endFull, String? rawDuration) {
+    if (rawDuration != null && rawDuration.trim().isNotEmpty && rawDuration != 'null') {
+      return rawDuration.trim();
+    }
+    try {
+      final s = DateTime.parse(startFull.replaceAll(' ', 'T'));
+      final e = DateTime.parse(endFull.replaceAll(' ', 'T'));
+      final sec = e.difference(s).inSeconds;
+      if (sec > 0) {
+        final m = sec ~/ 60;
+        final rem = sec % 60;
+        return '${m}m ${rem.toString().padLeft(2, '0')}s';
+      }
+    } catch (_) {}
+    return 'SD Segment';
+  }
+
+  Future<void> _stopSdPlayback(String terminalId) async {
+    if (terminalId.isEmpty) return;
+    try {
+      await ApiService.instance.get('/video/playback-stop?terminalId=${Uri.encodeQueryComponent(terminalId)}&channel=all');
+    } catch (_) {}
+  }
+
+  Future<void> _fetchClipsForDate(DateTime date) async {
+    _positionTimer?.cancel();
+    _videoController?.pause();
+    _videoController?.dispose();
+    _videoController = null;
+
+    final prevTerminal = _activeTerminalId;
+    final terminalId = _resolveTerminalId();
+    _activeTerminalId = terminalId;
+
+    if (prevTerminal.isNotEmpty) {
+      unawaited(_stopSdPlayback(prevTerminal));
+    }
+
+    setState(() {
+      _clips = [];
+      _selectedClipIndex = 0;
+      _isLoadingClips = true;
+      _isBuffering = true;
+      _isPlayerInitialized = false;
+      _isPlaying = false;
+      _playbackStatusNote = 'Querying MicroSD card recordings...';
+      _currentPosition = Duration.zero;
+      _totalDuration = Duration.zero;
+    });
+
+    final camId = _activeChannel; // 1 = Road Cam (Front), 2 = Cabin Cam (DMS)
     final dateStr = DateFormat('yyyy-MM-dd').format(date);
+    final List<Map<String, dynamic>> parsed = [];
+    String? queryFailureNote;
 
     if (terminalId.isNotEmpty) {
+      final startStr = '$dateStr 00:00:00';
+      final endStr = '$dateStr 23:59:59';
+
       try {
-        final res = await ApiService.instance.get('/video/recordings?terminalId=$terminalId&channel=$camId&date=$dateStr');
-        if (res.containsKey('recordings') && res['recordings'] is List) {
-          final list = res['recordings'] as List;
-          final List<Map<String, dynamic>> parsed = [];
-          for (var item in list) {
+        final queryRes = await ApiService.instance.post('/video/query-sd', {
+          'terminalId': terminalId,
+          'channel': camId,
+          'startTime': startStr,
+          'endTime': endStr,
+        });
+
+        final rawResources = queryRes['resources'] is List
+            ? queryRes['resources'] as List
+            : (queryRes['intervals'] is List ? queryRes['intervals'] as List : null);
+
+        if (rawResources != null) {
+          for (final item in rawResources) {
             if (item is Map) {
+              final sFull = _toCameraTime(item['startTime']?.toString() ?? '', dateStr);
+              final eFull = _toCameraTime(item['endTime']?.toString() ?? '', dateStr);
+              final bytes = item['fileSizeBytes'] ?? item['fileSize'];
+              final sizeMb = bytes is num && bytes > 0
+                  ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
+                  : 'MicroSD';
+              final source = item['storageSource']?.toString() ?? item['storageType']?.toString() ?? 'SD_CARD';
               parsed.add({
-                'start': item['startTime']?.toString() ?? '',
-                'end': item['endTime']?.toString() ?? '',
-                'type': (item['alarm'] == true) ? 'SOS Impact Lock' : 'Normal Loop',
-                'size': item['fileSize'] != null ? '${((item['fileSize'] as num) / (1024 * 1024)).toStringAsFixed(1)} MB' : 'Local SD',
+                'start': _shortClock(sFull),
+                'end': _shortClock(eFull),
+                'startFull': sFull,
+                'endFull': eFull,
+                'durationLabel': _computeDurationLabel(sFull, eFull, item['duration']?.toString()),
+                'type': source == 'CLOUD_BUFFER' ? 'Cloud Saved' : 'SD Recording',
+                'size': sizeMb,
                 'isSos': item['alarm'] == true,
-                'url': item['url']?.toString() ?? '',
+                'channel': item['channel'] ?? camId,
+                'url': (item['url'] ?? item['clipUrl'] ?? item['streamUrl'] ?? '').toString(),
               });
             }
           }
-          if (mounted) {
-            setState(() {
-              _clips = parsed;
-              _isBuffering = false;
-            });
-            if (_clips.isNotEmpty) {
-              _initializePlaybackStream();
+        }
+      } catch (e) {
+        queryFailureNote = 'DashCam is offline or did not respond to SD query.';
+      }
+
+      // Secondary check: /video/recordings cached/cloud list for this terminal & channel
+      if (parsed.isEmpty) {
+        try {
+          final res = await ApiService.instance.get('/video/recordings?terminalId=${Uri.encodeQueryComponent(terminalId)}&channel=$camId');
+          if (res['recordings'] is List) {
+            for (final item in res['recordings'] as List) {
+              if (item is Map) {
+                final sFull = _toCameraTime(item['startTime']?.toString() ?? '', dateStr);
+                if (!sFull.startsWith(dateStr)) continue;
+                final eFull = _toCameraTime(item['endTime']?.toString() ?? '', dateStr);
+                final bytes = item['fileSizeBytes'] ?? item['fileSize'];
+                final sizeMb = bytes is num && bytes > 0
+                    ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
+                    : 'MicroSD';
+                parsed.add({
+                  'start': _shortClock(sFull),
+                  'end': _shortClock(eFull),
+                  'startFull': sFull,
+                  'endFull': eFull,
+                  'durationLabel': _computeDurationLabel(sFull, eFull, item['duration']?.toString()),
+                  'type': item['alarm'] == true ? 'SOS Impact Lock' : 'SD Recording',
+                  'size': sizeMb,
+                  'isSos': item['alarm'] == true,
+                  'channel': item['channel'] ?? camId,
+                  'url': (item['url'] ?? item['streamUrl'] ?? item['downloadUrl'] ?? '').toString(),
+                });
+              }
             }
-            return;
+          }
+        } catch (_) {}
+      }
+
+      // Merge any Incident / SOS clips for this terminal on the selected date
+      try {
+        final evRes = await ApiService.instance.get('/events?terminalId=${Uri.encodeQueryComponent(terminalId)}');
+        final rawEv = evRes['events'] ?? evRes['incidents'];
+        if (rawEv is List) {
+          for (final ev in rawEv) {
+            if (ev is Map) {
+              final tsRaw = ev['timestamp']?.toString() ?? '';
+              if (!tsRaw.startsWith(dateStr)) continue;
+              final evTime = DateTime.tryParse(tsRaw)?.toLocal();
+              if (evTime == null) continue;
+              final sFull = DateFormat('yyyy-MM-dd HH:mm:ss').format(evTime.subtract(const Duration(seconds: 10)));
+              final eFull = DateFormat('yyyy-MM-dd HH:mm:ss').format(evTime.add(const Duration(seconds: 20)));
+              final directUrl = (camId == 2
+                      ? (ev['cabinChannelUrl'] ?? ev['videoUrl'])
+                      : (ev['roadChannelUrl'] ?? ev['videoUrl']))
+                  ?.toString() ??
+                  '';
+              parsed.insert(0, {
+                'start': _shortClock(sFull),
+                'end': _shortClock(eFull),
+                'startFull': sFull,
+                'endFull': eFull,
+                'durationLabel': '0m 30s',
+                'type': (ev['type'] ?? 'INCIDENT').toString().replaceAll('_', ' '),
+                'size': directUrl.isNotEmpty ? 'Cloud Evidence' : 'SD Locked',
+                'isSos': true,
+                'channel': camId,
+                'url': directUrl,
+              });
+            }
           }
         }
       } catch (_) {}
+    } else {
+      queryFailureNote = 'No DashCam terminal selected.';
     }
 
-    if (mounted) {
+    if (!mounted) return;
+
+    if (parsed.isNotEmpty) {
+      setState(() {
+        _clips = parsed;
+        _selectedClipIndex = 0;
+        _isLoadingClips = false;
+        _isBuffering = true;
+        _playbackStatusNote = null;
+      });
+      _initializePlaybackStream();
+    } else {
       setState(() {
         _clips = [];
+        _isLoadingClips = false;
         _isBuffering = false;
+        _isPlayerInitialized = false;
+        _isPlaying = false;
+        _playbackStatusNote = queryFailureNote ?? 'No recordings found on MicroSD card for $dateStr.';
       });
     }
   }
 
   void _generateClipsForDate(DateTime date) {
     _fetchClipsForDate(date);
+  }
+
+  Future<bool> _isHlsPlaylistReady(String url) async {
+    final client = http.Client();
+    try {
+      final req = http.Request('GET', Uri.parse(url))..followRedirects = false;
+      final streamed = await client.send(req).timeout(const Duration(milliseconds: 900));
+      if (streamed.statusCode != 200) {
+        await streamed.stream.drain();
+        return false;
+      }
+      final body = await streamed.stream.bytesToString();
+      return body.contains('#EXTM3U') && !body.contains('.mp4') && body.contains('.ts');
+    } catch (_) {
+      return false;
+    } finally {
+      client.close();
+    }
   }
 
   Future<void> _initializePlaybackStream() async {
@@ -135,32 +306,76 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       return;
     }
 
+    final currentClip = _clips[_selectedClipIndex % _clips.length];
+    final terminalId = _activeTerminalId.isNotEmpty ? _activeTerminalId : _resolveTerminalId();
+
     setState(() {
       _isBuffering = true;
       _isPlayerInitialized = false;
+      _isPlaying = false;
+      _playbackStatusNote = 'Requesting Full HD MicroSD playback (${currentClip['start']} - ${currentClip['end']})...';
     });
 
     _positionTimer?.cancel();
+    _videoController?.pause();
     _videoController?.dispose();
     _videoController = null;
 
-    final dp = context.read<DeviceProvider>();
-    final terminalId = dp.systemStatus.imei;
-    final currentClip = _clips.isNotEmpty ? _clips[_selectedClipIndex % _clips.length] : null;
-    final clipUrl = currentClip?['url']?.toString() ?? '';
-
-    final streamUrl = clipUrl.isNotEmpty
-        ? clipUrl
-        : 'https://3.85.81.10/media/live/${terminalId}_$_activeChannel/live.m3u8';
-
     try {
+      String playableUrl = currentClip['url']?.toString() ?? '';
+      if (playableUrl.isNotEmpty && playableUrl.startsWith('/')) {
+        playableUrl = '${ApiService.serverHost}$playableUrl';
+      }
+
+      if (playableUrl.isEmpty) {
+        if (terminalId.isEmpty) {
+          throw Exception('No terminal ID available.');
+        }
+
+        final startFull = currentClip['startFull']?.toString() ?? '';
+        final endFull = currentClip['endFull']?.toString() ?? '';
+        final startQuery = Uri.encodeQueryComponent(startFull);
+        final endQuery = Uri.encodeQueryComponent(endFull);
+
+        await ApiService.instance.get(
+          '/video/playback-start?terminalId=${Uri.encodeQueryComponent(terminalId)}&channel=$_activeChannel&start=$startQuery&end=$endQuery',
+        );
+
+        playableUrl = '${ApiService.serverHost}/media/live/${terminalId}_$_activeChannel/live.m3u8';
+
+        bool streamReady = false;
+        for (int i = 0; i < 35; i++) {
+          if (!mounted) return;
+          if (await _isHlsPlaylistReady(playableUrl)) {
+            streamReady = true;
+            break;
+          }
+          if (i < 34) await Future.delayed(const Duration(milliseconds: 400));
+        }
+
+        if (!streamReady) {
+          if (mounted) {
+            setState(() {
+              _isBuffering = false;
+              _isPlayerInitialized = false;
+              _isPlaying = false;
+              _playbackStatusNote = 'DashCam did not start MicroSD stream for this segment. Tap Retry when camera is online.';
+            });
+          }
+          return;
+        }
+      }
+
       _videoController = VideoPlayerController.networkUrl(
-        Uri.parse(streamUrl),
+        Uri.parse(playableUrl),
         videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
 
-      await _videoController!.initialize().timeout(const Duration(seconds: 5));
-      await _videoController!.setPlaybackSpeed(_playbackSpeed);
+      await _videoController!.initialize().timeout(const Duration(seconds: 10));
+      await _videoController!.setVolume(1.0);
+      try {
+        await _videoController!.setPlaybackSpeed(_playbackSpeed);
+      } catch (_) {}
       await _videoController!.play();
 
       if (mounted) {
@@ -168,6 +383,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
           _isPlayerInitialized = true;
           _isBuffering = false;
           _isPlaying = true;
+          _playbackStatusNote = null;
           _totalDuration = _videoController!.value.duration > Duration.zero
               ? _videoController!.value.duration
               : const Duration(minutes: 5);
@@ -175,12 +391,15 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       }
 
       _startPositionTracker();
-    } catch (_) {
+    } catch (err) {
+      _videoController?.dispose();
+      _videoController = null;
       if (mounted) {
         setState(() {
           _isPlayerInitialized = false;
           _isBuffering = false;
           _isPlaying = false;
+          _playbackStatusNote = 'Unable to stream SD recording. Check camera 4G connection and tap Retry.';
         });
       }
     }
@@ -237,6 +456,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
   @override
   void dispose() {
     _positionTimer?.cancel();
+    if (_activeTerminalId.isNotEmpty) {
+      unawaited(_stopSdPlayback(_activeTerminalId));
+    }
     _videoController?.pause();
     _videoController?.dispose();
     super.dispose();
@@ -399,7 +621,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   onSelected: (device) {
                     dash.selectDevice(device);
                     dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
-                    _initializePlaybackStream();
+                    _fetchClipsForDate(_selectedDate);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         backgroundColor: AppTheme.bgCard,
@@ -483,7 +705,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             onSelected: (device) {
               dash.selectDevice(device);
               dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
-              _initializePlaybackStream();
+              _fetchClipsForDate(_selectedDate);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   backgroundColor: AppTheme.bgCard,
@@ -539,9 +761,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
       children: [
         // Camera Channel Switcher (CH1 Front Road / CH2 Cabin DMS)
         Container(
-          color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: const BoxDecoration(
+            color: Colors.white,
             border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
           ),
           child: Row(
@@ -551,7 +773,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   onTap: () {
                     if (_activeChannel != 1) {
                       setState(() => _activeChannel = 1);
-                      _initializePlaybackStream();
+                      _fetchClipsForDate(_selectedDate);
                     }
                   },
                   child: Container(
@@ -592,7 +814,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   onTap: () {
                     if (_activeChannel != 2) {
                       setState(() => _activeChannel = 2);
-                      _initializePlaybackStream();
+                      _fetchClipsForDate(_selectedDate);
                     }
                   },
                   child: Container(
@@ -641,16 +863,17 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             children: [
               if (_isPlayerInitialized && _videoController != null && _videoController!.value.isInitialized)
                 FittedBox(
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   child: SizedBox(
                     width: _videoController!.value.size.width > 0 ? _videoController!.value.size.width : 16,
                     height: _videoController!.value.size.height > 0 ? _videoController!.value.size.height : 9,
                     child: VideoPlayer(_videoController!),
                   ),
                 )
-              else if (currentClip != null)
+              else if (_isBuffering || _isLoadingClips)
                 Container(
                   color: const Color(0xFF090D18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -665,12 +888,16 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Reading MicroSD Segment (${currentClip['start']} - ${currentClip['end']})...',
+                          _playbackStatusNote ??
+                              (currentClip != null
+                                  ? 'Reading MicroSD Segment (${currentClip['start']} - ${currentClip['end']})...'
+                                  : 'Querying DashCam MicroSD Card...'),
+                          textAlign: TextAlign.center,
                           style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontFamily: 'monospace'),
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Format: .m3u8 (HLS Low Bandwidth)',
+                          'Full HD (1080P) • MicroSD Stream',
                           style: TextStyle(color: AppTheme.accentGreen, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -680,6 +907,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
               else
                 Container(
                   color: const Color(0xFF090D18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -693,14 +921,28 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                           child: const Icon(Icons.videocam_off_rounded, color: Color(0xFF94A3B8), size: 28),
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          'No Playback Video Available',
-                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        Text(
+                          currentClip != null ? 'MicroSD Stream Standby' : 'No Playback Video Available',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'No clips recorded for this date. Ignition was off.',
-                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                          _playbackStatusNote ?? 'No clips recorded for this date. Ignition was off.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF38BDF8),
+                            side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.5)),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          ),
+                          onPressed: currentClip != null
+                              ? _initializePlaybackStream
+                              : () => _fetchClipsForDate(_selectedDate),
+                          icon: const Icon(Icons.refresh_rounded, size: 15),
+                          label: const Text('Retry SD Playback', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -781,10 +1023,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
             onPressed: () {
               setState(() {
                 _selectedDate = _selectedDate.subtract(const Duration(days: 1));
-                _generateClipsForDate(_selectedDate);
                 _currentPosition = Duration.zero;
               });
-              _initializePlaybackStream();
+              _generateClipsForDate(_selectedDate);
             },
           ),
           Expanded(
@@ -800,10 +1041,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 if (picked != null) {
                   setState(() {
                     _selectedDate = picked;
-                    _generateClipsForDate(picked);
                     _currentPosition = Duration.zero;
                   });
-                  _initializePlaybackStream();
+                  _generateClipsForDate(picked);
                 }
               },
               child: Container(
@@ -839,10 +1079,9 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                 ? () {
                     setState(() {
                       _selectedDate = _selectedDate.add(const Duration(days: 1));
-                      _generateClipsForDate(_selectedDate);
                       _currentPosition = Duration.zero;
                     });
-                    _initializePlaybackStream();
+                    _generateClipsForDate(_selectedDate);
                   }
                 : null,
           ),
@@ -1027,13 +1266,26 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                   color: Color(0xFF0F172A),
                 ),
               ),
-              Text(
-                '${_clips.length} Clips Available',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _clips.isNotEmpty ? const Color(0xFF0284C7) : const Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${_clips.length} Clips Available',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _clips.isNotEmpty ? const Color(0xFF0284C7) : const Color(0xFF64748B),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: _isLoadingClips ? null : () => _fetchClipsForDate(_selectedDate),
+                    borderRadius: BorderRadius.circular(6),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.refresh_rounded, size: 18, color: Color(0xFF0284C7)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1058,19 +1310,20 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                       child: const Icon(Icons.video_file_outlined, size: 28, color: Color(0xFF94A3B8)),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'No Recorded Clips Found',
-                      style: TextStyle(
+                    Text(
+                      _isLoadingClips ? 'Querying MicroSD Card...' : 'No Recorded Clips Found',
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'No video segments found for the selected date.\nClips are automatically recorded when vehicle is moving with ignition ON.',
+                    Text(
+                      _playbackStatusNote ??
+                          'No video segments found on MicroSD card for the selected date.\nClips are automatically saved on the dashcam SD card when ignition is ON.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
                     ),
                   ],
                 ),
@@ -1172,7 +1425,7 @@ class _PlaybackScreenState extends State<PlaybackScreen> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                'Duration: 5m 00s • Size: ${clip['size']} • MicroSD Loop Storage',
+                                'Duration: ${clip['durationLabel'] ?? 'SD Segment'} • Size: ${clip['size']} • MicroSD Storage',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: Color(0xFF64748B),

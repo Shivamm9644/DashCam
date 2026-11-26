@@ -286,136 +286,25 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      // 1. Check if Super Admin
-      final isSuperAdmin = (role == 'SUPER_ADMIN') ||
-          cleanEmail == 'superadmin@trackanywhere.com' ||
-          cleanEmail == 'superadmin' ||
-          cleanEmail == 'admin' ||
-          cleanEmail == 'master' ||
-          cleanEmail.contains('superadmin') ||
-          cleanEmail.contains('inurum');
-
-      if (isSuperAdmin) {
-        final adminUser = UserModel(
-          id: 'user-admin-01',
-          name: 'Platform Super Admin',
-          email: cleanEmail.isNotEmpty ? cleanEmail : 'superadmin@trackanywhere.com',
-          role: 'SUPER_ADMIN',
-          tenantId: 'trackanywhere-master',
-          tenantName: 'TrackAnywhere Master SaaS',
-          avatar: '👑',
-          assignedTerminals: const [], // Super admin sees all fleet vehicles
-        );
-
-        _user = adminUser;
-        _token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.master.admin.token';
-        _isAuthenticated = true;
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', _token!);
-        await prefs.setString('user_data', jsonEncode(adminUser.toJson()));
-
-        ApiService.instance.setToken(_token!);
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
-      // 2. Check if Fleet Admin / SaaS Retailer
-      RetailerAccount? matchedRetailer;
-      for (final r in _retailers) {
-        if (r.email.toLowerCase() == cleanEmail || r.username.toLowerCase() == cleanEmail) {
-          matchedRetailer = r;
-          break;
-        }
-      }
-
-      if (matchedRetailer != null) {
-        if (matchedRetailer.password.isNotEmpty && matchedRetailer.password != cleanPass) {
-          _errorMessage = 'Invalid password for ${matchedRetailer.companyName}';
-          _isLoading = false;
-          notifyListeners();
-          return false;
-        }
-      }
-
-      final isRetailer = (role == 'ADMIN' || role == 'RETAILER') ||
-          matchedRetailer != null ||
-          cleanEmail == 'sharma@trackanywhere.com' ||
-          cleanEmail == 'sharma@trackify.com' ||
-          cleanEmail == 'sharma_logistics' ||
-          cleanEmail.contains('sharma') ||
-          cleanEmail.contains('fleet');
-
-      if (isRetailer) {
-        final ret = matchedRetailer ?? _retailers.first;
-        final retailerUser = UserModel(
-          id: ret.id,
-          name: ret.companyName,
-          email: cleanEmail.isNotEmpty ? cleanEmail : ret.email,
-          role: 'RETAILER',
-          tenantId: ret.id,
-          tenantName: ret.companyName,
-          avatar: '🏢',
-          assignedTerminals: ret.assignedTerminalIds, // Fleet admin sees only their 3 assigned vehicles
-        );
-
-        _user = retailerUser;
-        _token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.retailer.${ret.id}.token';
-        _isAuthenticated = true;
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', _token!);
-        await prefs.setString('user_data', jsonEncode(retailerUser.toJson()));
-
-        ApiService.instance.setToken(_token!);
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
-      // 3. Retail Customer (Single vehicle owner)
-      CustomerAccount? matchedCustomer;
-      for (final c in _customers) {
-        if (c.email.toLowerCase() == cleanEmail || c.username.toLowerCase() == cleanEmail) {
-          matchedCustomer = c;
-          break;
-        }
-      }
-
-      if (matchedCustomer != null) {
-        if (matchedCustomer.password.isNotEmpty && matchedCustomer.password != password.trim()) {
-          _errorMessage = 'Invalid password for ${matchedCustomer.name}';
-          _isLoading = false;
-          notifyListeners();
-          return false;
-        }
-      }
-
-      final derivedName = matchedCustomer != null
-          ? matchedCustomer.name
-          : (cleanEmail.contains('@') ? cleanEmail.split('@')[0] : (cleanEmail.isNotEmpty ? cleanEmail : 'Customer'));
-      final assignedTerm = matchedCustomer != null ? matchedCustomer.assignedTerminalId : '505073729067';
-      final compName = matchedCustomer != null ? '${matchedCustomer.clientCompanyName} (${matchedCustomer.vehiclePlate})' : 'Personal Vehicle';
-
-      final customerUser = UserModel(
-        id: matchedCustomer?.id ?? 'user-cust-${cleanEmail.hashCode.abs()}',
-        name: derivedName,
-        email: cleanEmail.isNotEmpty ? cleanEmail : 'customer@trackanywhere.com',
-        role: 'CUSTOMER',
-        tenantId: 'personal-cust',
-        tenantName: compName,
-        avatar: '👤',
-        assignedTerminals: [assignedTerm], // Retail customer sees ONLY their 1 assigned Dashcam!
+      // 1. Any user logging into GBT Dashcam has full Enterprise access to all vehicles on 3.85.81.10
+      final adminUser = UserModel(
+        id: 'user-admin-01',
+        name: cleanEmail.isNotEmpty ? (cleanEmail.contains('@') ? cleanEmail.split('@')[0].toUpperCase() : cleanEmail) : 'GBT Enterprise Admin',
+        email: cleanEmail.isNotEmpty ? cleanEmail : 'admin@gbtdashcam.com',
+        role: 'SUPER_ADMIN',
+        tenantId: 'gbt-dashcam-master',
+        tenantName: 'GBT Dashcam Enterprise',
+        avatar: '👑',
+        assignedTerminals: const [], // Sees all fleet vehicles on 3.85.81.10
       );
 
-      _user = customerUser;
-      _token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.customer.${customerUser.id}.token';
+      _user = adminUser;
+      _token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.master.admin.token';
       _isAuthenticated = true;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', _token!);
-      await prefs.setString('user_data', jsonEncode(customerUser.toJson()));
+      await prefs.setString('user_data', jsonEncode(adminUser.toJson()));
 
       ApiService.instance.setToken(_token!);
       _isLoading = false;

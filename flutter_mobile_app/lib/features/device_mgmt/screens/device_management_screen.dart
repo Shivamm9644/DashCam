@@ -527,7 +527,7 @@ class _DeviceManagementScreenState extends State<DeviceManagementScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildInfoRow('Server Address', '3.85.81.10', isMonospace: true),
+          _buildInfoRow('Server Address', 'Cloud Telematics Server', isMonospace: false),
           const SizedBox(height: 6),
           _buildInfoRow('JT/T 808 Telemetry Port', '7800 (TCP/IP)', isMonospace: true),
           const SizedBox(height: 6),

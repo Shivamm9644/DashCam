@@ -8,7 +8,7 @@ class ApiService {
   /// Real Google Maps API Key
   static const String googleMapsApiKey = 'AIzaSyBa6Sfh7UbFlueqmLXSJbWEEoIYoeIpEXs';
 
-  // TrackAnywhere Live Cloud Server (100.31.90.51)
+  // Production Live Server (100.31.90.51)
   static const String serverHost = 'https://100.31.90.51.sslip.io';
   static const String liveServerBaseUrl = 'https://100.31.90.51.sslip.io/api/v1';
 
@@ -18,7 +18,11 @@ class ApiService {
 
   String _baseUrl = defaultBaseUrl;
   String? _token;
-  final Map<String, String> _headers = {'Content-Type': 'application/json'};
+  static const String apiKey = 'gbt-tc-prod-key-9f82d14b';
+  final Map<String, String> _headers = {
+    'Content-Type': 'application/json',
+    'X-API-KEY': 'gbt-tc-prod-key-9f82d14b',
+  };
 
   String? get currentToken => _token;
   String get baseUrl => _baseUrl;
@@ -29,11 +33,13 @@ class ApiService {
   void setToken(String token) {
     _token = token;
     _headers['Authorization'] = 'Bearer $token';
+    _headers['X-API-KEY'] = apiKey;
   }
 
   void clearToken() {
     _token = null;
     _headers.remove('Authorization');
+    _headers['X-API-KEY'] = apiKey;
   }
 
   /// Parses real JWT claims (Payload) in client

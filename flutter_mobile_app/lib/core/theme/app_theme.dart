@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // === Trackify DashCam Modern Palette ===
   static const Color accentBlue    = Color(0xFF0284C7); // Trackify Signature Ocean Blue
   static const Color accentTeal    = Color(0xFF0D9488); // Modern Electric Teal
-  static const Color accentCyan    = Color(0xFF0284C7); // High-contrast Sky Blue
-  static const Color accentGreen   = Color(0xFF10B981); // Emerald Active Green
-  static const Color accentSaffron = Color(0xFFF59E0B); // Amber / Warning
-  static const Color accentNavy    = Color(0xFF0F172A); // Deep Slate Navy
+  static const Color accentCyan    = Color(0xFF0284C7);
+  static const Color accentGreen   = Color(0xFF10B981); 
+  static const Color accentSaffron = Color(0xFFF59E0B); 
+  static const Color accentNavy    = Color(0xFF0F172A); 
   static const Color accentPurple  = Color(0xFF8B5CF6);
   static const Color accentOrange  = Color(0xFFEA580C);
 
@@ -105,9 +104,8 @@ class AppTheme {
       surface: bgCard,
       error: statusCritical,
     ),
-    fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-    textTheme: GoogleFonts.plusJakartaSansTextTheme(
-      const TextTheme(
+    fontFamily: 'Montserrat',
+    textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 32, fontWeight: FontWeight.w800, color: textPrimary, letterSpacing: -0.5,
         ),
@@ -148,7 +146,6 @@ class AppTheme {
           fontSize: 10, fontWeight: FontWeight.w700, color: textMuted, letterSpacing: 0.5,
         ),
       ),
-    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: bgCard,
       elevation: 0,

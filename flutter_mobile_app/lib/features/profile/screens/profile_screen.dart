@@ -195,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text('👑', style: TextStyle(fontSize: 18)),
                 SizedBox(width: 8),
                 Text(
-                  'TrackAnywhere Fleet Pro • Active',
+                  'GBT Dashcam Fleet Pro • Active',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -784,7 +784,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => _confirmLogout(context, auth),
             icon: const Icon(Icons.logout_rounded, size: 18),
             label: const Text(
-              'Sign Out of TrackAnywhere',
+              'Sign Out of GBT Dashcam',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             ),
           ),
@@ -825,7 +825,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 14),
               _buildInfoRow('Name', user?.name ?? 'Authorized User'),
               _buildInfoRow('Role', user?.role == 'SUPER_ADMIN' ? 'Super Administrator' : (user?.role == 'RETAILER' ? 'Client Fleet' : (user?.role == 'CUSTOMER' ? 'Retail Customer' : 'Fleet Admin'))),
-              _buildInfoRow('Organization', user?.tenantName ?? 'TrackAnywhere Fleet'),
+              _buildInfoRow('Organization', user?.tenantName ?? 'GBT Fleet'),
               _buildInfoRow('Registered Email', user?.email ?? phone),
               _buildInfoRow('Assigned Devices', (user?.role == 'CUSTOMER' || user?.role == 'RETAILER') ? '${user?.assignedTerminals.length ?? 1} Dashcam' : 'Full Fleet Access'),
               const SizedBox(height: 20),
@@ -993,7 +993,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text('👑', style: TextStyle(fontSize: 22)),
             SizedBox(width: 8),
-            Text('TrackAnywhere Fleet Pro', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            Text('GBT Dashcam Fleet Pro', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
           ],
         ),
         content: const Column(
@@ -1254,7 +1254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('Sign Out?', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: const Text('Are you sure you want to log out of your TrackAnywhere fleet session?'),
+        content: const Text('Are you sure you want to log out of your GBT Dashcam session?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
