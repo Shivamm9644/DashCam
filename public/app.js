@@ -79,7 +79,7 @@
     // Navigation & Shell
     dom.appSidebar = document.getElementById('appSidebar');
     dom.btnToggleSidebar = document.getElementById('btnToggleSidebar');
-    dom.navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+    dom.navItems = document.querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-sub-item');
     dom.viewContainers = document.querySelectorAll('.view-container');
     dom.breadcrumbTitle = document.getElementById('breadcrumbActiveTitle');
     dom.globalSearchInput = document.getElementById('globalSearchInput');
@@ -399,6 +399,7 @@
     if (normalized === 'fleet') normalized = 'vehicles';
     if (normalized === 'live-tracking') normalized = 'live';
     if (normalized === 'play-back') normalized = 'trips';
+    if (normalized === 'admin') normalized = 'admin-management';
 
     state.currentRoute = normalized;
     if (updateHash) {
@@ -406,14 +407,41 @@
     }
 
     // Update Sidebar Active state
+    dom.navItems = document.querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-sub-item');
     dom.navItems.forEach(item => {
       const r = item.dataset.route;
-      if (r === normalized || (r === 'vendors' && normalized === 'create-vendor')) {
+      if (r === normalized || (r === 'vendors' && normalized === 'create-vendor') || (r === 'admin-management' && normalized === 'admin')) {
         item.classList.add('active');
       } else {
         item.classList.remove('active');
       }
     });
+
+    // Expand parent groups if active sub-item
+    const groupInventory = document.getElementById('navGroupInventory');
+    const groupVehicles = document.getElementById('navGroupVehicles');
+    if (groupInventory) {
+      if (normalized === 'inventory' || normalized === 'sim-inventory') {
+        groupInventory.classList.add('active-group');
+        const parentItem = groupInventory.querySelector('.nav-item-parent');
+        if (parentItem) parentItem.classList.add('active');
+      } else {
+        groupInventory.classList.remove('active-group');
+        const parentItem = groupInventory.querySelector('.nav-item-parent');
+        if (parentItem) parentItem.classList.remove('active');
+      }
+    }
+    if (groupVehicles) {
+      if (normalized === 'vehicles') {
+        groupVehicles.classList.add('active-group');
+        const parentItem = groupVehicles.querySelector('.nav-item-parent');
+        if (parentItem) parentItem.classList.add('active');
+      } else {
+        groupVehicles.classList.remove('active-group');
+        const parentItem = groupVehicles.querySelector('.nav-item-parent');
+        if (parentItem) parentItem.classList.remove('active');
+      }
+    }
 
     // Update Views visibility
     let targetViewId = 'view' + normalized.charAt(0).toUpperCase() + normalized.slice(1);
@@ -1205,11 +1233,33 @@
   // ── Global Event Bindings ─────────────────────────────────────────────
   function bindEvents() {
     // Nav Items routing
+    dom.navItems = document.querySelectorAll('.sidebar-nav .nav-item, .sidebar-nav .nav-sub-item');
     dom.navItems.forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         const route = item.dataset.route;
-        navigateTo(route);
+        if (route) {
+          navigateTo(route);
+          if (item.dataset.subtab && item.dataset.subtab === 'health') {
+            const btnHealth = document.getElementById('btnSubtabDevices');
+            if (btnHealth) btnHealth.click();
+          }
+        }
+      });
+    });
+
+    // Parent group collapsible toggle
+    document.querySelectorAll('.nav-item-parent').forEach(parent => {
+      parent.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const group = parent.closest('.nav-group');
+        if (group) {
+          const sub = group.querySelector('.nav-sub-items');
+          const isExpanded = sub && sub.style.display === 'block';
+          if (sub) sub.style.display = isExpanded ? 'none' : 'block';
+          group.classList.toggle('active-group', !isExpanded);
+        }
       });
     });
 
