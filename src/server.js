@@ -507,6 +507,16 @@ app.get('/api/count/dashboard', (req, res) => {
   }
 });
 
+app.get('/api/count/trend', (req, res) => {
+  try {
+    const filter = req.query.filter || 'all';
+    const trend = trackifyService.getTrendStats(filter);
+    res.json({ success: true, data: trend });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Catch-all for other /api routes
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'NOT_FOUND', message: 'API endpoint not recognized.' });

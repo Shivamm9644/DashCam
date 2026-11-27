@@ -633,16 +633,20 @@
       }
       state.vehicles = vehicles;
 
-      // 2-4. Positions, events and quota: a failure of one shows as empty, it does not block the rest
-      const [positions, safetyEvents, quotas] = await Promise.all([
+      // 2-4. Positions, events, quota, and real cockpit counts
+      const [positions, safetyEvents, quotas, cockpitRes, trendRes] = await Promise.all([
         FleetApi.getLatestPositions().catch(() => []),
         FleetApi.getSafetyEvents().catch(() => []),
-        FleetApi.getQuotas().catch(() => ({}))
+        FleetApi.getQuotas().catch(() => ({})),
+        fetch('/api/count/dashboard', { headers: FleetApi.getHeaders() }).then(r => r.json()).catch(() => ({})),
+        fetch('/api/count/trend?filter=all', { headers: FleetApi.getHeaders() }).then(r => r.json()).catch(() => ({}))
       ]);
       mergeLivePositions(positions);
+      const cockpitCounts = cockpitRes?.data || null;
+      const trendData = trendRes?.data || null;
 
       // Update UI Components
-      updateDashboardStats(vehicles, safetyEvents, quotas);
+      updateDashboardStats(vehicles, safetyEvents, quotas, cockpitCounts, trendData);
       renderOverviewSafetyTable(safetyEvents);
       renderOverviewRecordings(vehicles);
       renderVehicleRosterCards();
@@ -691,24 +695,28 @@
     });
   }
 
-  // ── SCREEN 1: Dashboard Overview Renderers ─────────────────────────────
-  function updateDashboardStats(vehicles, safetyEvents, quotas) {
-    const total = vehicles.length;
-    const online = vehicles.filter(v => v.status === 'ONLINE').length;
-    const idle = vehicles.filter(v => v.status === 'IDLE').length;
-    const offline = vehicles.filter(v => v.status === 'OFFLINE').length;
-    const moving = vehicles.filter(v => v.speed > 0).length;
+  // ── SCREEN 1: Dashboard Overview Renderers (100% Real Dashcam Data) ────
+  function updateDashboardStats(vehicles, safetyEvents, quotas, cockpitCounts, trendData) {
+    const list = Array.isArray(vehicles) ? vehicles : [];
+    const total = list.length;
+    const moving = list.filter(v => v.status === 'ONLINE' && (v.speed || 0) > 0).length;
+    const stationary = list.filter(v => v.status === 'IDLE' || (v.status === 'ONLINE' && (v.speed || 0) === 0)).length;
+    const offline = list.filter(v => !v.status || v.status === 'OFFLINE').length;
 
-    // Trackify Executive Cockpit Counters:
-    const registeredAccounts = 30;
-    const activeAccounts = 30;
-    const deactiveAccounts = 0;
-    const unassignedInventory = 172;
-    const deployedTotal = total > 0 ? total : 13;
-    const deployedMoving = moving > 0 ? moving : 3;
-    const deployedStationary = total > 0 ? Math.max(0, total - deployedMoving) : 37;
-    const deployedOffline = offline;
-    const alertsCount = safetyEvents ? safetyEvents.length : 0;
+    const registeredAccounts = cockpitCounts?.totalAccounts ?? 0;
+    const activeAccounts = cockpitCounts?.activeAccounts ?? 0;
+    const deactiveAccounts = cockpitCounts?.deactiveAccounts ?? 0;
+    const unassignedInventory = cockpitCounts?.unassignedUnits ?? 0;
+    const simCount = cockpitCounts?.simCount ?? 0;
+    const alertsCount = Array.isArray(safetyEvents) ? safetyEvents.length : 0;
+
+    // Store latest real stats on state for chart init/resize
+    state.cockpitStats = {
+      deployedMoving: moving,
+      deployedStationary: stationary,
+      deployedOffline: offline,
+      trendData: trendData || state.cockpitStats?.trendData || null
+    };
 
     // 1. Alert Banner
     const alertsCountPill = document.getElementById('cockpitAlertsCountPill');
@@ -730,9 +738,9 @@
     if (elAccountsBadge) elAccountsBadge.textContent = `${activeAccounts} Active • ${deactiveAccounts} Deactive`;
 
     const elDeployed = document.getElementById('cockpitDeployedCount');
-    if (elDeployed) elDeployed.textContent = `${deployedTotal} Deployed`;
+    if (elDeployed) elDeployed.textContent = `${total} Deployed`;
     const elMovingStat = document.getElementById('cockpitMovingStat');
-    if (elMovingStat) elMovingStat.textContent = `${deployedMoving} Moving • ${deployedStationary} Stationary • ${deployedOffline} Offline`;
+    if (elMovingStat) elMovingStat.textContent = `${moving} Moving • ${stationary} Stationary • ${offline} Offline`;
 
     const elStock = document.getElementById('cockpitStockUnits');
     if (elStock) elStock.textContent = `${unassignedInventory} Units`;
@@ -742,36 +750,51 @@
     const elAlerts = document.getElementById('cockpitAlertsCount');
     if (elAlerts) elAlerts.textContent = `${alertsCount} Logged`;
 
-    // 3. Donut Center & Subtitles
+    // 3. Donut Center, Stock Alert & Map Subtitles
     const donutCenter = document.getElementById('donutCenterNumber');
-    if (donutCenter) donutCenter.textContent = deployedTotal;
+    if (donutCenter) donutCenter.textContent = total;
     const donutSub = document.getElementById('donutSubtitle');
-    if (donutSub) donutSub.textContent = `Live telemetry state (${deployedTotal} Active Assets)`;
+    if (donutSub) donutSub.textContent = `Live telemetry state (${total} Active Assets)`;
+    const donutStockText = document.getElementById('donutStockAlertText');
+    if (donutStockText) donutStockText.textContent = `${unassignedInventory} Unassigned Units`;
     const mapSub = document.getElementById('overviewMapSubtitle');
-    if (mapSub) mapSub.textContent = `(${deployedTotal} In-Sync)`;
+    if (mapSub) mapSub.textContent = `(${total} In-Sync)`;
 
     // Update Donut Legend Text
     const legMoving = document.getElementById('donutLegMoving');
-    if (legMoving) legMoving.innerHTML = `<span class="dot green"></span> Online / Moving (${deployedMoving})`;
+    if (legMoving) legMoving.innerHTML = `<span class="dot green"></span> Online / Moving (${moving})`;
     const legStationary = document.getElementById('donutLegStationary');
-    if (legStationary) legStationary.innerHTML = `<span class="dot orange"></span> Idle / Stationary (${deployedStationary})`;
+    if (legStationary) legStationary.innerHTML = `<span class="dot orange"></span> Idle / Stationary (${stationary})`;
     const legOffline = document.getElementById('donutLegOffline');
-    if (legOffline) legOffline.innerHTML = `<span class="dot red"></span> Offline / Disconnected (${deployedOffline})`;
+    if (legOffline) legOffline.innerHTML = `<span class="dot red"></span> Offline / Disconnected (${offline})`;
 
-    // Update Donut Chart datasets if chart initialized
+    // 4. M2M SIM Data Usage Banner (Real SIM count from inventory)
+    const simPill = document.getElementById('simBannerPill');
+    if (simPill) simPill.textContent = `${simCount} SIMs • 100 MB each`;
+    const simSafe = document.getElementById('simSafeCount');
+    if (simSafe) simSafe.textContent = `${simCount} SAFE`;
+
+    // Update Charts with Real Data
     if (state.donutChart) {
       state.donutChart.data.labels = [
-        `Online / Moving (${deployedMoving})`,
-        `Idle / Stationary (${deployedStationary})`,
-        `Offline / Disconnected (${deployedOffline})`
+        `Online / Moving (${moving})`,
+        `Idle / Stationary (${stationary})`,
+        `Offline / Disconnected (${offline})`
       ];
-      state.donutChart.data.datasets[0].data = [deployedMoving, deployedStationary, deployedOffline];
+      state.donutChart.data.datasets[0].data = [moving, stationary, offline];
       state.donutChart.update();
-    } else {
+    }
+    if (state.trendChart && trendData) {
+      state.trendChart.data.labels = trendData.labels || state.trendChart.data.labels;
+      state.trendChart.data.datasets[0].data = trendData.dataCount || [0, 0, 0, 0, 0, 0];
+      state.trendChart.data.datasets[1].data = trendData.alertsCount || [0, 0, 0, 0, 0, 0];
+      state.trendChart.update();
+    }
+    if (!state.donutChart || !state.trendChart) {
       initCockpitCharts();
     }
 
-    // 4. Update Split Cards
+    // 5. Update Split Cards
     renderCockpitSplitCards(safetyEvents);
   }
 
@@ -780,6 +803,11 @@
       console.warn('[Cockpit] Chart.js not loaded yet');
       return;
     }
+
+    const realTrend = state.cockpitStats?.trendData;
+    const trendLabels = realTrend?.labels || ['JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV'];
+    const trendPings = realTrend?.dataCount || [0, 0, 0, 0, 0, 0];
+    const trendAlerts = realTrend?.alertsCount || [0, 0, 0, 0, 0, 0];
 
     // 1. Data Volume & Security Alerts Trend Dual-Axis Mixed Chart
     const trendCanvas = document.getElementById('chartDataVolumeTrend');
@@ -800,12 +828,12 @@
         state.trendChart = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: ['JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV'],
+            labels: trendLabels,
             datasets: [
               {
                 type: 'line',
                 label: 'GPS Ping Volume (Left Axis)',
-                data: [0, 1200, 1850, 48200, 102450, 118940],
+                data: trendPings,
                 borderColor: '#2463eb',
                 borderWidth: 3,
                 backgroundColor: gradient,
@@ -821,7 +849,7 @@
               {
                 type: 'bar',
                 label: 'Security Alerts (Right Axis)',
-                data: [0, 0, 0, 0, 0, 92],
+                data: trendAlerts,
                 backgroundColor: 'rgba(239, 68, 68, 0.85)',
                 hoverBackgroundColor: '#ef4444',
                 borderRadius: 6,
@@ -857,7 +885,7 @@
                 display: true,
                 position: 'left',
                 beginAtZero: true,
-                max: 140000,
+                suggestedMax: 100,
                 title: {
                   display: true,
                   text: 'Telemetry Pings (Left Axis)',
@@ -876,7 +904,7 @@
                 display: true,
                 position: 'right',
                 beginAtZero: true,
-                max: 100,
+                suggestedMax: 10,
                 title: {
                   display: true,
                   text: 'Security Alerts (Right Axis)',
@@ -903,6 +931,9 @@
     }
 
     // 2. Deployed Fleet Real-Time Status 72% Cutout Donut Chart
+    const m = state.cockpitStats?.deployedMoving ?? 0;
+    const s = state.cockpitStats?.deployedStationary ?? 0;
+    const o = state.cockpitStats?.deployedOffline ?? 0;
     const donutCanvas = document.getElementById('chartFleetStatusDonut');
     if (donutCanvas) {
       if (state.donutChart) {
@@ -912,9 +943,9 @@
         state.donutChart = new Chart(dCtx, {
           type: 'doughnut',
           data: {
-            labels: ['Online / Moving (3)', 'Idle / Stationary (37)', 'Offline / Disconnected (0)'],
+            labels: [`Online / Moving (${m})`, `Idle / Stationary (${s})`, `Offline / Disconnected (${o})`],
             datasets: [{
-              data: [3, 37, 0],
+              data: [m, s, o],
               backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
               borderWidth: 0,
               hoverOffset: 6
@@ -942,30 +973,19 @@
     }
   }
 
-  function updateTrendTimeframe(tf) {
+  async function updateTrendTimeframe(tf) {
     if (!state.trendChart) return;
-    let labels = ['JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV'];
-    let pings = [0, 1200, 1850, 48200, 102450, 118940];
-    let alerts = [0, 0, 0, 0, 0, 92];
-
-    if (tf === 'today') {
-      labels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
-      pings = [1200, 850, 4200, 18900, 24500, 16800];
-      alerts = [0, 0, 1, 0, 2, 0];
-    } else if (tf === 'week') {
-      labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      pings = [18400, 22100, 26800, 24900, 29400, 15200, 8900];
-      alerts = [1, 0, 2, 0, 3, 0, 0];
-    } else if (tf === 'month') {
-      labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      pings = [24500, 31200, 38900, 42100];
-      alerts = [4, 2, 8, 3];
+    try {
+      const res = await fetch(`/api/count/trend?filter=${encodeURIComponent(tf)}`, { headers: FleetApi.getHeaders() }).then(r => r.json());
+      if (res?.success && res.data) {
+        state.trendChart.data.labels = res.data.labels || [];
+        state.trendChart.data.datasets[0].data = res.data.dataCount || [];
+        state.trendChart.data.datasets[1].data = res.data.alertsCount || [];
+        state.trendChart.update();
+      }
+    } catch (e) {
+      console.warn('[Cockpit] Trend timeframe update failed:', e.message);
     }
-
-    state.trendChart.data.labels = labels;
-    state.trendChart.data.datasets[0].data = pings;
-    state.trendChart.data.datasets[1].data = alerts;
-    state.trendChart.update();
   }
 
   function renderCockpitSplitCards(safetyEvents) {

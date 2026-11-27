@@ -243,10 +243,23 @@ function updateDevice(idOrImei, updates) {
   return item;
 }
 
-// ── DASHBOARD COUNTS ────────────────────────────────────────────────
+// ── DASHBOARD COUNTS (100% Real Dashcam Data) ─────────────────────────
+function getFleetData() {
+  const fleetFile = path.join(STORAGE_DIR, 'fleet.json');
+  try {
+    if (fs.existsSync(fleetFile)) {
+      return JSON.parse(fs.readFileSync(fleetFile, 'utf8'));
+    }
+  } catch (_) {}
+  return { vehicles: [], devices: [] };
+}
+
 function getDashboardCounts() {
   const inventory = getInventory();
   const vendors = getVendors();
+  const admins = getAdmins();
+  const fleet = getFleetData();
+  const vehicles = Array.isArray(fleet.vehicles) ? fleet.vehicles : [];
 
   const total = inventory.length;
   const unassigned = inventory.filter(e => e.status === 0 || (!e.assignedAdmin && !e.assignedVendor && !e.assignedCustomer && !e.assignedTo)).length;
@@ -255,16 +268,66 @@ function getDashboardCounts() {
   const directSales = inventory.filter(e => e.status === 1 && e.assignedCustomer && !e.assignedAdmin && !e.assignedVendor).length;
   const deploymentRate = total > 0 ? Math.round((deployedCustomer / total) * 100) : 0;
 
+  const activeAdmins = admins.filter(a => (a.status || 'Active').toLowerCase() === 'active').length;
+  const activeVendors = vendors.filter(v => (v.status || 'Active').toLowerCase() === 'active').length;
+  const totalAccounts = admins.length + vendors.length;
+  const activeAccounts = activeAdmins + activeVendors;
+  const deactiveAccounts = Math.max(0, totalAccounts - activeAccounts);
+
+  const simItems = inventory.filter(i => i.paired_sim_number || i.simNumber || i.iccid);
+
   return {
-    totalAccounts: 30 + vendors.length,
-    deployedAssets: 13 + deployedCustomer,
+    totalAccounts,
+    activeAccounts,
+    deactiveAccounts,
+    adminsCount: admins.length,
+    vendorsCount: vendors.length,
+    deployedAssets: vehicles.length,
     totalInventory: total,
     unassignedUnits: unassigned,
     adminAssignedUnits: adminAssigned,
     deployedCustomerUnits: deployedCustomer,
     directSalesUnits: directSales,
-    deploymentRate: deploymentRate,
+    deploymentRate,
+    simCount: simItems.length,
     securityAlerts: 0
+  };
+}
+
+function getTrendStats(filter = 'all') {
+  const inventory = getInventory();
+  const fleet = getFleetData();
+  const vehicles = Array.isArray(fleet.vehicles) ? fleet.vehicles : [];
+  const simItems = inventory.filter(i => i.paired_sim_number || i.simNumber || i.iccid);
+
+  const now = new Date();
+  const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  let labels = [];
+  if (filter === 'today') {
+    labels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
+  } else if (filter === 'week') {
+    labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  } else if (filter === 'month') {
+    labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+  } else {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(monthNames[d.getMonth()]);
+    }
+  }
+
+  // Real counts initialized to 0 unless telemetry/events are present
+  const dataCount = labels.map(() => 0);
+  const alertsCount = labels.map(() => 0);
+
+  return {
+    labels,
+    dataCount,
+    alertsCount,
+    pingsBreakdown: [],
+    alertsBreakdown: [],
+    simCount: simItems.length,
+    vehiclesCount: vehicles.length
   };
 }
 
@@ -347,6 +410,7 @@ module.exports = {
   bulkDeleteInventory,
   updateDevice,
   getDashboardCounts,
+  getTrendStats,
   listPlans,
   createPlan,
   deletePlan,

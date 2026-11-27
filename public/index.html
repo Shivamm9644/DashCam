@@ -313,14 +313,14 @@
                     <span class="cockpit-pill green" id="cockpitAlertsCountPill">0 Alerts Logged</span>
                   </div>
                   <p class="cockpit-alert-text">
-                    <strong>System Status Normal:</strong> All fleet operations running smoothly. Hardware stock holds <strong id="cockpitUnassignedText">172 unassigned units</strong>.
+                    <strong>System Status Normal:</strong> All fleet operations running smoothly. Hardware stock holds <strong id="cockpitUnassignedText">0 unassigned units</strong>.
                   </p>
                 </div>
               </div>
               <div class="cockpit-alert-actions">
                 <button class="cockpit-action-pill orange" id="btnCockpitOrders">🛒 Orders (0)</button>
                 <button class="cockpit-action-pill red" id="btnCockpitAlerts">Review Alerts (0)</button>
-                <button class="cockpit-action-pill blue" id="btnCockpitProvision">Provision Inventory (172)</button>
+                <button class="cockpit-action-pill blue" id="btnCockpitProvision">Provision Inventory (0)</button>
               </div>
             </div>
 
@@ -329,10 +329,10 @@
               <!-- Card 1: Users / Accounts -->
               <div class="cockpit-kpi-card card-blue" id="kpiCardAccounts" style="cursor:pointer;" title="Click to view Admin Management">
                 <div class="cockpit-kpi-top">
-                  <span class="cockpit-trend-badge blue" id="kpiBadgeAccounts">30 Active • 0 Deactive</span>
+                  <span class="cockpit-trend-badge blue" id="kpiBadgeAccounts">0 Active • 0 Deactive</span>
                 </div>
                 <div class="cockpit-kpi-body">
-                  <div class="cockpit-kpi-value" id="cockpitTotalAccounts">30 Accounts</div>
+                  <div class="cockpit-kpi-value" id="cockpitTotalAccounts">0 Accounts</div>
                   <div class="cockpit-kpi-label">TOTAL REGISTERED USERS</div>
                 </div>
                 <div class="cockpit-kpi-bg-icon blue">
@@ -345,11 +345,11 @@
                 <div class="cockpit-kpi-top">
                   <span class="cockpit-trend-badge teal">
                     <span class="material-icons" style="font-size:12px;vertical-align:middle;margin-right:2px;">directions_car</span>
-                    <span id="cockpitMovingStat">3 Moving • 37 Stationary • 0 Offline</span>
+                    <span id="cockpitMovingStat">0 Moving • 0 Stationary • 0 Offline</span>
                   </span>
                 </div>
                 <div class="cockpit-kpi-body">
-                  <div class="cockpit-kpi-value" id="cockpitDeployedCount">13 Deployed</div>
+                  <div class="cockpit-kpi-value" id="cockpitDeployedCount">0 Deployed</div>
                   <div class="cockpit-kpi-label">DEPLOYED FLEET ASSETS</div>
                 </div>
                 <div class="cockpit-kpi-bg-icon teal">
@@ -363,7 +363,7 @@
                   <span class="cockpit-trend-badge purple">Unassigned Warehouse Stock</span>
                 </div>
                 <div class="cockpit-kpi-body">
-                  <div class="cockpit-kpi-value" id="cockpitStockUnits">172 Units</div>
+                  <div class="cockpit-kpi-value" id="cockpitStockUnits">0 Units</div>
                   <div class="cockpit-kpi-label">UNASSIGNED HARDWARE STOCK</div>
                 </div>
                 <div class="cockpit-kpi-bg-icon purple">
@@ -406,7 +406,7 @@
                   <div class="tile-icon purple"><span class="material-icons">inventory_2</span></div>
                   <div>
                     <div class="tile-title">Provision Device</div>
-                    <div class="tile-subtitle" id="opTileUnassignedSubtitle">172 Unassigned</div>
+                    <div class="tile-subtitle" id="opTileUnassignedSubtitle">0 Unassigned</div>
                   </div>
                 </div>
                 <div class="action-tile-btn" id="opTileAddUser" style="cursor:pointer;">
@@ -469,7 +469,7 @@
                 <div class="chart-header-bar">
                   <div>
                     <h3 class="trackify-card-title">Deployed Fleet Real-Time Status</h3>
-                    <p class="trackify-card-subtitle" id="donutSubtitle">Live telemetry state (13 Active Assets)</p>
+                    <p class="trackify-card-subtitle" id="donutSubtitle">Live telemetry state (0 Active Assets)</p>
                   </div>
                   <div class="live-sync-pill">
                     <span class="pulse-dot"></span>
@@ -479,18 +479,18 @@
                 <div class="donut-chart-box" style="flex:1;min-height:200px;position:relative;display:flex;align-items:center;justify-content:center;">
                   <canvas id="chartFleetStatusDonut"></canvas>
                   <div class="donut-center-metric">
-                    <div class="donut-number" id="donutCenterNumber">13</div>
+                    <div class="donut-number" id="donutCenterNumber">0</div>
                     <div class="donut-label">FLEET VEHICLES</div>
                   </div>
                 </div>
                 <div class="donut-legend-row">
-                  <span class="donut-leg-item" id="donutLegMoving"><span class="dot green"></span> Online / Moving (3)</span>
-                  <span class="donut-leg-item" id="donutLegStationary"><span class="dot orange"></span> Idle / Stationary (37)</span>
+                  <span class="donut-leg-item" id="donutLegMoving"><span class="dot green"></span> Online / Moving (0)</span>
+                  <span class="donut-leg-item" id="donutLegStationary"><span class="dot orange"></span> Idle / Stationary (0)</span>
                   <span class="donut-leg-item" id="donutLegOffline"><span class="dot red"></span> Offline / Disconnected (0)</span>
                 </div>
                 <div class="warehouse-stock-alert-bar">
                   <span class="stock-alert-label">Warehouse Stock Alert:</span>
-                  <span class="stock-alert-value" id="donutStockAlertText">172 Unassigned Units</span>
+                  <span class="stock-alert-value" id="donutStockAlertText">0 Unassigned Units</span>
                 </div>
               </div>
             </div>
@@ -541,17 +541,17 @@
                 <div>
                   <div class="sim-usage-title">
                     <span>M2M SIM Data Usage &mdash; Per Device</span>
-                    <span class="sim-usage-pill">0 SIMs &bull; 100 MB each</span>
+                    <span class="sim-usage-pill" id="simBannerPill">0 SIMs &bull; 100 MB each</span>
                   </div>
-                  <p class="sim-usage-desc">
+                  <p class="sim-usage-desc" id="simBannerDesc">
                     &sim;420B/ping &bull; All SIMs are within safe usage limits
                   </p>
                 </div>
               </div>
               <div class="sim-usage-thresholds">
-                <span class="sim-thresh-item critical">0 CRITICAL (&gt;80%)</span>
-                <span class="sim-thresh-item warning">0 WARNING (&gt;50%)</span>
-                <span class="sim-thresh-item safe">0 SAFE</span>
+                <span class="sim-thresh-item critical" id="simCritCount">0 CRITICAL (&gt;80%)</span>
+                <span class="sim-thresh-item warning" id="simWarnCount">0 WARNING (&gt;50%)</span>
+                <span class="sim-thresh-item safe" id="simSafeCount">0 SAFE</span>
               </div>
             </div>
 
@@ -561,7 +561,7 @@
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span class="material-icons" style="font-size:20px;color:#0284c7;">near_me</span>
                   <h3 class="trackify-card-title" style="margin:0;">Live Fleet Positioning Map</h3>
-                  <span class="card-subtitle" id="overviewMapSubtitle" style="margin-left:6px;">(13 In-Sync)</span>
+                  <span class="card-subtitle" id="overviewMapSubtitle" style="margin-left:6px;">(0 In-Sync)</span>
                 </div>
                 <div style="display:flex;gap:10px;">
                   <button class="trackify-btn trackify-btn-primary" id="btnGoToLiveFromOverview" style="height:32px;padding:0 12px;font-size:11px;">
