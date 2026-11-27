@@ -340,45 +340,108 @@
     setInterval(update, 1000);
   }
 
-  // ── Collapsible Left Sidebar ──────────────────────────────────────────
+  // ── Collapsible & Responsive Left Sidebar ─────────────────────────────
   function initSidebarToggle() {
-    if (dom.btnToggleSidebar && dom.appSidebar) {
-      dom.btnToggleSidebar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const willCollapse = !dom.appSidebar.classList.contains('is-collapsed');
-        if (willCollapse) {
-          dom.appSidebar.classList.add('is-collapsed');
-          dom.appSidebar.classList.add('no-hover');
-        } else {
-          dom.appSidebar.classList.remove('is-collapsed');
-          dom.appSidebar.classList.remove('no-hover');
-        }
+    const sidebar = dom.appSidebar || document.getElementById('appSidebar');
+    const btnToggle = dom.btnToggleSidebar || document.getElementById('btnToggleSidebar');
+    const btnMobileMenu = document.getElementById('btnMobileMenu');
+    const btnMobileClose = document.getElementById('btnMobileCloseSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
 
+    // Desktop Toggle (Collapse / Expand)
+    if (btnToggle && sidebar) {
+      btnToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('is-collapsed');
         setTimeout(() => {
           if (state.overviewMap) state.overviewMap.invalidateSize();
           if (state.liveFocusMap) state.liveFocusMap.invalidateSize();
-        }, 260);
+        }, 250);
       });
+    }
 
-      // Clear no-hover once cursor moves out of the sidebar area
-      dom.appSidebar.addEventListener('mouseleave', () => {
-        dom.appSidebar.classList.remove('no-hover');
-      });
-
-      // Ensure maps recalculate viewport cleanly after sidebar hover expand/collapse
-      dom.appSidebar.addEventListener('transitionend', (e) => {
-        if (e.propertyName === 'width') {
-          if (state.overviewMap) state.overviewMap.invalidateSize();
-          if (state.liveFocusMap) state.liveFocusMap.invalidateSize();
+    // Header Menu Button (Handles Mobile Drawer & Desktop Collapse)
+    if (btnMobileMenu && sidebar) {
+      btnMobileMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isMobile = window.matchMedia('(max-width: 992px)').matches;
+        if (isMobile) {
+          sidebar.classList.remove('is-collapsed');
+          const isOpen = sidebar.classList.contains('mobile-open');
+          if (isOpen) {
+            closeMobileSidebar();
+          } else {
+            sidebar.classList.add('mobile-open');
+            if (backdrop) backdrop.classList.add('active');
+          }
+        } else {
+          sidebar.classList.toggle('is-collapsed');
+          setTimeout(() => {
+            if (state.overviewMap) state.overviewMap.invalidateSize();
+            if (state.liveFocusMap) state.liveFocusMap.invalidateSize();
+          }, 250);
         }
       });
     }
+
+    // Brand Logo Click in Collapsed Mode re-expands sidebar
+    const brandWrap = sidebar.querySelector('.trackify-brand-wrap');
+    if (brandWrap) {
+      brandWrap.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('is-collapsed') && !window.matchMedia('(max-width: 992px)').matches) {
+          e.preventDefault();
+          sidebar.classList.remove('is-collapsed');
+          setTimeout(() => {
+            if (state.overviewMap) state.overviewMap.invalidateSize();
+            if (state.liveFocusMap) state.liveFocusMap.invalidateSize();
+          }, 250);
+        }
+      });
+    }
+
+    // Function to close mobile sidebar
+    function closeMobileSidebar() {
+      if (sidebar) sidebar.classList.remove('mobile-open');
+      if (backdrop) backdrop.classList.remove('active');
+    }
+
+    if (btnMobileClose) {
+      btnMobileClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeMobileSidebar();
+      });
+    }
+
+    if (backdrop) {
+      backdrop.addEventListener('click', closeMobileSidebar);
+    }
+
+    // Automatically close mobile sidebar when any nav item or sub-item is clicked
+    document.addEventListener('click', (e) => {
+      const navTarget = e.target.closest('.sidebar-nav .nav-item, .sidebar-nav .nav-sub-item');
+      if (navTarget && window.matchMedia('(max-width: 992px)').matches) {
+        closeMobileSidebar();
+      }
+    });
+
+    // Clean up mobile drawer state on desktop window resize
+    window.addEventListener('resize', () => {
+      if (!window.matchMedia('(max-width: 992px)').matches) {
+        closeMobileSidebar();
+      }
+      if (state.overviewMap) state.overviewMap.invalidateSize();
+      if (state.liveFocusMap) state.liveFocusMap.invalidateSize();
+    });
 
     // Keyboard shortcut (Ctrl + B)
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
-        if (dom.btnToggleSidebar) dom.btnToggleSidebar.click();
+        if (window.innerWidth > 992 && btnToggle) {
+          btnToggle.click();
+        } else if (btnMobileMenu) {
+          btnMobileMenu.click();
+        }
       }
     });
   }

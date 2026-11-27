@@ -115,14 +115,44 @@ button, input, select, textarea {
 
 .app-sidebar.is-collapsed {
   width: var(--sidebar-collapsed-width);
+  overflow: hidden !important;
 }
 
-/* Hover-to-expand behavior when sidebar is collapsed (unless user just clicked to collapse) */
-.app-sidebar.is-collapsed:not(.no-hover):hover,
-.app-sidebar.is-collapsed.is-hover-expanded {
-  width: var(--sidebar-width);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
-  z-index: 100;
+.app-sidebar.is-collapsed .sidebar-header {
+  padding: 0 10px !important;
+  justify-content: center !important;
+}
+
+.app-sidebar.is-collapsed .trackify-brand-wrap {
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+.app-sidebar.is-collapsed .trackify-brand-title {
+  display: none !important;
+}
+
+.app-sidebar.is-collapsed .sidebar-toggle-btn {
+  display: none !important;
+}
+
+.app-sidebar.is-collapsed .nav-item {
+  justify-content: center !important;
+  padding: 10px 0 !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+
+.app-sidebar.is-collapsed .nav-label,
+.app-sidebar.is-collapsed .chevron-arrow,
+.app-sidebar.is-collapsed .nav-sub-items,
+.app-sidebar.is-collapsed .sub-dot,
+.app-sidebar.is-collapsed .nav-section-title {
+  display: none !important;
+}
+
+.app-sidebar.is-collapsed .nav-icon {
+  margin: 0 auto !important;
 }
 
 .app-sidebar.is-collapsed .sidebar-toggle-btn svg {
@@ -131,6 +161,71 @@ button, input, select, textarea {
 
 .sidebar-toggle-btn svg {
   transition: transform 0.2s ease;
+}
+
+.sidebar-close-btn {
+  display: none;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-close-btn:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+/* Mobile Hamburger Menu Button */
+.mobile-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  color: #0f172a;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.mobile-menu-btn:hover {
+  background-color: #f1f5f9;
+  color: #0284c7;
+}
+
+.mobile-menu-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Mobile Sidebar Backdrop Overlay */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 1040;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.sidebar-backdrop.active {
+  display: block;
+  opacity: 1;
 }
 
 .sidebar-header {
@@ -2125,20 +2220,101 @@ button, input, select, textarea {
   .vc-lower-split {
     grid-template-columns: 1fr;
   }
+  .quota-meter-badge,
+  .live-clock-badge {
+    display: none !important;
+  }
 }
 
 @media (max-width: 992px) {
-  .app-sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+  .mobile-menu-btn {
+    display: flex !important;
   }
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
+
+  /* Responsive Off-Canvas Drawer */
+  .app-sidebar,
   .app-sidebar.is-collapsed {
-    transform: translateX(-100%);
-    width: 240px;
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 1050 !important;
+    background: #ffffff !important;
+    box-shadow: 6px 0 28px rgba(0, 0, 0, 0.18) !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex !important;
+  }
+  .app-sidebar.mobile-open,
+  .app-sidebar.is-collapsed.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Inside Mobile Drawer, ALWAYS show full brand and labels even if .is-collapsed is set */
+  .app-sidebar .sidebar-header,
+  .app-sidebar.is-collapsed .sidebar-header {
+    padding: 0 16px !important;
+    justify-content: space-between !important;
+  }
+  .app-sidebar .trackify-brand-wrap,
+  .app-sidebar.is-collapsed .trackify-brand-wrap {
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    width: auto !important;
+  }
+  .app-sidebar .trackify-brand-title,
+  .app-sidebar.is-collapsed .trackify-brand-title {
+    display: block !important;
+  }
+  .app-sidebar .nav-item,
+  .app-sidebar.is-collapsed .nav-item {
+    justify-content: flex-start !important;
+    padding: 9px 12px !important;
+    gap: 12px !important;
+    width: auto !important;
+  }
+  .app-sidebar .nav-label,
+  .app-sidebar.is-collapsed .nav-label {
+    display: block !important;
+  }
+  .app-sidebar .chevron-arrow,
+  .app-sidebar.is-collapsed .chevron-arrow {
+    display: block !important;
+  }
+  .app-sidebar .nav-group.active-group .nav-sub-items,
+  .app-sidebar.is-collapsed .nav-group.active-group .nav-sub-items {
+    display: flex !important;
+  }
+  .app-sidebar .nav-section-title,
+  .app-sidebar.is-collapsed .nav-section-title {
+    display: block !important;
+  }
+  .app-sidebar .nav-icon,
+  .app-sidebar.is-collapsed .nav-icon {
+    margin: 0 !important;
+  }
+
+  .gateway-status-pill {
+    display: none !important;
+  }
+  .global-search-box {
+    width: 170px !important;
+  }
+  .trackify-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .stats-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   .modal-body-split {
     grid-template-columns: 1fr;
@@ -2151,17 +2327,73 @@ button, input, select, textarea {
 }
 
 @media (max-width: 768px) {
-  .app-header {
-    padding: 0 12px;
+  .top-header {
+    padding: 0 12px !important;
+    height: 54px !important;
   }
-  .header-actions {
-    gap: 6px;
+  .header-left {
+    gap: 10px !important;
   }
-  .header-quota-pill {
-    display: none;
+  .global-search-box {
+    display: none !important;
   }
-  .content-body {
-    padding: 12px;
+  .breadcrumbs span:first-child,
+  .breadcrumbs .breadcrumb-separator {
+    display: none !important;
+  }
+  .breadcrumbs .breadcrumb-active {
+    font-size: 13px !important;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .header-right {
+    gap: 6px !important;
+  }
+  .btn-apk-pill {
+    padding: 3px 7px !important;
+    font-size: 10px !important;
+  }
+  #btnHeaderSignOut span {
+    display: none !important;
+  }
+  #btnHeaderSignOut {
+    padding: 0 8px !important;
+  }
+  .content-body,
+  .app-content-viewport {
+    padding: 10px !important;
+  }
+  .trackify-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .stats-strip {
+    grid-template-columns: 1fr !important;
+  }
+  .overview-grid {
+    padding: 10px 8px !important;
+    gap: 12px !important;
+  }
+  .trackify-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .trackify-search-wrap {
+    width: 100% !important;
+  }
+  .trackify-filter-pills {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .trackify-table-wrap,
+  .enterprise-table-wrap,
+  .data-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
   .stat-cards-grid {
     grid-template-columns: 1fr !important;
@@ -2192,10 +2424,6 @@ button, input, select, textarea {
     width: 96vw;
     max-height: 94vh;
     padding: 12px;
-  }
-  .enterprise-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
