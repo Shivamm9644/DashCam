@@ -111,6 +111,28 @@
           <span class="nav-badge" style="background:#fee2e2;color:#b91c1c;" id="badgeAlertCount">1</span>
         </a>
 
+        <div class="nav-section-title">Hardware & Inventory</div>
+        <a class="nav-item" data-route="inventory" id="navInventory">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          </div>
+          <span class="nav-label">Device Inventory</span>
+          <span class="nav-badge" style="background:#e0f2fe;color:#0284c7;" id="badgeInventoryCount">179</span>
+        </a>
+        <a class="nav-item" data-route="sim-inventory" id="navSimInventory">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><line x1="9" y1="11" x2="9" y2="17"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="15" y1="11" x2="15" y2="17"/></svg>
+          </div>
+          <span class="nav-label">SIM Inventory</span>
+        </a>
+        <a class="nav-item" data-route="vendors" id="navVendors">
+          <div class="nav-icon">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span class="nav-label">Vendors</span>
+          <span class="nav-badge" style="background:#fef3c7;color:#b45309;" id="badgeVendorsCount">3</span>
+        </a>
+
         <div class="nav-section-title">Operations</div>
         <a class="nav-item" data-route="vehicles" id="navVehicles">
           <div class="nav-icon">
@@ -1585,6 +1607,251 @@
           </div>
         </div>
 
+        <!-- ══ SCREEN 8: VENDOR MANAGEMENT ═════════════════════════ -->
+        <div class="view-container" id="viewVendors">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h1 style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Vendor Management</h1>
+              <p style="font-size:12px;color:var(--text-muted);">Create and manage vendor accounts, partner distribution, and hardware allocation.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="trackify-btn trackify-btn-primary" id="btnOpenCreateVendor">
+                <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.5;" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>+ Create Vendor</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="trackify-panel">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h2 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Registered Vendors</h2>
+                <p style="font-size:12px;color:var(--text-muted);">Manage system vendors and review their inventory allocation.</p>
+              </div>
+              <div class="trackify-search-wrap" style="width:280px;">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="inputVendorSearch" class="trackify-search-input" placeholder="Search vendor name, email or phone...">
+              </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="trackify-table" id="vendorsTable">
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th>EMAIL</th>
+                    <th>MOBILE</th>
+                    <th>ROLE</th>
+                    <th>ALLOCATED STOCK</th>
+                    <th>STATUS</th>
+                    <th style="text-align:right;">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="vendorsTableBody">
+                  <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">Loading vendors...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ SCREEN 9: DEVICE INVENTORY ══════════════════════════ -->
+        <div class="view-container" id="viewInventory">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h1 style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Inventory</h1>
+              <p style="font-size:12px;color:var(--text-muted);">Manage stock and available devices across warehouse, vendors, and deployed clients.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="trackify-btn trackify-btn-emerald" id="btnOpenBulkUpload">
+                <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>+ Upload Bulk IMEIs</span>
+              </button>
+              <button class="trackify-btn trackify-btn-secondary" id="btnBulkAssign" style="display:none;">
+                <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                <span>Assign Selected (<span id="selectedCountAssign">0</span>)</span>
+              </button>
+              <button class="trackify-btn trackify-btn-danger" id="btnBulkDelete" style="display:none;">
+                <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Delete Selected (<span id="selectedCountDelete">0</span>)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5 Trackify KPI Metric Cards -->
+          <div class="trackify-kpi-grid">
+            <div class="trackify-kpi-card card-blue">
+              <div class="kpi-icon-wrap icon-blue">
+                <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="invKpiTotal">179</span>
+                <span class="kpi-label">TOTAL INVENTORY STOCK</span>
+              </div>
+            </div>
+
+            <div class="trackify-kpi-card card-amber">
+              <div class="kpi-icon-wrap icon-amber">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="invKpiWarehouse">155</span>
+                <span class="kpi-label">WAREHOUSE STOCK</span>
+              </div>
+            </div>
+
+            <div class="trackify-kpi-card card-purple">
+              <div class="kpi-icon-wrap icon-purple">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="invKpiAdminVendor">14</span>
+                <span class="kpi-label">ASSIGNED TO ADMIN/VENDOR</span>
+              </div>
+            </div>
+
+            <div class="trackify-kpi-card card-green">
+              <div class="kpi-icon-wrap icon-green">
+                <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="invKpiDeployed">10</span>
+                <span class="kpi-label">DEPLOYED FLEET (CUSTOMER)</span>
+              </div>
+            </div>
+
+            <div class="trackify-kpi-card card-teal">
+              <div class="kpi-icon-wrap icon-teal">
+                <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="invKpiDirectSales">0</span>
+                <span class="kpi-label">DIRECT SALES</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Strip & Search Bar -->
+          <div class="trackify-toolbar" style="margin-top:16px;margin-bottom:16px;">
+            <div class="trackify-search-wrap" style="flex:1;max-width:320px;">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="inputInventorySearch" class="trackify-search-input" placeholder="Search IMEI, model, SIM, admin or...">
+            </div>
+
+            <div class="trackify-pills-wrap">
+              <button class="trackify-pill" data-tab="warehouse">📦 Warehouse (<span id="pillCountWarehouse">155</span>)</button>
+              <button class="trackify-pill" data-tab="assigned">👤 Admin/Vendor (<span id="pillCountAssigned">14</span>)</button>
+              <button class="trackify-pill" data-tab="deployed">🟢 Deployed (<span id="pillCountDeployed">10</span>)</button>
+              <button class="trackify-pill" data-tab="direct">🛒 Direct Sales (<span id="pillCountDirect">0</span>)</button>
+              <button class="trackify-pill active" data-tab="all">All (<span id="pillCountAll">179</span>)</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;">
+              <select id="selectInventoryBrand" class="trackify-select">
+                <option value="ALL">All Brands</option>
+                <option value="TrackAnywhere">TrackAnywhere</option>
+                <option value="Trackify">Trackify</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="trackify-panel">
+            <div style="overflow-x:auto;">
+              <table class="trackify-table" id="inventoryTable">
+                <thead>
+                  <tr>
+                    <th style="width:36px;text-align:center;">
+                      <input type="checkbox" id="chkSelectAllInventory">
+                    </th>
+                    <th>IMEI DEVICE ID</th>
+                    <th>MODEL SPEC</th>
+                    <th>PAIRED SIM</th>
+                    <th>STATUS BADGE</th>
+                    <th>ADMIN / VENDOR HIERARCHY</th>
+                    <th>CUSTOMER / OWNER</th>
+                    <th>BRAND</th>
+                    <th>STOCK DATE</th>
+                    <th style="text-align:right;">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                  <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-muted);">Loading device inventory...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="trackify-table-footer">
+              <span style="font-size:12px;color:var(--text-muted);" id="inventoryShowingText">Showing devices</span>
+              <div style="display:flex;gap:6px;" id="inventoryPagination"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ SCREEN 10: SIM INVENTORY ════════════════════════════ -->
+        <div class="view-container" id="viewSimInventory">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h1 style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">SIM Inventory</h1>
+              <p style="font-size:12px;color:var(--text-muted);">Manage machine-to-machine (M2M) 4G telematics SIM cards, data plans, and pairing.</p>
+            </div>
+          </div>
+
+          <div class="trackify-kpi-grid">
+            <div class="trackify-kpi-card card-blue">
+              <div class="kpi-icon-wrap icon-blue">
+                <svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="simKpiTotal">179</span>
+                <span class="kpi-label">TOTAL SIM CARDS</span>
+              </div>
+            </div>
+            <div class="trackify-kpi-card card-green">
+              <div class="kpi-icon-wrap icon-green">
+                <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="simKpiActive">24</span>
+                <span class="kpi-label">ACTIVE / PAIRED SIMS</span>
+              </div>
+            </div>
+            <div class="trackify-kpi-card card-amber">
+              <div class="kpi-icon-wrap icon-amber">
+                <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="kpi-content">
+                <span class="kpi-number" id="simKpiWarehouse">155</span>
+                <span class="kpi-label">STANDBY / UNPAIRED</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="trackify-panel" style="margin-top:16px;">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+              <h3 style="font-size:14px;font-weight:700;">Telematics SIM Directory</h3>
+              <input type="text" id="inputSimSearch" class="trackify-search-input" placeholder="Search SIM number or ICCID..." style="max-width:240px;">
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="trackify-table" id="simTable">
+                <thead>
+                  <tr>
+                    <th>SIM NUMBER</th>
+                    <th>ICCID</th>
+                    <th>OPERATOR</th>
+                    <th>STATUS</th>
+                    <th>PAIRED IMEI</th>
+                    <th>DATA USAGE</th>
+                  </tr>
+                </thead>
+                <tbody id="simTableBody">
+                  <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Loading SIM directory...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   <!-- ── Incident Review & Coaching Modal ───────────────────────────── -->
@@ -2225,6 +2492,195 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Trackify Modal: Create Vendor ──────────────────────────────── -->
+  <div id="modalCreateVendor" class="modal-backdrop" style="display:none;">
+    <div class="modal-card" style="max-width:480px;background:var(--bg-surface);border-radius:12px;padding:24px;box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);">Create New Vendor</h3>
+        <button class="modal-close-btn" id="btnCloseCreateVendor">&times;</button>
+      </div>
+
+      <div id="alertVendorModal" style="display:none;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;"></div>
+
+      <form id="formCreateVendor" onsubmit="return false;" style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Full Name *</label>
+          <input type="text" id="inputVendorName" required placeholder="e.g. John Doe or Apex Logistics" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Email Address *</label>
+          <input type="email" id="inputVendorEmail" required placeholder="vendor@example.com" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Password *</label>
+            <input type="password" id="inputVendorPassword" required placeholder="••••••" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Confirm Password *</label>
+            <input type="password" id="inputVendorConfirmPassword" required placeholder="••••••" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Mobile / Phone Number</label>
+          <input type="text" id="inputVendorMobile" placeholder="e.g. 9876543210" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+          <button type="button" class="trackify-btn trackify-btn-secondary" id="btnCancelCreateVendor">Cancel</button>
+          <button type="submit" class="trackify-btn trackify-btn-primary" id="btnSubmitCreateVendor">Register Vendor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Trackify Modal: Upload Bulk IMEIs ────────────────────────────── -->
+  <div id="modalUploadBulk" class="modal-backdrop" style="display:none;">
+    <div class="modal-card" style="max-width:540px;background:var(--bg-surface);border-radius:12px;padding:24px;box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);">Bulk Upload Device IMEIs</h3>
+          <p style="font-size:11px;color:var(--text-muted);">Import CSV or TXT file or paste a list of device serials/IMEIs.</p>
+        </div>
+        <button class="modal-close-btn" id="btnCloseUploadBulk">&times;</button>
+      </div>
+
+      <div id="alertUploadBulkModal" style="display:none;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;"></div>
+
+      <form id="formUploadBulk" onsubmit="return false;" style="display:flex;flex-direction:column;gap:14px;">
+        <!-- File input -->
+        <div style="border:2px dashed #cbd5e1;border-radius:10px;padding:20px;text-align:center;background:#f8fafc;cursor:pointer;" id="dropzoneBulkUpload">
+          <svg style="width:36px;height:36px;color:#059669;margin-bottom:8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Click to select or drag CSV / TXT file here</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Supported columns: IMEI, Model, Paired SIM</div>
+          <input type="file" id="inputBulkFile" accept=".csv,.txt" style="display:none;">
+          <div id="selectedFileName" style="display:none;font-weight:700;color:#059669;margin-top:8px;font-size:12px;"></div>
+        </div>
+
+        <div style="text-align:center;font-size:11px;color:var(--text-muted);font-weight:600;">— OR PASTE DIRECTLY BELOW —</div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">IMEI List (One per line)</label>
+          <textarea id="textareaBulkImeis" rows="4" placeholder="864662074417207&#10;864662074423189&#10;505073583696" style="width:100%;padding:10px;border:1px solid var(--border-subtle);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Default Model</label>
+            <select id="selectBulkModel" class="trackify-select" style="width:100%;">
+              <option value="M16C Dual-Cam 4G">M16C Dual-Cam 4G</option>
+              <option value="TRK-GT06">TRK-GT06 Telematics</option>
+              <option value="MDVR Dual-Cam 4G">MDVR Dual-Cam 4G</option>
+              <option value="SM-GPS-TR-V1">SM-GPS-TR-V1 Tracker</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Brand</label>
+            <select id="selectBulkBrand" class="trackify-select" style="width:100%;">
+              <option value="TrackAnywhere">TrackAnywhere</option>
+              <option value="Trackify">Trackify</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+          <button type="button" class="trackify-btn trackify-btn-secondary" id="btnCancelUploadBulk">Cancel</button>
+          <button type="submit" class="trackify-btn trackify-btn-emerald" id="btnSubmitUploadBulk">Import Devices</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Trackify Modal: Bulk Assign ─────────────────────────────────── -->
+  <div id="modalBulkAssign" class="modal-backdrop" style="display:none;">
+    <div class="modal-card" style="max-width:440px;background:var(--bg-surface);border-radius:12px;padding:24px;box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);">Assign Selected Devices</h3>
+        <button class="modal-close-btn" id="btnCloseBulkAssign">&times;</button>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">
+        You have selected <strong id="modalAssignSelectedCount" style="color:var(--primary-blue);">0</strong> devices to allocate.
+      </div>
+
+      <div id="alertBulkAssignModal" style="display:none;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;"></div>
+
+      <form id="formBulkAssign" onsubmit="return false;" style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Allocation Target Type</label>
+          <select id="selectAssignTargetType" class="trackify-select" style="width:100%;">
+            <option value="vendor">Vendor Partner</option>
+            <option value="admin">Regional Admin</option>
+            <option value="customer">Client / Customer</option>
+          </select>
+        </div>
+
+        <div id="wrapVendorSelect">
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Select Vendor</label>
+          <select id="selectAssignVendor" class="trackify-select" style="width:100%;">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div id="wrapCustomName" style="display:none;">
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Recipient Name</label>
+          <input type="text" id="inputAssignRecipientName" placeholder="e.g. Acme Fleet Operations" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+          <button type="button" class="trackify-btn trackify-btn-secondary" id="btnCancelBulkAssign">Cancel</button>
+          <button type="submit" class="trackify-btn trackify-btn-primary" id="btnSubmitBulkAssign">Confirm Allocation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Trackify Modal: Edit Single Device ──────────────────────────── -->
+  <div id="modalEditDevice" class="modal-backdrop" style="display:none;">
+    <div class="modal-card" style="max-width:440px;background:var(--bg-surface);border-radius:12px;padding:24px;box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);">Edit Device Details</h3>
+        <button class="modal-close-btn" id="btnCloseEditDevice">&times;</button>
+      </div>
+
+      <div id="alertEditDeviceModal" style="display:none;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;"></div>
+
+      <form id="formEditDevice" onsubmit="return false;" style="display:flex;flex-direction:column;gap:14px;">
+        <input type="hidden" id="editDeviceId">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">IMEI Number</label>
+          <input type="text" id="editDeviceImei" readonly style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;background:#f8fafc;font-family:'JetBrains Mono',monospace;">
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Hardware Model</label>
+          <input type="text" id="editDeviceModel" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Paired SIM Number</label>
+          <input type="text" id="editDeviceSim" placeholder="e.g. 89919325034001499427" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:8px;">
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Stock Status</label>
+          <select id="editDeviceStatus" class="trackify-select" style="width:100%;">
+            <option value="0">Warehouse Stock (Unassigned)</option>
+            <option value="1">Assigned / Deployed</option>
+          </select>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+          <button type="button" class="trackify-btn trackify-btn-secondary" id="btnCancelEditDevice">Cancel</button>
+          <button type="submit" class="trackify-btn trackify-btn-primary" id="btnSubmitEditDevice">Save Changes</button>
+        </div>
+      </form>
     </div>
   </div>
 

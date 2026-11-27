@@ -288,6 +288,77 @@
       const res = await this.request(`/api/v1/admin/audit-logs?limit=${limit}`);
       return res.auditLogs || [];
     }
+
+    // ── Trackify Architecture: Vendor APIs ───────────────────────────
+    async getVendors() {
+      const res = await this.request('/api/vendor/list');
+      return res.data || [];
+    }
+
+    async registerVendor(data) {
+      return await this.request('/api/vendor/register', { method: 'POST', body: data });
+    }
+
+    async updateVendor(id, data) {
+      return await this.request(`/api/vendor/update/${id}`, { method: 'POST', body: data });
+    }
+
+    async deleteVendor(id) {
+      return await this.request(`/api/vendor/delete/${id}`, { method: 'DELETE' });
+    }
+
+    // ── Trackify Architecture: Inventory APIs ────────────────────────
+    async getInventory() {
+      const res = await this.request('/api/inventory/list');
+      return res.data || [];
+    }
+
+    async uploadBulkInventory(contentOrFormData, model_no = 'M16C Dual-Cam 4G', brand = 'TrackAnywhere') {
+      if (typeof FormData !== 'undefined' && contentOrFormData instanceof FormData) {
+        const response = await fetch('/api/inventory/upload-bulk', {
+          method: 'POST',
+          body: contentOrFormData
+        });
+        return await response.json();
+      }
+      return await this.request('/api/inventory/upload-bulk', {
+        method: 'POST',
+        body: { fileContent: contentOrFormData, model_no, brand }
+      });
+    }
+
+    async assignInventoryBulk(imeis, assignedTo, role = 'admin') {
+      return await this.request('/api/inventory/assign-bulk', {
+        method: 'POST',
+        body: { imeis, assignedTo, role }
+      });
+    }
+
+    async assignVendorBulk(imeis, vendorId, vendorName = '') {
+      return await this.request('/api/inventory/assign-vendor-bulk', {
+        method: 'POST',
+        body: { imeis, vendorId, vendorName }
+      });
+    }
+
+    async deleteInventoryBulk(imeis) {
+      return await this.request('/api/inventory/bulk-delete', {
+        method: 'POST',
+        body: { imeis }
+      });
+    }
+
+    async updateDevice(id, data) {
+      return await this.request(`/api/inventory/update/${id}`, {
+        method: 'POST',
+        body: data
+      });
+    }
+
+    async getDashboardMetrics() {
+      const res = await this.request('/api/count/dashboard');
+      return res.data;
+    }
   }
 
   window.FleetApi = new FleetApiClient();

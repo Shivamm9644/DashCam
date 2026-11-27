@@ -4206,4 +4206,376 @@ button, input, select, textarea {
   margin-top: 4px;
 }
 
+/* ── Trackify Design System (Vendors, Inventory, SIMs & Telematics) ───────── */
+.trackify-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  overflow: hidden;
+}
+
+.trackify-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.trackify-kpi-card {
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.trackify-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.trackify-kpi-card.card-blue {
+  background: #f0f7ff;
+  border: 1px solid #bfdbfe;
+}
+.trackify-kpi-card.card-amber {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+.trackify-kpi-card.card-purple {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+}
+.trackify-kpi-card.card-green {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.trackify-kpi-card.card-teal {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+}
+
+.kpi-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon-wrap svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.kpi-icon-wrap.icon-blue { background: #dbeafe; color: #2563eb; }
+.kpi-icon-wrap.icon-amber { background: #fef3c7; color: #d97706; }
+.kpi-icon-wrap.icon-purple { background: #f3e8ff; color: #9333ea; }
+.kpi-icon-wrap.icon-green { background: #dcfce7; color: #16a34a; }
+.kpi-icon-wrap.icon-teal { background: #ccfbf1; color: #0d9488; }
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+  margin-top: 3px;
+}
+
+.trackify-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trackify-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.trackify-search-wrap .search-icon {
+  position: absolute;
+  left: 12px;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.trackify-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.trackify-search-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.trackify-pills-wrap {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.trackify-pill {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.trackify-pill:hover {
+  background: #e2e8f0;
+}
+
+.trackify-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.trackify-select {
+  height: 36px;
+  padding: 0 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.trackify-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.trackify-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+.trackify-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.trackify-btn-emerald {
+  background: #059669;
+  color: #ffffff;
+}
+.trackify-btn-emerald:hover {
+  background: #047857;
+}
+
+.trackify-btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+.trackify-btn-danger:hover {
+  background: #b91c1c;
+}
+
+.trackify-btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.trackify-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.trackify-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+
+.trackify-table th {
+  padding: 12px 16px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.trackify-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.trackify-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.trackify-table-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-status-warehouse {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge-status-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.badge-status-deployed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-status-direct {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.badge-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badge-brand::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+}
+
+.imei-link-btn {
+  color: #2563eb;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.imei-link-btn:hover {
+  text-decoration: underline;
+}
+
+.action-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-icon-btn:hover {
+  background: #f1f5f9;
+  color: var(--primary-blue);
+  border-color: #cbd5e1;
+}
+
+.action-icon-btn.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+
 

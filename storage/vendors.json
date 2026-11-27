@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "6a43ac58a98e2c8ea8843901",
+    "name": "OmniTrack Solutions Pvt Ltd",
+    "email": "info@omnitrack.in",
+    "mobile": "9876543210",
+    "role": "vendor",
+    "status": "Active",
+    "assignedStockCount": 42,
+    "createdAt": "2026-10-15T10:00:00.000Z"
+  },
+  {
+    "_id": "6a43ac58a98e2c8ea8843902",
+    "name": "SecureFleet Telematics",
+    "email": "contact@securefleet.com",
+    "mobile": "9812345678",
+    "role": "vendor",
+    "status": "Active",
+    "assignedStockCount": 28,
+    "createdAt": "2026-10-22T14:30:00.000Z"
+  },
+  {
+    "_id": "6a43ac58a98e2c8ea8843903",
+    "name": "Indore AutoTech Logistics",
+    "email": "sales@indoreautotech.in",
+    "mobile": "9926012345",
+    "role": "vendor",
+    "status": "Active",
+    "assignedStockCount": 15,
+    "createdAt": "2026-11-05T09:15:00.000Z"
+  }
+]

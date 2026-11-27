@@ -58,7 +58,18 @@
     tripVehicleMarker: null,
     tripPolyline: null,
     tripGapPolylines: [],
-    tripEventMarkers: []
+    tripEventMarkers: [],
+    // Trackify Architecture: Vendors, Inventory & SIMs
+    vendors: [],
+    inventory: [],
+    inventoryFilterTab: 'all',
+    inventoryBrandFilter: 'ALL',
+    inventorySearch: '',
+    inventorySelectedImeis: new Set(),
+    inventoryCurrentPage: 1,
+    inventoryPageSize: 50,
+    vendorSearch: '',
+    simSearch: ''
   };
 
   // ── Cached DOM Selectors ──────────────────────────────────────────────
@@ -383,14 +394,21 @@
   }
 
   function navigateTo(routeId, updateHash = true) {
-    state.currentRoute = routeId;
+    let normalized = (routeId || 'dashboard').trim().toLowerCase();
+    if (normalized === 'create-vendor') normalized = 'vendors';
+    if (normalized === 'fleet') normalized = 'vehicles';
+    if (normalized === 'live-tracking') normalized = 'live';
+    if (normalized === 'play-back') normalized = 'trips';
+
+    state.currentRoute = normalized;
     if (updateHash) {
-      window.location.hash = routeId;
+      window.location.hash = normalized;
     }
 
     // Update Sidebar Active state
     dom.navItems.forEach(item => {
-      if (item.dataset.route === routeId) {
+      const r = item.dataset.route;
+      if (r === normalized || (r === 'vendors' && normalized === 'create-vendor')) {
         item.classList.add('active');
       } else {
         item.classList.remove('active');
@@ -398,7 +416,9 @@
     });
 
     // Update Views visibility
-    const targetViewId = 'view' + routeId.charAt(0).toUpperCase() + routeId.slice(1);
+    let targetViewId = 'view' + normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    if (normalized === 'sim-inventory') targetViewId = 'viewSimInventory';
+
     dom.viewContainers.forEach(container => {
       container.style.display = ''; // visibility is class-driven; clear any leftover inline display
       if (container.id === targetViewId) {
@@ -414,22 +434,25 @@
       live: 'Live Monitoring',
       video: 'Video Center',
       safety: 'Safety Inbox',
-      vehicles: 'Vehicles & Devices',
-      trips: 'Trips & Routes',
+      vehicles: 'Vehicles & Fleet',
+      trips: 'Route Playback',
       reports: 'Reports & Analytics',
-      admin: 'Administration'
+      admin: 'Administration',
+      vendors: 'Vendor Management',
+      inventory: 'Device Inventory',
+      'sim-inventory': 'SIM Inventory'
     };
     if (dom.breadcrumbTitle) {
-      dom.breadcrumbTitle.textContent = titles[routeId] || 'Dashboard Overview';
+      dom.breadcrumbTitle.textContent = titles[normalized] || 'Dashboard Overview';
     }
 
     // Refresh Maps when views change
-    if (routeId === 'dashboard') {
+    if (normalized === 'dashboard') {
       setTimeout(() => {
         if (!state.overviewMap) initOverviewMap();
         else state.overviewMap.invalidateSize();
       }, 100);
-    } else if (routeId === 'live') {
+    } else if (normalized === 'live') {
       setTimeout(() => {
         if (!state.liveFocusMap) initLiveFocusMap();
         else state.liveFocusMap.invalidateSize();
@@ -440,29 +463,41 @@
           renderVehicleRosterCards();
         }
       }, 100);
-    } else if (routeId === 'video') {
+    } else if (normalized === 'video') {
       setTimeout(() => {
         initVideoCenter();
       }, 100);
-    } else if (routeId === 'safety') {
+    } else if (normalized === 'safety') {
       setTimeout(() => {
         initSafetyInbox();
       }, 100);
-    } else if (routeId === 'vehicles') {
+    } else if (normalized === 'vehicles') {
       setTimeout(() => {
         initVehiclesAndDevices();
       }, 100);
-    } else if (routeId === 'trips') {
+    } else if (normalized === 'trips') {
       setTimeout(() => {
         initTripsReplay();
       }, 100);
-    } else if (routeId === 'admin') {
+    } else if (normalized === 'admin') {
       setTimeout(() => {
         initAdminConsole();
       }, 100);
-    } else if (routeId === 'reports') {
+    } else if (normalized === 'reports') {
       setTimeout(() => {
         initReports();
+      }, 100);
+    } else if (normalized === 'vendors') {
+      setTimeout(() => {
+        initVendorsView();
+      }, 100);
+    } else if (normalized === 'inventory') {
+      setTimeout(() => {
+        initInventoryView();
+      }, 100);
+    } else if (normalized === 'sim-inventory') {
+      setTimeout(() => {
+        initSimInventoryView();
       }, 100);
     }
   }
@@ -488,6 +523,10 @@
       renderOverviewRecordings(vehicles);
       renderVehicleRosterCards();
       loadSafetyIncidents();
+
+      // 5. Trackify Vendors & Inventory
+      loadVendors().catch(() => {});
+      loadInventory().catch(() => {});
 
       if (state.currentRoute === 'live' && state.vehicles.length > 0) {
         selectVehicle(state.vehicles[0].id);
@@ -4492,8 +4531,781 @@
       .replace(/'/g, '&#39;');
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // TRACKIFY ARCHITECTURE MODULE: VENDORS, INVENTORY & SIM TELEMATICS
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ── 1. VENDOR MANAGEMENT MODULE ─────────────────────────────────────
+  let vendorsInitialized = false;
+
+  function initVendorsView() {
+    loadVendors();
+
+    if (vendorsInitialized) return;
+    vendorsInitialized = true;
+
+    // Search input
+    const searchInput = document.getElementById('inputVendorSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        state.vendorSearch = e.target.value.toLowerCase().trim();
+        renderVendorsTable();
+      });
+    }
+
+    // Modal Triggers
+    const btnOpen = document.getElementById('btnOpenCreateVendor');
+    const btnClose = document.getElementById('btnCloseCreateVendor');
+    const btnCancel = document.getElementById('btnCancelCreateVendor');
+    const form = document.getElementById('formCreateVendor');
+
+    if (btnOpen) btnOpen.addEventListener('click', openCreateVendorModal);
+    if (btnClose) btnClose.addEventListener('click', closeCreateVendorModal);
+    if (btnCancel) btnCancel.addEventListener('click', closeCreateVendorModal);
+    if (form) form.addEventListener('submit', handleCreateVendorSubmit);
+  }
+
+  async function loadVendors() {
+    try {
+      const vendors = await FleetApi.getVendors();
+      state.vendors = vendors;
+      
+      const badge = document.getElementById('badgeVendorsCount');
+      if (badge) badge.textContent = vendors.length;
+
+      renderVendorsTable();
+      populateVendorSelects();
+    } catch (err) {
+      console.error('[Vendors] Failed to load vendors:', err);
+    }
+  }
+
+  function renderVendorsTable() {
+    const tbody = document.getElementById('vendorsTableBody');
+    if (!tbody) return;
+
+    let filtered = state.vendors || [];
+    if (state.vendorSearch) {
+      filtered = filtered.filter(v => 
+        (v.name && v.name.toLowerCase().includes(state.vendorSearch)) ||
+        (v.email && v.email.toLowerCase().includes(state.vendorSearch)) ||
+        (v.mobile && v.mobile.toLowerCase().includes(state.vendorSearch))
+      );
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:36px;color:var(--text-muted);">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">No vendor accounts found</div>
+        <div style="font-size:12px;">Click "+ Create Vendor" to register a new vendor partner.</div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(v => {
+      const stock = v.assignedStockCount || 0;
+      return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">
+              ${(v.name || 'V').substring(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight:600;color:var(--text-primary);">${v.name || 'Unnamed Vendor'}</div>
+              <div style="font-size:11px;color:var(--text-muted);">ID: ${v._id || v.id}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">${v.email || '—'}</span>
+        </td>
+        <td>${v.mobile || '—'}</td>
+        <td>
+          <span class="badge-status-admin" style="text-transform:capitalize;">${v.role || 'Vendor'}</span>
+        </td>
+        <td>
+          <span style="font-weight:700;color:${stock > 0 ? '#059669' : '#64748b'};">${stock} Units</span>
+        </td>
+        <td>
+          <span class="badge-status-deployed">● Active</span>
+        </td>
+        <td style="text-align:right;">
+          <div style="display:inline-flex;gap:6px;">
+            <button class="action-icon-btn" title="Edit Vendor" onclick="DashcamApp.editVendor('${v._id || v.id}')">
+              <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="action-icon-btn danger" title="Delete Vendor" onclick="DashcamApp.deleteVendor('${v._id || v.id}')">
+              <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function openCreateVendorModal() {
+    const modal = document.getElementById('modalCreateVendor');
+    const alert = document.getElementById('alertVendorModal');
+    if (alert) alert.style.display = 'none';
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeCreateVendorModal() {
+    const modal = document.getElementById('modalCreateVendor');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function handleCreateVendorSubmit(e) {
+    e.preventDefault();
+    const alert = document.getElementById('alertVendorModal');
+    const name = document.getElementById('inputVendorName')?.value.trim();
+    const email = document.getElementById('inputVendorEmail')?.value.trim();
+    const password = document.getElementById('inputVendorPassword')?.value;
+    const confirm = document.getElementById('inputVendorConfirmPassword')?.value;
+    const mobile = document.getElementById('inputVendorMobile')?.value.trim();
+
+    if (password !== confirm) {
+      if (alert) {
+        alert.style.display = 'block';
+        alert.style.background = '#fee2e2';
+        alert.style.color = '#b91c1c';
+        alert.textContent = 'Passwords do not match.';
+      }
+      return;
+    }
+
+    try {
+      await FleetApi.registerVendor({ name, email, password, confirm_password: confirm, mobile, role: 'vendor' });
+      closeCreateVendorModal();
+      showToast(`Vendor "${name}" created successfully!`, 'success');
+      document.getElementById('formCreateVendor')?.reset();
+      await loadVendors();
+    } catch (err) {
+      if (alert) {
+        alert.style.display = 'block';
+        alert.style.background = '#fee2e2';
+        alert.style.color = '#b91c1c';
+        alert.textContent = err.message || 'Error creating vendor.';
+      }
+    }
+  }
+
+  async function handleDeleteVendor(id) {
+    if (!confirm('Are you sure you want to delete this vendor account?')) return;
+    try {
+      await FleetApi.deleteVendor(id);
+      showToast('Vendor deleted successfully.', 'info');
+      await loadVendors();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete vendor', 'error');
+    }
+  }
+
+  function handleEditVendor(id) {
+    const v = (state.vendors || []).find(item => item._id === id || item.id === id);
+    if (!v) return;
+    const newName = prompt('Update vendor name:', v.name);
+    if (!newName) return;
+    const newPhone = prompt('Update vendor mobile:', v.mobile || '');
+    FleetApi.updateVendor(id, { name: newName, mobile: newPhone }).then(() => {
+      showToast('Vendor updated.', 'success');
+      loadVendors();
+    }).catch(err => showToast(err.message, 'error'));
+  }
+
+  function populateVendorSelects() {
+    const sel = document.getElementById('selectAssignVendor');
+    if (!sel) return;
+    sel.innerHTML = (state.vendors || []).map(v => 
+      `<option value="${v._id || v.id}">${v.name} (${v.email})</option>`
+    ).join('');
+  }
+
+  // ── 2. INVENTORY MANAGEMENT MODULE ──────────────────────────────────
+  let inventoryInitialized = false;
+
+  function initInventoryView() {
+    loadInventory();
+
+    if (inventoryInitialized) return;
+    inventoryInitialized = true;
+
+    // Search Box
+    const searchInput = document.getElementById('inputInventorySearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        state.inventorySearch = e.target.value.toLowerCase().trim();
+        state.inventoryCurrentPage = 1;
+        renderInventoryTable();
+      });
+    }
+
+    // Tab Filter Pills
+    const pills = document.querySelectorAll('.trackify-pills-wrap .trackify-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.inventoryFilterTab = pill.dataset.tab;
+        state.inventoryCurrentPage = 1;
+        renderInventoryTable();
+      });
+    });
+
+    // Brand Dropdown
+    const brandSelect = document.getElementById('selectInventoryBrand');
+    if (brandSelect) {
+      brandSelect.addEventListener('change', (e) => {
+        state.inventoryBrandFilter = e.target.value;
+        state.inventoryCurrentPage = 1;
+        renderInventoryTable();
+      });
+    }
+
+    // Select All Checkbox
+    const chkAll = document.getElementById('chkSelectAllInventory');
+    if (chkAll) {
+      chkAll.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        const visibleImeis = getFilteredInventory().map(item => String(item.imei));
+        if (isChecked) {
+          visibleImeis.forEach(imei => state.inventorySelectedImeis.add(imei));
+        } else {
+          visibleImeis.forEach(imei => state.inventorySelectedImeis.delete(imei));
+        }
+        updateBulkActionButtons();
+        renderInventoryTable();
+      });
+    }
+
+    // Bulk Actions Modal Buttons
+    const btnOpenUpload = document.getElementById('btnOpenBulkUpload');
+    const btnCloseUpload = document.getElementById('btnCloseUploadBulk');
+    const btnCancelUpload = document.getElementById('btnCancelUploadBulk');
+    const formUpload = document.getElementById('formUploadBulk');
+    const dropzone = document.getElementById('dropzoneBulkUpload');
+    const fileInput = document.getElementById('inputBulkFile');
+
+    if (btnOpenUpload) btnOpenUpload.addEventListener('click', openUploadBulkModal);
+    if (btnCloseUpload) btnCloseUpload.addEventListener('click', closeUploadBulkModal);
+    if (btnCancelUpload) btnCancelUpload.addEventListener('click', closeUploadBulkModal);
+    if (formUpload) formUpload.addEventListener('submit', handleUploadBulkSubmit);
+
+    if (dropzone && fileInput) {
+      dropzone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          const nameEl = document.getElementById('selectedFileName');
+          if (nameEl) {
+            nameEl.style.display = 'block';
+            nameEl.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          }
+        }
+      });
+    }
+
+    // Bulk Assign
+    const btnOpenAssign = document.getElementById('btnBulkAssign');
+    const btnCloseAssign = document.getElementById('btnCloseBulkAssign');
+    const btnCancelAssign = document.getElementById('btnCancelBulkAssign');
+    const formAssign = document.getElementById('formBulkAssign');
+    const selectTargetType = document.getElementById('selectAssignTargetType');
+
+    if (btnOpenAssign) btnOpenAssign.addEventListener('click', openBulkAssignModal);
+    if (btnCloseAssign) btnCloseAssign.addEventListener('click', closeBulkAssignModal);
+    if (btnCancelAssign) btnCancelAssign.addEventListener('click', closeBulkAssignModal);
+    if (formAssign) formAssign.addEventListener('submit', handleBulkAssignSubmit);
+
+    if (selectTargetType) {
+      selectTargetType.addEventListener('change', (e) => {
+        const wrapVendor = document.getElementById('wrapVendorSelect');
+        const wrapCustom = document.getElementById('wrapCustomName');
+        if (e.target.value === 'vendor') {
+          if (wrapVendor) wrapVendor.style.display = 'block';
+          if (wrapCustom) wrapCustom.style.display = 'none';
+        } else {
+          if (wrapVendor) wrapVendor.style.display = 'none';
+          if (wrapCustom) wrapCustom.style.display = 'block';
+        }
+      });
+    }
+
+    // Bulk Delete
+    const btnDelete = document.getElementById('btnBulkDelete');
+    if (btnDelete) btnDelete.addEventListener('click', handleBulkDeleteSubmit);
+
+    // Edit Single Device Modal
+    const btnCloseEdit = document.getElementById('btnCloseEditDevice');
+    const btnCancelEdit = document.getElementById('btnCancelEditDevice');
+    const formEdit = document.getElementById('formEditDevice');
+    if (btnCloseEdit) btnCloseEdit.addEventListener('click', closeEditDeviceModal);
+    if (btnCancelEdit) btnCancelEdit.addEventListener('click', closeEditDeviceModal);
+    if (formEdit) formEdit.addEventListener('submit', handleEditDeviceSubmit);
+  }
+
+  async function loadInventory() {
+    try {
+      const inv = await FleetApi.getInventory();
+      state.inventory = inv;
+
+      const badge = document.getElementById('badgeInventoryCount');
+      if (badge) badge.textContent = inv.length;
+
+      renderInventoryKpis();
+      renderInventoryTable();
+
+      if (state.currentRoute === 'sim-inventory') {
+        renderSimTable();
+      }
+    } catch (err) {
+      console.error('[Inventory] Failed to load inventory:', err);
+    }
+  }
+
+  function renderInventoryKpis() {
+    const t = state.inventory || [];
+    const total = t.length;
+    const unassigned = t.filter(e => e.status === 0 || (!e.assignedAdmin && !e.assignedVendor && !e.assignedCustomer && !e.assignedTo)).length;
+    const adminAssigned = t.filter(e => e.status === 1 && (e.assignedAdmin || e.assignedVendor || (e.assignedTo && (e.assignedTo.role === 'admin' || e.assignedTo.role === 'vendor')))).length;
+    const deployedCustomer = t.filter(e => e.status === 1 && (e.assignedCustomer || (e.assignedTo && e.assignedTo.role === 'customer'))).length;
+    const directSales = t.filter(e => e.status === 1 && e.assignedCustomer && !e.assignedAdmin && !e.assignedVendor).length;
+
+    // Set KPI Numbers
+    const elTotal = document.getElementById('invKpiTotal');
+    const elWarehouse = document.getElementById('invKpiWarehouse');
+    const elAdminVendor = document.getElementById('invKpiAdminVendor');
+    const elDeployed = document.getElementById('invKpiDeployed');
+    const elDirectSales = document.getElementById('invKpiDirectSales');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elWarehouse) elWarehouse.textContent = unassigned;
+    if (elAdminVendor) elAdminVendor.textContent = adminAssigned;
+    if (elDeployed) elDeployed.textContent = deployedCustomer;
+    if (elDirectSales) elDirectSales.textContent = directSales;
+
+    // Set Pill Counts
+    const pWarehouse = document.getElementById('pillCountWarehouse');
+    const pAssigned = document.getElementById('pillCountAssigned');
+    const pDeployed = document.getElementById('pillCountDeployed');
+    const pDirect = document.getElementById('pillCountDirect');
+    const pAll = document.getElementById('pillCountAll');
+
+    if (pWarehouse) pWarehouse.textContent = unassigned;
+    if (pAssigned) pAssigned.textContent = adminAssigned;
+    if (pDeployed) pDeployed.textContent = deployedCustomer;
+    if (pDirect) pDirect.textContent = directSales;
+    if (pAll) pAll.textContent = total;
+  }
+
+  function getFilteredInventory() {
+    let list = state.inventory || [];
+
+    // Filter by Brand
+    if (state.inventoryBrandFilter && state.inventoryBrandFilter !== 'ALL') {
+      list = list.filter(item => (item.brand || 'TrackAnywhere') === state.inventoryBrandFilter);
+    }
+
+    // Filter by Tab
+    if (state.inventoryFilterTab === 'warehouse') {
+      list = list.filter(e => e.status === 0 || (!e.assignedAdmin && !e.assignedVendor && !e.assignedCustomer && !e.assignedTo));
+    } else if (state.inventoryFilterTab === 'assigned') {
+      list = list.filter(e => e.status === 1 && (e.assignedAdmin || e.assignedVendor || (e.assignedTo && (e.assignedTo.role === 'admin' || e.assignedTo.role === 'vendor'))));
+    } else if (state.inventoryFilterTab === 'deployed') {
+      list = list.filter(e => e.status === 1 && (e.assignedCustomer || (e.assignedTo && e.assignedTo.role === 'customer')));
+    } else if (state.inventoryFilterTab === 'direct') {
+      list = list.filter(e => e.status === 1 && e.assignedCustomer && !e.assignedAdmin && !e.assignedVendor);
+    }
+
+    // Filter by Search Query
+    if (state.inventorySearch) {
+      const q = state.inventorySearch;
+      list = list.filter(item => {
+        const imei = String(item.imei || '').toLowerCase();
+        const model = String(item.model_no || '').toLowerCase();
+        const sim = String(item.paired_sim_number || item.paired_sim_iccid || '').toLowerCase();
+        const owner = item.assignedTo ? String(item.assignedTo.name || item.assignedTo.email || '').toLowerCase() : '';
+        return imei.includes(q) || model.includes(q) || sim.includes(q) || owner.includes(q);
+      });
+    }
+
+    return list;
+  }
+
+  function renderInventoryTable() {
+    const tbody = document.getElementById('inventoryTableBody');
+    if (!tbody) return;
+
+    const filtered = getFilteredInventory();
+    const total = filtered.length;
+    const pageSize = state.inventoryPageSize;
+    const currentPage = state.inventoryCurrentPage;
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, total);
+    const pageItems = filtered.slice(startIdx, endIdx);
+
+    // Update Showing text
+    const showingText = document.getElementById('inventoryShowingText');
+    if (showingText) {
+      showingText.textContent = total > 0 
+        ? `Showing ${startIdx + 1} to ${endIdx} of ${total} devices`
+        : 'No matching devices found.';
+    }
+
+    if (total === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:36px;color:var(--text-muted);">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">No inventory records match your criteria</div>
+        <div style="font-size:12px;">Try adjusting filters or upload new IMEIs using the "+ Upload Bulk IMEIs" button.</div>
+      </td></tr>`;
+      renderInventoryPagination(0, 1);
+      return;
+    }
+
+    tbody.innerHTML = pageItems.map(item => {
+      const isSelected = state.inventorySelectedImeis.has(String(item.imei));
+      
+      // Status Badge
+      let statusBadge = '<span class="badge-status-warehouse">Warehouse</span>';
+      if (item.status === 1) {
+        if (item.assignedCustomer || (item.assignedTo && item.assignedTo.role === 'customer')) {
+          statusBadge = '<span class="badge-status-deployed">Deployed</span>';
+        } else {
+          statusBadge = '<span class="badge-status-admin">Admin Stock</span>';
+        }
+      }
+
+      // Hierarchy
+      let hierarchy = 'SuperAdmin Stock';
+      if (item.assignedVendor) {
+        hierarchy = `<span style="font-weight:600;color:#2563eb;">Vendor: ${item.assignedVendor.name || item.assignedVendor.email || 'Partner'}</span>`;
+      } else if (item.assignedAdmin) {
+        hierarchy = `<span style="font-weight:600;color:#9333ea;">Admin: ${item.assignedAdmin.name || 'Regional'}</span>`;
+      } else if (item.assignedTo && item.assignedTo.role === 'vendor') {
+        hierarchy = `<span style="font-weight:600;color:#2563eb;">Vendor: ${item.assignedTo.name}</span>`;
+      } else if (item.assignedTo && item.assignedTo.role === 'admin') {
+        hierarchy = `<span style="font-weight:600;color:#9333ea;">Admin: ${item.assignedTo.name}</span>`;
+      }
+
+      // Customer
+      let owner = '<span style="color:#94a3b8;">Unclaimed</span>';
+      if (item.assignedCustomer) {
+        owner = `<strong style="color:var(--text-primary);">${item.assignedCustomer.name || item.assignedCustomer.email}</strong>`;
+      } else if (item.assignedTo && item.assignedTo.role === 'customer') {
+        owner = `<strong style="color:var(--text-primary);">${item.assignedTo.name || item.assignedTo.email}</strong>`;
+      }
+
+      // SIM
+      const simVal = item.paired_sim_number || item.paired_sim_iccid;
+      const simPill = simVal 
+        ? `<span style="font-family:'JetBrains Mono',monospace;color:#059669;display:inline-flex;align-items:center;gap:4px;">📶 ${simVal}</span>`
+        : '<span style="color:#94a3b8;font-style:italic;">No SIM</span>';
+
+      // Date formatted
+      const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '13 Nov';
+
+      return `<tr>
+        <td style="text-align:center;">
+          <input type="checkbox" class="chk-inv-item" data-imei="${item.imei}" ${isSelected ? 'checked' : ''} onchange="DashcamApp.toggleSelectImei('${item.imei}', this.checked)">
+        </td>
+        <td>
+          <button class="imei-link-btn" title="Click to copy IMEI" onclick="DashcamApp.copyImei('${item.imei}')">
+            <span>${item.imei}</span>
+            <svg style="width:12px;height:12px;opacity:0.6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </button>
+        </td>
+        <td><span style="font-weight:600;color:var(--text-secondary);">${item.model_no || 'M16C Dual-Cam 4G'}</span></td>
+        <td>${simPill}</td>
+        <td>${statusBadge}</td>
+        <td>${hierarchy}</td>
+        <td>${owner}</td>
+        <td><span class="badge-brand">${item.brand || 'TrackAnywhere'}</span></td>
+        <td style="font-size:11px;color:var(--text-muted);">${dateStr}</td>
+        <td style="text-align:right;">
+          <div style="display:inline-flex;gap:6px;">
+            <button class="action-icon-btn" title="Edit Device" onclick="DashcamApp.editDevice('${item._id || item.imei}')">
+              <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="action-icon-btn danger" title="Delete Device" onclick="DashcamApp.deleteSingleDevice('${item.imei}')">
+              <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    renderInventoryPagination(total, pageSize);
+  }
+
+  function renderInventoryPagination(total, pageSize) {
+    const container = document.getElementById('inventoryPagination');
+    if (!container) return;
+    if (total <= pageSize) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const totalPages = Math.ceil(total / pageSize);
+    let html = '';
+    for (let p = 1; p <= totalPages; p++) {
+      const active = p === state.inventoryCurrentPage ? 'trackify-btn-primary' : 'trackify-btn-secondary';
+      html += `<button class="trackify-btn ${active}" style="padding:4px 10px;height:28px;font-size:11px;" onclick="DashcamApp.goToInventoryPage(${p})">${p}</button>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function updateBulkActionButtons() {
+    const count = state.inventorySelectedImeis.size;
+    const btnAssign = document.getElementById('btnBulkAssign');
+    const btnDelete = document.getElementById('btnBulkDelete');
+    const countAssign = document.getElementById('selectedCountAssign');
+    const countDelete = document.getElementById('selectedCountDelete');
+
+    if (btnAssign) btnAssign.style.display = count > 0 ? 'inline-flex' : 'none';
+    if (btnDelete) btnDelete.style.display = count > 0 ? 'inline-flex' : 'none';
+    if (countAssign) countAssign.textContent = count;
+    if (countDelete) countDelete.textContent = count;
+  }
+
+  function openUploadBulkModal() {
+    const modal = document.getElementById('modalUploadBulk');
+    const alert = document.getElementById('alertUploadBulkModal');
+    if (alert) alert.style.display = 'none';
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeUploadBulkModal() {
+    const modal = document.getElementById('modalUploadBulk');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function handleUploadBulkSubmit(e) {
+    e.preventDefault();
+    const alert = document.getElementById('alertUploadBulkModal');
+    const fileInput = document.getElementById('inputBulkFile');
+    const textarea = document.getElementById('textareaBulkImeis');
+    const model = document.getElementById('selectBulkModel')?.value;
+    const brand = document.getElementById('selectBulkBrand')?.value;
+
+    let payload = null;
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('model_no', model);
+      formData.append('brand', brand);
+      payload = formData;
+    } else if (textarea && textarea.value.trim()) {
+      payload = textarea.value.trim();
+    } else {
+      if (alert) {
+        alert.style.display = 'block';
+        alert.style.background = '#fee2e2';
+        alert.style.color = '#b91c1c';
+        alert.textContent = 'Please select a CSV file or enter IMEIs to import.';
+      }
+      return;
+    }
+
+    try {
+      const res = await FleetApi.uploadBulkInventory(payload, model, brand);
+      closeUploadBulkModal();
+      showToast(res.message || 'Devices successfully uploaded to inventory!', 'success');
+      document.getElementById('formUploadBulk')?.reset();
+      const selName = document.getElementById('selectedFileName');
+      if (selName) selName.style.display = 'none';
+      await loadInventory();
+    } catch (err) {
+      if (alert) {
+        alert.style.display = 'block';
+        alert.style.background = '#fee2e2';
+        alert.style.color = '#b91c1c';
+        alert.textContent = err.message || 'Upload error.';
+      }
+    }
+  }
+
+  function openBulkAssignModal() {
+    if (state.inventorySelectedImeis.size === 0) {
+      showToast('Select at least one device first.', 'warning');
+      return;
+    }
+    const countEl = document.getElementById('modalAssignSelectedCount');
+    if (countEl) countEl.textContent = state.inventorySelectedImeis.size;
+    populateVendorSelects();
+    const modal = document.getElementById('modalBulkAssign');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeBulkAssignModal() {
+    const modal = document.getElementById('modalBulkAssign');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function handleBulkAssignSubmit(e) {
+    e.preventDefault();
+    const targetType = document.getElementById('selectAssignTargetType')?.value;
+    const imeis = Array.from(state.inventorySelectedImeis);
+
+    try {
+      if (targetType === 'vendor') {
+        const vendorId = document.getElementById('selectAssignVendor')?.value;
+        const v = (state.vendors || []).find(x => x._id === vendorId || x.id === vendorId);
+        await FleetApi.assignVendorBulk(imeis, vendorId, v ? v.name : 'Vendor');
+      } else {
+        const name = document.getElementById('inputAssignRecipientName')?.value.trim() || 'Regional Admin';
+        await FleetApi.assignInventoryBulk(imeis, { name, role: targetType }, targetType);
+      }
+
+      state.inventorySelectedImeis.clear();
+      updateBulkActionButtons();
+      closeBulkAssignModal();
+      showToast(`Successfully assigned ${imeis.length} devices!`, 'success');
+      await loadInventory();
+      await loadVendors();
+    } catch (err) {
+      showToast(err.message || 'Error during assignment', 'error');
+    }
+  }
+
+  async function handleBulkDeleteSubmit() {
+    const imeis = Array.from(state.inventorySelectedImeis);
+    if (imeis.length === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete ${imeis.length} selected devices from inventory?`)) return;
+
+    try {
+      await FleetApi.deleteInventoryBulk(imeis);
+      state.inventorySelectedImeis.clear();
+      updateBulkActionButtons();
+      showToast(`Deleted ${imeis.length} devices from inventory.`, 'info');
+      await loadInventory();
+    } catch (err) {
+      showToast(err.message || 'Error deleting inventory', 'error');
+    }
+  }
+
+  function openEditDeviceModal(idOrImei) {
+    const item = (state.inventory || []).find(i => i._id === idOrImei || String(i.imei) === String(idOrImei));
+    if (!item) return;
+
+    const idInput = document.getElementById('editDeviceId');
+    const imeiInput = document.getElementById('editDeviceImei');
+    const modelInput = document.getElementById('editDeviceModel');
+    const simInput = document.getElementById('editDeviceSim');
+    const statusSelect = document.getElementById('editDeviceStatus');
+
+    if (idInput) idInput.value = item._id || item.imei;
+    if (imeiInput) imeiInput.value = item.imei;
+    if (modelInput) modelInput.value = item.model_no || 'M16C Dual-Cam 4G';
+    if (simInput) simInput.value = item.paired_sim_number || item.paired_sim_iccid || '';
+    if (statusSelect) statusSelect.value = item.status === 1 ? '1' : '0';
+
+    const modal = document.getElementById('modalEditDevice');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeEditDeviceModal() {
+    const modal = document.getElementById('modalEditDevice');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function handleEditDeviceSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('editDeviceId')?.value;
+    const model_no = document.getElementById('editDeviceModel')?.value.trim();
+    const sim = document.getElementById('editDeviceSim')?.value.trim();
+    const status = parseInt(document.getElementById('editDeviceStatus')?.value || '0', 10);
+
+    try {
+      await FleetApi.updateDevice(id, { model_no, paired_sim_number: sim, status });
+      closeEditDeviceModal();
+      showToast('Device details updated.', 'success');
+      await loadInventory();
+    } catch (err) {
+      showToast(err.message || 'Error updating device', 'error');
+    }
+  }
+
+  // ── 3. SIM INVENTORY MODULE ─────────────────────────────────────────
+  function initSimInventoryView() {
+    loadInventory();
+    renderSimTable();
+
+    const search = document.getElementById('inputSimSearch');
+    if (search) {
+      search.addEventListener('input', (e) => {
+        state.simSearch = e.target.value.toLowerCase().trim();
+        renderSimTable();
+      });
+    }
+  }
+
+  function renderSimTable() {
+    const tbody = document.getElementById('simTableBody');
+    if (!tbody) return;
+
+    const inv = state.inventory || [];
+    let sims = inv.filter(i => i.paired_sim_number || i.paired_sim_iccid);
+
+    const elTotal = document.getElementById('simKpiTotal');
+    const elActive = document.getElementById('simKpiActive');
+    const elWarehouse = document.getElementById('simKpiWarehouse');
+
+    if (elTotal) elTotal.textContent = inv.length;
+    if (elActive) elActive.textContent = sims.length;
+    if (elWarehouse) elWarehouse.textContent = inv.length - sims.length;
+
+    if (state.simSearch) {
+      sims = sims.filter(s => 
+        (s.paired_sim_number && s.paired_sim_number.toLowerCase().includes(state.simSearch)) ||
+        (s.paired_sim_iccid && s.paired_sim_iccid.toLowerCase().includes(state.simSearch)) ||
+        (s.imei && String(s.imei).includes(state.simSearch))
+      );
+    }
+
+    if (sims.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No active SIM records found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = sims.map(s => {
+      const simNum = s.paired_sim_number || s.paired_sim_iccid;
+      const iccid = s.paired_sim_iccid || (simNum.length > 15 ? simNum : '8991932503' + simNum.substring(0, 10));
+      return `<tr>
+        <td><strong style="font-family:'JetBrains Mono',monospace;color:#2563eb;">${simNum}</strong></td>
+        <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">${iccid}</span></td>
+        <td><span class="badge-status-admin">Airtel M2M 4G</span></td>
+        <td><span class="badge-status-deployed">● Connected</span></td>
+        <td><button class="imei-link-btn" onclick="DashcamApp.copyImei('${s.imei}')">${s.imei}</button></td>
+        <td><span style="font-weight:600;color:var(--text-secondary);">14.2 MB / 2 GB</span></td>
+      </tr>`;
+    }).join('');
+  }
+
   // ── Global Namespace Hook for Map & Table Callbacks ───────────────────
   window.InurumApp = {
+    editVendor: (id) => handleEditVendor(id),
+    deleteVendor: (id) => handleDeleteVendor(id),
+    toggleSelectImei: (imei, isChecked) => {
+      if (isChecked) state.inventorySelectedImeis.add(String(imei));
+      else state.inventorySelectedImeis.delete(String(imei));
+      updateBulkActionButtons();
+    },
+    copyImei: (imei) => {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(String(imei));
+      }
+      showToast(`Copied IMEI ${imei} to clipboard!`, 'info');
+    },
+    goToInventoryPage: (p) => {
+      state.inventoryCurrentPage = p;
+      renderInventoryTable();
+    },
+    editDevice: (id) => openEditDeviceModal(id),
+    deleteSingleDevice: (imei) => {
+      if (!confirm(`Delete device ${imei} from inventory?`)) return;
+      FleetApi.deleteInventoryBulk([imei]).then(() => {
+        showToast(`Device ${imei} deleted.`, 'info');
+        loadInventory();
+      });
+    },
     selectVehicle,
     streamFromMap: (vehicleId) => {
       selectVehicle(vehicleId);
@@ -4547,6 +5359,8 @@
     openVehicleScopeModal: (userId) => openVehicleScopeModal(userId),
     openResetPasswordModal: (userId) => openResetPasswordModal(userId)
   };
+
+  window.DashcamApp = window.InurumApp;
 
 })();
 
