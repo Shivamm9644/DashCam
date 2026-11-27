@@ -63,6 +63,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             : filteredDevices.first)
         : (allDevices.isNotEmpty ? allDevices.first : null);
 
+    final bool isSearching = _searchQuery.trim().isNotEmpty;
+    final List<DeviceItem> displayDevices = isSearching
+        ? filteredDevices
+        : (activeDev != null ? [activeDev] : <DeviceItem>[]);
+
     final String plate = activeDev?.plate ?? 'CBL-01';
     final String terminalId = activeDev?.terminalId ?? '505073729067';
     final bool isOnline = activeDev?.isOnline ?? false;
@@ -181,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ],
                       ),
                       child: PopupMenuButton<DeviceItem>(
-                        tooltip: 'Select Dashcam for Live Feed',
+                        tooltip: 'Select Dashcam',
                         offset: const Offset(0, 52),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         color: Colors.white,
@@ -189,7 +194,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                         onSelected: (dev) {
                           dash.selectDevice(dev);
                           dp.selectServerDevice(dev.terminalId, dev.plate, isOnline: dev.isOnline);
-                          context.go('/camera'); // Click karo live feed chalu ho jaye!
                         },
                         itemBuilder: (context) {
                           return allDevices.map((dev) {
@@ -228,28 +232,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF0284C7).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.videocam_rounded, size: 14, color: Color(0xFF0284C7)),
-                                        SizedBox(width: 3),
-                                        Text(
-                                          'LIVE',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w900,
-                                            color: Color(0xFF0284C7),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  if (isSelected)
+                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF0284C7), size: 18),
                                 ],
                               ),
                             );
@@ -279,7 +263,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   Row(
                                     children: [
                                       const Text(
-                                        'LIVE DASHCAM SELECTOR',
+                                        'SELECT DASHCAM',
                                         style: TextStyle(
                                           fontSize: 9,
                                           fontWeight: FontWeight.w800,
@@ -299,7 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     ],
                                   ),
                                   Text(
-                                    '$plate  (Tap to switch / play)',
+                                    '$plate  (Tap to change)',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
@@ -320,7 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    'Select',
+                                    'Change',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
@@ -334,78 +318,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // 2. FAST HORIZONTAL DEVICE SCROLL STRIP (All devices visible at the top)
-                    SizedBox(
-                      height: 44,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: allDevices.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, index) {
-                          final dev = allDevices[index];
-                          final isSel = dev.terminalId == activeDev?.terminalId;
-                          return Material(
-                            color: isSel ? const Color(0xFF0284C7) : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            elevation: 0,
-                            child: InkWell(
-                              onTap: () {
-                                dash.selectDevice(dev);
-                                dp.selectServerDevice(dev.terminalId, dev.plate, isOnline: dev.isOnline);
-                                context.go('/camera'); // Click karo live feed chalu ho jaye!
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSel ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
-                                    width: isSel ? 1.5 : 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: dev.isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Icon(
-                                      Icons.videocam_rounded,
-                                      size: 16,
-                                      color: isSel ? Colors.white : const Color(0xFF0284C7),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      dev.plate,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: isSel ? Colors.white : const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.play_circle_fill_rounded,
-                                      size: 14,
-                                      color: isSel ? Colors.white70 : const Color(0xFF0284C7),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -499,12 +411,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                     // ALL DASHCAM HEADER & DEVICE CARD
                     // User Requirement: "MYgrage mein ko naam change akrke all DasCam aur search ka bi option rahna chaiye"
                     // User Requirement: "aur device dekhe aur usko touch karo toh turant live feed open hona chaiye"
+                    // ACTIVE / SELECTED DASHCAM (Trackify Style: Only default/selected device shown)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'All DashCam',
-                          style: TextStyle(
+                        Text(
+                          isSearching ? 'Search Results' : 'Selected DashCam',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF0F172A),
@@ -517,7 +430,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${filteredDevices.length} Connected',
+                            isSearching
+                                ? '${displayDevices.length} Found'
+                                : 'Active • ${allDevices.length} Total',
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -530,7 +445,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     const SizedBox(height: 10),
 
                     // DEVICE LIST (Touch to IMMEDIATELY open LIVE FEED)
-                    if (filteredDevices.isEmpty)
+                    if (displayDevices.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(24),
                         alignment: Alignment.center,
@@ -545,7 +460,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       )
                     else
-                      ...filteredDevices.map((dev) {
+                      ...displayDevices.map((dev) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Material(
