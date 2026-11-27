@@ -1,0 +1,56 @@
+[
+  {
+    "_id": "6a55cbee00c4ba09c15ddc9f",
+    "planName": "2 Year Recharge Plan",
+    "durationMonths": 24,
+    "validityText": "24 Months",
+    "price": 1300,
+    "originalPrice": 2000,
+    "gstApplicable": true,
+    "isSuperCombo": false,
+    "tagText": "Recommended",
+    "savingText": "Save 30%",
+    "popularText": "Popular",
+    "features": [
+      "Real-time Tracking",
+      "Geofence Alerts",
+      "Playback History (60 days)"
+    ]
+  },
+  {
+    "_id": "6a4b98a62d38b8f441e9fa58",
+    "planName": "Super Combo Plan",
+    "durationMonths": 12,
+    "validityText": "12 Months",
+    "price": 700,
+    "originalPrice": 1000,
+    "gstApplicable": true,
+    "isSuperCombo": true,
+    "tagText": "Super Combo Plan",
+    "savingText": "Save ₹300 with this plan",
+    "popularText": "95% users choose Super Combo Plan",
+    "features": [
+      "Real-time Tracking",
+      "Geofence Alerts",
+      "Playback History (30 days)"
+    ]
+  },
+  {
+    "_id": "6b07facc2b34a6c9a2b491e0",
+    "planName": "3 Month",
+    "durationMonths": 3,
+    "validityText": "3 Months",
+    "price": 250,
+    "originalPrice": 299,
+    "gstApplicable": true,
+    "isSuperCombo": false,
+    "tagText": "Recommended",
+    "savingText": "Save 20%",
+    "popularText": "",
+    "features": [
+      "Real-time Tracking",
+      "Geofence Alerts",
+      "Playback History (60 days)"
+    ]
+  }
+]

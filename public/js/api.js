@@ -359,6 +359,40 @@
       const res = await this.request('/api/count/dashboard');
       return res.data;
     }
+
+    // ── Trackify Architecture: Data Plans / Subscriptions APIs ─────
+    async getRechargePlans() {
+      const res = await this.request('/api/data-plans/recharge-plans');
+      return res.data || [];
+    }
+
+    async createDataPlan(planData) {
+      return await this.request('/api/data-plan/create', { method: 'POST', body: planData });
+    }
+
+    async deleteDataPlan(id) {
+      return await this.request(`/api/data-plan/delete/${id}`, { method: 'DELETE' });
+    }
+
+    // ── Trackify Architecture: SuperAdmin Admins APIs ──────────────
+    async getAdmins() {
+      const res = await this.request('/api/admin/list');
+      return res.data || [];
+    }
+
+    async createAdmin(adminData) {
+      return await this.request('/api/admin/create', { method: 'POST', body: adminData });
+    }
+
+    async deleteAdmin(id) {
+      return await this.request(`/api/admin/delete/${id}`, { method: 'DELETE' });
+    }
+
+    // ── Trackify Architecture: Vehicles APIs ────────────────────────
+    async getTrackifyVehicles() {
+      const res = await this.request('/api/vehicle/get-vehicles-list');
+      return res.data || [];
+    }
   }
 
   window.FleetApi = new FleetApiClient();

@@ -6,6 +6,9 @@ const STORAGE_DIR = path.join(__dirname, '..', '..', 'storage');
 const VENDORS_FILE = path.join(STORAGE_DIR, 'vendors.json');
 const INVENTORY_FILE = path.join(STORAGE_DIR, 'inventory.json');
 
+const PLANS_FILE = path.join(STORAGE_DIR, 'plans.json');
+const ADMINS_FILE = path.join(STORAGE_DIR, 'admins.json');
+
 function ensureFiles() {
   if (!fs.existsSync(STORAGE_DIR)) {
     fs.mkdirSync(STORAGE_DIR, { recursive: true });
@@ -16,6 +19,30 @@ function ensureFiles() {
   if (!fs.existsSync(INVENTORY_FILE)) {
     fs.writeFileSync(INVENTORY_FILE, JSON.stringify([], null, 2));
   }
+  if (!fs.existsSync(PLANS_FILE)) {
+    fs.writeFileSync(PLANS_FILE, JSON.stringify([], null, 2));
+  }
+  if (!fs.existsSync(ADMINS_FILE)) {
+    fs.writeFileSync(ADMINS_FILE, JSON.stringify([], null, 2));
+  }
+}
+
+function getPlans() {
+  ensureFiles();
+  try { return JSON.parse(fs.readFileSync(PLANS_FILE, 'utf8')); } catch (_) { return []; }
+}
+function savePlans(plans) {
+  ensureFiles();
+  fs.writeFileSync(PLANS_FILE, JSON.stringify(plans, null, 2));
+}
+
+function getAdmins() {
+  ensureFiles();
+  try { return JSON.parse(fs.readFileSync(ADMINS_FILE, 'utf8')); } catch (_) { return []; }
+}
+function saveAdmins(admins) {
+  ensureFiles();
+  fs.writeFileSync(ADMINS_FILE, JSON.stringify(admins, null, 2));
 }
 
 function getVendors() {
@@ -241,6 +268,74 @@ function getDashboardCounts() {
   };
 }
 
+// ── PLANS & SUBSCRIPTIONS ───────────────────────────────────────────
+function listPlans() {
+  return getPlans();
+}
+
+function createPlan(data) {
+  const plans = getPlans();
+  const newPlan = {
+    _id: 'plan_' + crypto.randomBytes(8).toString('hex'),
+    planName: data.planName || 'Custom Plan',
+    durationMonths: parseInt(data.durationMonths || 12, 10),
+    validityText: data.validityText || `${data.durationMonths || 12} Months`,
+    price: parseInt(data.price || 999, 10),
+    originalPrice: parseInt(data.originalPrice || 1499, 10),
+    gstApplicable: true,
+    isSuperCombo: !!data.isSuperCombo,
+    tagText: data.tagText || 'Recommended',
+    savingText: data.savingText || 'Special Offer',
+    popularText: data.popularText || '',
+    features: Array.isArray(data.features) ? data.features : [
+      'Real-time Live Telematics',
+      '4K & 1080P Dashcam Streaming',
+      'Geofence & Over-speed Alerts',
+      'Route History (90 Days)'
+    ],
+    createdAt: new Date().toISOString()
+  };
+  plans.push(newPlan);
+  savePlans(plans);
+  return newPlan;
+}
+
+function deletePlan(id) {
+  const plans = getPlans();
+  const filtered = plans.filter(p => p._id !== id);
+  savePlans(filtered);
+  return true;
+}
+
+// ── ADMIN MANAGEMENT ────────────────────────────────────────────────
+function listAdmins() {
+  return getAdmins();
+}
+
+function createAdmin(data) {
+  const admins = getAdmins();
+  const newAdmin = {
+    _id: 'admin_' + crypto.randomBytes(8).toString('hex'),
+    name: data.name ? data.name.trim() : 'Regional Admin',
+    email: (data.email || '').trim(),
+    mobile: data.mobile || data.phone || '9999999999',
+    role: data.role || 'Regional Admin',
+    status: 'Active',
+    managedDevicesCount: 0,
+    createdAt: new Date().toISOString()
+  };
+  admins.push(newAdmin);
+  saveAdmins(admins);
+  return newAdmin;
+}
+
+function deleteAdmin(id) {
+  const admins = getAdmins();
+  const filtered = admins.filter(a => a._id !== id);
+  saveAdmins(filtered);
+  return true;
+}
+
 module.exports = {
   listVendors,
   createVendor,
@@ -251,5 +346,11 @@ module.exports = {
   bulkAssignInventory,
   bulkDeleteInventory,
   updateDevice,
-  getDashboardCounts
+  getDashboardCounts,
+  listPlans,
+  createPlan,
+  deletePlan,
+  listAdmins,
+  createAdmin,
+  deleteAdmin
 };

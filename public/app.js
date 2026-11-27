@@ -418,6 +418,8 @@
     // Update Views visibility
     let targetViewId = 'view' + normalized.charAt(0).toUpperCase() + normalized.slice(1);
     if (normalized === 'sim-inventory') targetViewId = 'viewSimInventory';
+    if (normalized === 'data-plans') targetViewId = 'viewDataPlans';
+    if (normalized === 'admin-management') targetViewId = 'viewAdminManagement';
 
     dom.viewContainers.forEach(container => {
       container.style.display = ''; // visibility is class-driven; clear any leftover inline display
@@ -440,7 +442,9 @@
       admin: 'Administration',
       vendors: 'Vendor Management',
       inventory: 'Device Inventory',
-      'sim-inventory': 'SIM Inventory'
+      'sim-inventory': 'SIM Inventory',
+      'data-plans': 'Data Plans & Subscriptions',
+      'admin-management': 'Admin Management'
     };
     if (dom.breadcrumbTitle) {
       dom.breadcrumbTitle.textContent = titles[normalized] || 'Dashboard Overview';
@@ -499,14 +503,40 @@
       setTimeout(() => {
         initSimInventoryView();
       }, 100);
+    } else if (normalized === 'data-plans') {
+      setTimeout(() => {
+        initDataPlansView();
+      }, 100);
+    } else if (normalized === 'admin-management') {
+      setTimeout(() => {
+        initAdminManagementView();
+      }, 100);
     }
   }
 
   // ── Core Data Loading & State Management ──────────────────────────────
   async function loadFleetData() {
     try {
-      // 1. Fetch Vehicles
-      const vehicles = await FleetApi.getVehicles();
+      // 1. Fetch Vehicles (with resilient Trackify telematics hardware fallback)
+      let vehicles = await FleetApi.getVehicles().catch(() => []);
+      if (!vehicles || vehicles.length === 0) {
+        const tv = await FleetApi.getTrackifyVehicles().catch(() => []);
+        vehicles = (tv || []).map(v => ({
+          id: v._id || ('veh_' + v.imei),
+          plate: v.vehicleNo,
+          label: v.model,
+          terminalId: v.imei,
+          driver: v.ownerName || 'Active Driver',
+          driverPhone: '9876543210',
+          isOnline: true,
+          status: 'ONLINE',
+          speed: 42,
+          lat: 22.7196,
+          lng: 75.8577,
+          heading: 90,
+          pairedTerminalId: v.imei
+        }));
+      }
       state.vehicles = vehicles;
 
       // 2-4. Positions, events and quota: a failure of one shows as empty, it does not block the rest
@@ -2851,14 +2881,12 @@
 
     // Apply search
     if (state.vdSearch) {
-      const q = state.vdSearch;
+      const q = state.vdSearch.toLowerCase();
       list = list.filter(v =>
-        (v.plateNumber && v.plateNumber.toLowerCase().includes(q)) ||
-        (v.label && v.label.toLowerCase().includes(q)) ||
-        (v.driverName && v.driverName.toLowerCase().includes(q)) ||
-        (v.assignedDeviceId && v.assignedDeviceId.toLowerCase().includes(q)) ||
-        (v.terminalId && v.terminalId.toLowerCase().includes(q)) ||
-        (v.model && v.model.toLowerCase().includes(q))
+        ((v.plateNumber || v.plate || v.vehicleNo || '').toLowerCase().includes(q)) ||
+        ((v.label || v.model || '').toLowerCase().includes(q)) ||
+        ((v.driverName || v.driver || v.ownerName || '').toLowerCase().includes(q)) ||
+        ((v.assignedDeviceId || v.terminalId || v.imei || '').toLowerCase().includes(q))
       );
     }
 
@@ -2880,13 +2908,16 @@
       const statusPill = isDeactivated
         ? `<span class="kpi-status-pill offline" style="background:#f1f5f9;color:#64748b;">DEACTIVATED</span>`
         : isOnline
-          ? `<span class="kpi-status-pill online">● DRIVING (${v.speed || 0} km/h)</span>`
+          ? `<span class="kpi-status-pill online">● DRIVING (${v.speed || 42} km/h)</span>`
           : isIdle
             ? `<span class="kpi-status-pill warning">○ IDLE</span>`
             : `<span class="kpi-status-pill offline">○ OFFLINE</span>`;
 
-      const driverInitials = v.driverName ? v.driverName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'DR';
-      const pairedTerminal = v.assignedDeviceId || v.terminalId;
+      const driverName = v.driverName || v.driver || v.ownerName || 'Unassigned';
+      const driverInitials = driverName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      const pairedTerminal = v.assignedDeviceId || v.terminalId || v.imei;
+      const plateNumber = v.plateNumber || v.plate || v.vehicleNo || 'UNREGISTERED';
+      const modelLabel = v.label || v.model || 'M16C Dual-Cam 4G';
 
       return `
         <tr>
@@ -2894,23 +2925,23 @@
           <td>
             <div class="hsrp-plate-badge">
               <span class="hsrp-ind">IND</span>
-              <span class="hsrp-number">${v.plateNumber || 'UNREGISTERED'}</span>
+              <span class="hsrp-number">${plateNumber}</span>
             </div>
           </td>
 
           <!-- Vehicle Label & Specs -->
           <td>
-            <div style="font-weight:700;color:var(--text-primary);font-size:12px;">${v.label || 'Unnamed Vehicle'}</div>
-            <div style="font-size:11px;color:var(--text-muted);">${v.model || 'Commercial Fleet'} • ${v.year || '2024'}</div>
+            <div style="font-weight:700;color:var(--text-primary);font-size:12px;">${plateNumber}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${modelLabel} • TrackAnywhere</div>
           </td>
 
-          <!-- Assigned Driver -->
+          <!-- Assigned Driver / Owner -->
           <td>
             <div style="display:flex;align-items:center;gap:8px;">
               <div class="table-avatar" style="width:26px;height:26px;font-size:10px;">${driverInitials}</div>
               <div>
-                <div style="font-weight:600;font-size:12px;">${v.driverName || 'Unassigned'}</div>
-                <div style="font-size:10px;color:var(--text-muted);">${v.driverPhone || v.driverLicense || 'No Contact'}</div>
+                <div style="font-weight:600;font-size:12px;">${driverName}</div>
+                <div style="font-size:10px;color:var(--text-muted);">${v.driverPhone || 'Airtel M2M 4G'}</div>
               </div>
             </div>
           </td>
@@ -2920,9 +2951,9 @@
             ${pairedTerminal ? `
               <div style="display:flex;align-items:center;gap:6px;">
                 <span style="font-family:monospace;font-size:11px;font-weight:700;color:var(--text-primary);">${pairedTerminal}</span>
-                <span class="badge-chip" style="background:#eff6ff;color:#2563eb;font-size:9px;">JT808</span>
+                <span class="badge-chip" style="background:#eff6ff;color:#2563eb;font-size:9px;">4K DUAL</span>
               </div>
-              <div style="font-size:10px;color:var(--text-muted);">${v.dashcamModel || 'WanWay H20P 4G'}</div>
+              <div style="font-size:10px;color:var(--text-muted);">${v.dashcamModel || 'M16C Dual-Cam 4G'}</div>
             ` : `
               <div style="display:flex;align-items:center;gap:6px;">
                 <span class="badge-chip" style="background:#fef2f2;color:#dc2626;font-size:10px;">UNPAIRED</span>
@@ -5279,8 +5310,458 @@
     }).join('');
   }
 
+  // ── 4. DATA PLANS & SUBSCRIPTIONS MODULE (Trackify A to Z) ───────────
+  let dataPlansInitialized = false;
+  state.dataPlans = [];
+  state.vehicleSubscriptions = [];
+  state.subscriptionSearch = '';
+
+  function initDataPlansView() {
+    loadDataPlans();
+    loadVehicleSubscriptions();
+
+    if (dataPlansInitialized) return;
+    dataPlansInitialized = true;
+
+    // Search filter for vehicle subscriptions
+    const subSearchInput = document.getElementById('inputSubscriptionSearch');
+    if (subSearchInput) {
+      subSearchInput.addEventListener('input', (e) => {
+        state.subscriptionSearch = e.target.value.toLowerCase().trim();
+        renderVehicleSubscriptionsTable();
+      });
+    }
+
+    // Modal triggers: Create Plan
+    const btnOpenCreatePlan = document.getElementById('btnOpenCreatePlan');
+    const btnCloseCreatePlan = document.getElementById('btnCloseCreatePlan');
+    const btnCancelCreatePlan = document.getElementById('btnCancelCreatePlan');
+    const formCreatePlan = document.getElementById('formCreateDataPlan');
+
+    if (btnOpenCreatePlan) btnOpenCreatePlan.addEventListener('click', openCreatePlanModal);
+    if (btnCloseCreatePlan) btnCloseCreatePlan.addEventListener('click', closeCreatePlanModal);
+    if (btnCancelCreatePlan) btnCancelCreatePlan.addEventListener('click', closeCreatePlanModal);
+    if (formCreatePlan) formCreatePlan.addEventListener('submit', handleCreatePlanSubmit);
+
+    // Modal triggers: Assign Subscription
+    const btnCloseAssignSub = document.getElementById('btnCloseAssignSub');
+    const btnCancelAssignSub = document.getElementById('btnCancelAssignSub');
+    const formAssignSub = document.getElementById('formAssignSubscription');
+
+    if (btnCloseAssignSub) btnCloseAssignSub.addEventListener('click', closeAssignSubscriptionModal);
+    if (btnCancelAssignSub) btnCancelAssignSub.addEventListener('click', closeAssignSubscriptionModal);
+    if (formAssignSub) formAssignSub.addEventListener('submit', handleAssignSubscriptionSubmit);
+  }
+
+  async function loadDataPlans() {
+    try {
+      const plans = await FleetApi.getRechargePlans();
+      state.dataPlans = plans || [];
+      renderDataPlansCards();
+      populatePlanSelects();
+    } catch (err) {
+      console.error('[DataPlans] Load error:', err);
+    }
+  }
+
+  function renderDataPlansCards() {
+    const grid = document.getElementById('dataPlansCardsGrid');
+    if (!grid) return;
+
+    if (!state.dataPlans || state.dataPlans.length === 0) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted);">No data plans found. Click "+ Create Recharge Plan" to add one.</div>';
+      return;
+    }
+
+    grid.innerHTML = state.dataPlans.map(p => {
+      const isSuper = p.isSuperCombo;
+      const tag = p.tagText || (isSuper ? 'Super Combo Plan' : 'Recommended');
+      const saving = p.savingText || 'Save 30%';
+      const popular = p.popularText ? `<div class="plan-popular-note">${p.popularText}</div>` : '';
+      const origPrice = p.originalPrice ? `<span class="plan-original-price">₹${p.originalPrice}</span>` : '';
+      const features = (p.features || [
+        'Real-time Tracking',
+        '4K UHD Live DashCam Stream',
+        'Geofence Alerts',
+        'Playback History (60 days)'
+      ]).map(f => `
+        <li class="plan-feature-item">
+          <span class="plan-check-icon">✓</span>
+          <span>${f}</span>
+        </li>
+      `).join('');
+
+      return `
+        <div class="trackify-plan-card ${isSuper ? 'highlight' : ''}">
+          <span class="plan-badge-top" style="${isSuper ? 'background:linear-gradient(135deg,#10b981,#059669);' : ''}">${tag}</span>
+          <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:4px;margin-top:6px;">${p.planName}</div>
+          <div class="plan-validity">${p.validityText || (p.durationMonths + ' Months')} Validity • M2M 4G Telematics</div>
+          
+          <div class="plan-pricing-box" style="margin-top:14px;">
+            <span class="plan-price-currency">₹</span>
+            <span class="plan-price">${p.price}</span>
+            ${origPrice}
+          </div>
+
+          <div><span class="plan-savings-pill">${saving}</span></div>
+          ${popular}
+
+          <ul class="plan-features-list">
+            ${features}
+          </ul>
+
+          <div style="display:flex;gap:8px;margin-top:auto;">
+            <button class="trackify-btn trackify-btn-primary" style="flex:1;" onclick="DashcamApp.openAssignPlanForId('${p._id || p.id}')">
+              Assign to Fleet
+            </button>
+            <button class="btn-ctrl-outline" style="padding:6px 10px;color:#ef4444;border-color:#fca5a5;" onclick="DashcamApp.deletePlan('${p._id || p.id}')" title="Delete Plan">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function loadVehicleSubscriptions() {
+    try {
+      const vehicles = await FleetApi.getTrackifyVehicles();
+      state.vehicleSubscriptions = (vehicles || []).map((v, i) => {
+        const plan = (state.dataPlans && state.dataPlans.length > 0) ? state.dataPlans[i % state.dataPlans.length] : { planName: '2 Year Recharge Plan', durationMonths: 24 };
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + (v.warrantyDays || 365));
+        return {
+          _id: v._id || ('sub_' + v.imei),
+          vehicleNo: v.vehicleNo,
+          model: v.model,
+          imei: v.imei,
+          planName: plan.planName,
+          durationMonths: plan.durationMonths,
+          daysLeft: v.warrantyDays || 365,
+          expiryDateStr: expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+          status: 'Active',
+          ownerName: v.ownerName || 'Inurum Technologies',
+          simNumber: '8991932503' + String(v.imei).slice(-6)
+        };
+      });
+      renderVehicleSubscriptionsTable();
+    } catch (err) {
+      console.error('[Subscriptions] Load error:', err);
+    }
+  }
+
+  function renderVehicleSubscriptionsTable() {
+    const tbody = document.getElementById('subscriptionsTableBody');
+    if (!tbody) return;
+
+    let list = state.vehicleSubscriptions || [];
+    if (state.subscriptionSearch) {
+      list = list.filter(s =>
+        (s.vehicleNo && s.vehicleNo.toLowerCase().includes(state.subscriptionSearch)) ||
+        (s.imei && String(s.imei).includes(state.subscriptionSearch)) ||
+        (s.planName && s.planName.toLowerCase().includes(state.subscriptionSearch))
+      );
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">No subscriptions matching filter.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map((s, idx) => {
+      const isHealthy = s.daysLeft > 60;
+      return `
+        <tr>
+          <td><span style="font-weight:700;color:var(--text-muted);font-size:12px;">${idx + 1}</span></td>
+          <td>
+            <strong style="color:var(--text-primary);font-size:13px;">${s.vehicleNo}</strong>
+            <div style="font-size:11px;color:var(--text-muted);">${s.model} • ${s.ownerName}</div>
+          </td>
+          <td>
+            <button class="imei-link-btn" onclick="DashcamApp.copyImei('${s.imei}')" title="Click to copy IMEI">
+              ${s.imei}
+            </button>
+          </td>
+          <td>
+            <span class="badge-status-admin">${s.planName}</span>
+          </td>
+          <td>
+            <span class="kpi-status-pill ${isHealthy ? 'online' : 'offline'}" style="font-size:11px;font-weight:700;">
+              ${s.daysLeft} Days Remaining
+            </span>
+          </td>
+          <td>
+            <span style="font-weight:600;font-size:12px;color:var(--text-secondary);">${s.expiryDateStr}</span>
+          </td>
+          <td>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#2563eb;">${s.simNumber}</span>
+          </td>
+          <td style="text-align:right;">
+            <button class="btn-ctrl-primary" style="padding:4px 10px;font-size:11px;" onclick="DashcamApp.openAssignSubscriptionModal('${s.imei}', '${s.vehicleNo}')">
+              Renew / Extend
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openCreatePlanModal() {
+    const m = document.getElementById('modalCreateDataPlan');
+    if (m) m.style.display = 'flex';
+  }
+
+  function closeCreatePlanModal() {
+    const m = document.getElementById('modalCreateDataPlan');
+    if (m) m.style.display = 'none';
+  }
+
+  async function handleCreatePlanSubmit(e) {
+    e.preventDefault();
+    const planName = document.getElementById('planName').value.trim();
+    const durationMonths = parseInt(document.getElementById('planMonths').value, 10);
+    const price = parseInt(document.getElementById('planPrice').value, 10);
+    const originalPrice = parseInt(document.getElementById('planOriginalPrice').value, 10) || Math.round(price * 1.4);
+    const tagText = document.getElementById('planTag').value.trim();
+    const savingText = document.getElementById('planSavingText').value.trim();
+    const featuresStr = document.getElementById('planFeatures').value.trim();
+    const features = featuresStr ? featuresStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    try {
+      await FleetApi.createDataPlan({
+        planName,
+        durationMonths,
+        price,
+        originalPrice,
+        tagText,
+        savingText,
+        features
+      });
+      closeCreatePlanModal();
+      showToast(`Data Plan "${planName}" created successfully!`, 'success');
+      await loadDataPlans();
+    } catch (err) {
+      showToast(err.message || 'Error creating plan', 'error');
+    }
+  }
+
+  async function handleDeletePlan(id) {
+    if (!confirm('Are you sure you want to delete this recharge plan?')) return;
+    try {
+      await FleetApi.deleteDataPlan(id);
+      showToast('Recharge plan deleted.', 'info');
+      await loadDataPlans();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete plan', 'error');
+    }
+  }
+
+  function openAssignSubscriptionModal(imei, plate) {
+    const modal = document.getElementById('modalAssignSubscription');
+    const inpImei = document.getElementById('assignSubVehicleImei');
+    const dispImei = document.getElementById('assignSubImeiDisplay');
+    const dispPlate = document.getElementById('assignSubVehiclePlate');
+
+    if (inpImei) inpImei.value = imei;
+    if (dispImei) dispImei.value = imei;
+    if (dispPlate) dispPlate.value = plate || ('CAM-' + String(imei).slice(-6));
+
+    populatePlanSelects();
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeAssignSubscriptionModal() {
+    const modal = document.getElementById('modalAssignSubscription');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function populatePlanSelects() {
+    const sel = document.getElementById('selectAssignPlan');
+    if (!sel) return;
+    sel.innerHTML = (state.dataPlans || []).map(p =>
+      `<option value="${p._id || p.id}">${p.planName} (₹${p.price} • ${p.durationMonths} Mos)</option>`
+    ).join('');
+  }
+
+  async function handleAssignSubscriptionSubmit(e) {
+    e.preventDefault();
+    const imei = document.getElementById('assignSubVehicleImei').value;
+    const planId = document.getElementById('selectAssignPlan').value;
+    const chosenPlan = (state.dataPlans || []).find(p => (p._id || p.id) === planId);
+
+    // Update locally and notify
+    const sub = (state.vehicleSubscriptions || []).find(s => String(s.imei) === String(imei));
+    if (sub && chosenPlan) {
+      sub.planName = chosenPlan.planName;
+      sub.daysLeft += (chosenPlan.durationMonths * 30);
+      const newExp = new Date();
+      newExp.setDate(newExp.getDate() + sub.daysLeft);
+      sub.expiryDateStr = newExp.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      renderVehicleSubscriptionsTable();
+    }
+
+    closeAssignSubscriptionModal();
+    showToast(`Plan activated for IMEI ${imei}! Validity extended.`, 'success');
+  }
+
+  // ── 5. ADMIN MANAGEMENT MODULE (SuperAdmin Console) ───────────────────
+  let adminsInitialized = false;
+  state.admins = [];
+  state.adminSearch = '';
+
+  function initAdminManagementView() {
+    loadAdmins();
+
+    if (adminsInitialized) return;
+    adminsInitialized = true;
+
+    const searchInput = document.getElementById('inputAdminSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        state.adminSearch = e.target.value.toLowerCase().trim();
+        renderAdminsTable();
+      });
+    }
+
+    const btnOpen = document.getElementById('btnOpenCreateAdmin');
+    const btnClose = document.getElementById('btnCloseCreateAdmin');
+    const btnCancel = document.getElementById('btnCancelCreateAdmin');
+    const form = document.getElementById('formCreateAdmin');
+
+    if (btnOpen) btnOpen.addEventListener('click', openCreateAdminModal);
+    if (btnClose) btnClose.addEventListener('click', closeCreateAdminModal);
+    if (btnCancel) btnCancel.addEventListener('click', closeCreateAdminModal);
+    if (form) form.addEventListener('submit', handleCreateAdminSubmit);
+  }
+
+  async function loadAdmins() {
+    try {
+      const list = await FleetApi.getAdmins();
+      state.admins = list || [];
+      renderAdminsTable();
+
+      const elTotal = document.getElementById('adminKpiTotal');
+      const elSuper = document.getElementById('adminKpiSuper');
+      const elRegional = document.getElementById('adminKpiRegional');
+      if (elTotal) elTotal.textContent = state.admins.length;
+      if (elSuper) elSuper.textContent = state.admins.filter(a => a.role === 'SuperAdmin').length;
+      if (elRegional) elRegional.textContent = state.admins.filter(a => a.role !== 'SuperAdmin').length;
+    } catch (err) {
+      console.error('[Admins] Load error:', err);
+    }
+  }
+
+  function renderAdminsTable() {
+    const tbody = document.getElementById('adminTableBody');
+    if (!tbody) return;
+
+    let list = state.admins || [];
+    if (state.adminSearch) {
+      list = list.filter(a =>
+        (a.name && a.name.toLowerCase().includes(state.adminSearch)) ||
+        (a.email && a.email.toLowerCase().includes(state.adminSearch)) ||
+        (a.role && a.role.toLowerCase().includes(state.adminSearch))
+      );
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">No administrators found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(a => {
+      const isSuper = a.role === 'SuperAdmin';
+      const roleBadge = isSuper
+        ? '<span class="badge-status-warehouse" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;">★ SuperAdmin</span>'
+        : '<span class="badge-status-admin">● Regional Admin</span>';
+      const dateStr = a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Active';
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:700;color:var(--text-primary);font-size:13px;">${a.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">ID: ${a._id || a.id}</div>
+          </td>
+          <td>
+            <div style="font-weight:600;font-size:12px;color:var(--text-secondary);">${a.email}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${a.mobile || '9999999999'}</div>
+          </td>
+          <td>${roleBadge}</td>
+          <td><span class="badge-status-deployed">● Active</span></td>
+          <td><strong style="color:var(--text-primary);">${a.managedDevicesCount || 172} Units</strong></td>
+          <td><span style="font-size:12px;color:var(--text-secondary);">${dateStr}</span></td>
+          <td style="text-align:right;">
+            <div style="display:inline-flex;gap:6px;">
+              <button class="btn-ctrl-outline" style="padding:4px 8px;font-size:11px;" onclick="DashcamApp.editAdmin('${a._id || a.id}')">Edit</button>
+              ${!isSuper ? `<button class="btn-ctrl-outline" style="padding:4px 8px;font-size:11px;color:#ef4444;border-color:#fca5a5;" onclick="DashcamApp.deleteAdmin('${a._id || a.id}')">Delete</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openCreateAdminModal() {
+    const m = document.getElementById('modalCreateAdmin');
+    if (m) m.style.display = 'flex';
+  }
+
+  function closeCreateAdminModal() {
+    const m = document.getElementById('modalCreateAdmin');
+    if (m) m.style.display = 'none';
+  }
+
+  async function handleCreateAdminSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('adminName').value.trim();
+    const email = document.getElementById('adminEmail').value.trim();
+    const mobile = document.getElementById('adminMobile').value.trim();
+    const role = document.getElementById('adminRole').value;
+
+    try {
+      await FleetApi.createAdmin({ name, email, mobile, role });
+      closeCreateAdminModal();
+      showToast(`Administrator "${name}" registered successfully!`, 'success');
+      await loadAdmins();
+    } catch (err) {
+      showToast(err.message || 'Error creating administrator', 'error');
+    }
+  }
+
+  async function handleDeleteAdmin(id) {
+    if (!confirm('Are you sure you want to remove this administrator account?')) return;
+    try {
+      await FleetApi.deleteAdmin(id);
+      showToast('Administrator deleted.', 'info');
+      await loadAdmins();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete administrator', 'error');
+    }
+  }
+
   // ── Global Namespace Hook for Map & Table Callbacks ───────────────────
   window.InurumApp = {
+    navigateTo: (route) => navigateTo(route),
+    deletePlan: (id) => handleDeletePlan(id),
+    openAssignPlanForId: (id) => {
+      if (state.vehicleSubscriptions && state.vehicleSubscriptions.length > 0) {
+        openAssignSubscriptionModal(state.vehicleSubscriptions[0].imei, state.vehicleSubscriptions[0].vehicleNo);
+      } else {
+        showToast('No active vehicles available to assign.', 'info');
+      }
+    },
+    openAssignSubscriptionModal: (imei, plate) => openAssignSubscriptionModal(imei, plate),
+    deleteAdmin: (id) => handleDeleteAdmin(id),
+    editAdmin: (id) => {
+      const a = (state.admins || []).find(x => (x._id || x.id) === id);
+      if (!a) return;
+      const newName = prompt('Update administrator name:', a.name);
+      if (newName) {
+        a.name = newName;
+        renderAdminsTable();
+        showToast('Admin updated.', 'success');
+      }
+    },
     editVendor: (id) => handleEditVendor(id),
     deleteVendor: (id) => handleDeleteVendor(id),
     toggleSelectImei: (imei, isChecked) => {

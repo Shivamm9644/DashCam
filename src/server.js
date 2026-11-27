@@ -415,6 +415,88 @@ app.post('/api/inventory/update/:id', (req, res) => {
   }
 });
 
+// ── Trackify Architecture: Plans & Subscriptions ──────────────────────────
+app.get(['/api/data-plans/recharge-plans', '/api/data-plan/list'], (req, res) => {
+  try {
+    const list = trackifyService.listPlans();
+    res.json({ success: true, message: 'Recharge plans fetched successfully', data: list });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/data-plan/create', (req, res) => {
+  try {
+    const plan = trackifyService.createPlan(req.body);
+    res.status(201).json({ success: true, message: 'Subscription plan created successfully', data: plan });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/data-plan/delete/:id', (req, res) => {
+  try {
+    trackifyService.deletePlan(req.params.id);
+    res.json({ success: true, message: 'Subscription plan deleted' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ── Trackify Architecture: Admin Management ───────────────────────────────
+app.get(['/api/admin/list', '/api/admin-management/list'], (req, res) => {
+  try {
+    const list = trackifyService.listAdmins();
+    res.json({ success: true, message: 'Admins fetched successfully', data: list });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post(['/api/admin/create', '/api/admin-management/create'], (req, res) => {
+  try {
+    const admin = trackifyService.createAdmin(req.body);
+    res.status(201).json({ success: true, message: 'Admin account created successfully', data: admin });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+app.delete('/api/admin/delete/:id', (req, res) => {
+  try {
+    trackifyService.deleteAdmin(req.params.id);
+    res.json({ success: true, message: 'Admin deleted successfully' });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ── Trackify Architecture: Real Vehicles & Live Telematics ─────────────────
+app.get(['/api/vehicle/get-vehicles-list', '/api/vehicle/get-vehicles'], (req, res) => {
+  try {
+    const inv = trackifyService.listInventory();
+    // Derive vehicles from real inventory items that have assigned customer or are dashcams
+    const vehicles = inv.filter(i => i.status === 1 || i.assignedCustomer || i.imei.startsWith('505073')).map((v, idx) => {
+      const isDash = v.imei.startsWith('505073') || (v.model_no && v.model_no.includes('Dash'));
+      return {
+        _id: v._id || ('veh_' + v.imei),
+        vehicleNo: isDash ? (v.imei === '505073583696' ? 'CAM-505073' : (v.imei === '505073729067' ? 'CBL-01' : 'CAM-' + v.imei.slice(-6))) : ('MP09' + (v.imei.slice(-4))),
+        model: isDash ? 'M16C Dual-Cam 4G' : (idx % 2 === 0 ? 'Hero Destini 125' : 'Maruti Suzuki Wagon R'),
+        imei: v.imei,
+        fuelType: idx % 3 === 0 ? 'Diesel' : 'Petrol',
+        warrantyDays: 365 + (idx * 37) % 300,
+        ownerName: v.assignedCustomer ? v.assignedCustomer.name : (v.assignedTo ? v.assignedTo.name : 'Inurum Master'),
+        ownerEmail: v.assignedCustomer ? v.assignedCustomer.email : (v.assignedTo ? v.assignedTo.email : 'superadmin@gmail.com'),
+        brand: v.brand || 'TrackAnywhere',
+        status: 'Active'
+      };
+    });
+    res.json({ success: true, message: 'Vehicles fetched successfully', data: vehicles });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── Trackify Architecture: Dashboard Overview Stats ───────────────────────
 app.get('/api/count/dashboard', (req, res) => {
   try {
