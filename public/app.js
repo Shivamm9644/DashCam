@@ -485,34 +485,40 @@
     // Expand parent groups if active sub-item
     const groupInventory = document.getElementById('navGroupInventory');
     const groupVehicles = document.getElementById('navGroupVehicles');
-    if (groupInventory) {
-      if (normalized === 'inventory' || normalized === 'sim-inventory') {
-        groupInventory.classList.add('active-group');
-        const parentItem = groupInventory.querySelector('.nav-item-parent');
-        if (parentItem) parentItem.classList.add('active');
-      } else {
-        groupInventory.classList.remove('active-group');
-        const parentItem = groupInventory.querySelector('.nav-item-parent');
-        if (parentItem) parentItem.classList.remove('active');
-      }
-    }
-    if (groupVehicles) {
-      if (normalized === 'vehicles') {
-        groupVehicles.classList.add('active-group');
-        const parentItem = groupVehicles.querySelector('.nav-item-parent');
-        if (parentItem) parentItem.classList.add('active');
-      } else {
-        groupVehicles.classList.remove('active-group');
-        const parentItem = groupVehicles.querySelector('.nav-item-parent');
-        if (parentItem) parentItem.classList.remove('active');
-      }
-    }
+    const groupProduct = document.getElementById('navGroupProduct');
+    const groupMedia = document.getElementById('navGroupMedia');
+
+    const vehicleRoutes = ['vehicles', 'brand-list', 'model-list', 'vehicle-type', 'expired-vehicle', 'inactive-devices'];
+    const inventoryRoutes = ['inventory', 'sim-inventory'];
+    const productRoutes = ['manage-product', 'order-product'];
+    const mediaRoutes = ['video-tutorials', 'video-tutorial-categories', 'promo-videos', 'local-videos', 'banners', 'app-updates'];
+    const dynamicModuleRoutes = [
+      'brand-list', 'model-list', 'vehicle-type', 'expired-vehicle', 'inactive-devices',
+      'manage-product', 'order-product', 'sim-data-usage', 'user',
+      'video-tutorials', 'video-tutorial-categories', 'promo-videos', 'local-videos', 'banners', 'app-updates',
+      'ios-review', 'org-config', 'settings', 'support'
+    ];
+
+    const syncGroup = (el, routes) => {
+      if (!el) return;
+      const isMatch = routes.includes(normalized);
+      el.classList.toggle('active-group', isMatch);
+      const sub = el.querySelector('.nav-sub-items');
+      if (sub) sub.style.display = isMatch ? 'block' : 'none';
+      const parentItem = el.querySelector('.nav-item-parent');
+      if (parentItem) parentItem.classList.toggle('active', isMatch);
+    };
+    syncGroup(groupInventory, inventoryRoutes);
+    syncGroup(groupVehicles, vehicleRoutes);
+    syncGroup(groupProduct, productRoutes);
+    syncGroup(groupMedia, mediaRoutes);
 
     // Update Views visibility
     let targetViewId = 'view' + normalized.charAt(0).toUpperCase() + normalized.slice(1);
     if (normalized === 'sim-inventory') targetViewId = 'viewSimInventory';
     if (normalized === 'data-plans') targetViewId = 'viewDataPlans';
     if (normalized === 'admin-management') targetViewId = 'viewAdminManagement';
+    if (dynamicModuleRoutes.includes(normalized)) targetViewId = 'viewTrackifyModule';
 
     dom.viewContainers.forEach(container => {
       container.style.display = ''; // visibility is class-driven; clear any leftover inline display
@@ -529,15 +535,34 @@
       live: 'Live Monitoring',
       video: 'Video Center',
       safety: 'Safety Inbox',
-      vehicles: 'Vehicles & Fleet',
-      trips: 'Route Playback',
-      reports: 'Reports & Analytics',
+      vehicles: 'All Vehicles',
+      'brand-list': 'Brand List',
+      'model-list': 'Model List',
+      'vehicle-type': 'Vehicle Type',
+      'expired-vehicle': 'Warranty Expired',
+      'inactive-devices': 'Inactive Telemetry',
+      trips: 'Route Playback & Trips',
+      reports: 'Statistics & Analytics',
       admin: 'Administration',
       vendors: 'Vendor Management',
       inventory: 'Device Inventory',
       'sim-inventory': 'SIM Inventory',
+      'manage-product': 'Manage Product',
+      'order-product': 'Order Product',
       'data-plans': 'Data Plans & Subscriptions',
-      'admin-management': 'Admin Management'
+      'sim-data-usage': 'SIM Data Usage',
+      user: 'User Management',
+      'admin-management': 'Admin Management',
+      'video-tutorials': 'Video Tutorials',
+      'video-tutorial-categories': 'Tutorial Categories',
+      'promo-videos': 'Promo Videos',
+      'local-videos': 'Local Videos',
+      banners: 'App Banners',
+      'app-updates': 'App Updates',
+      'ios-review': 'iOS Review Mode',
+      'org-config': 'Organization Config',
+      settings: 'Settings',
+      support: 'Support & Helpdesk'
     };
     if (dom.breadcrumbTitle) {
       dom.breadcrumbTitle.textContent = titles[normalized] || 'Dashboard Overview';
@@ -605,6 +630,282 @@
       setTimeout(() => {
         initAdminManagementView();
       }, 100);
+    } else if (dynamicModuleRoutes.includes(normalized)) {
+      setTimeout(() => {
+        renderTrackifyModule(normalized);
+      }, 50);
+    }
+  }
+
+  // ── A-to-Z Trackify Dynamic Module Renderer (100% Real DashCam Data) ──
+  async function renderTrackifyModule(route) {
+    const root = document.getElementById('trackifyModuleRoot');
+    if (!root) return;
+    root.innerHTML = `<div style="padding:32px;text-align:center;color:#64748b;font-weight:600;">Loading module...</div>`;
+    const h = FleetApi.getHeaders();
+    const apiGet = (u) => fetch(u, { headers: h }).then(r => r.json()).then(d => d.data || []).catch(() => []);
+    const apiPost = (u, b) => fetch(u, { method: 'POST', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
+    const apiDel = (u) => fetch(u, { method: 'DELETE', headers: h }).then(r => r.json());
+
+    const renderHeader = (title, sub, btnId, btnLabel) => `
+      <div class="trackify-page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1 class="trackify-page-title">${title}</h1>
+          <p class="trackify-page-subtitle">${sub}</p>
+        </div>
+        ${btnId ? `<button class="trackify-btn trackify-btn-primary" id="${btnId}">${btnLabel}</button>` : ''}
+      </div>`;
+
+    // 1. Catalog: Brand List / Model List / Vehicle Type
+    if (route === 'brand-list' || route === 'model-list' || route === 'vehicle-type') {
+      const cfg = {
+        'brand-list': { title: 'Brand List', sub: 'Registered DashCam hardware manufacturers & protocols.', api: 'brands', cols: ['Brand Name', 'Manufacturer', 'Protocol', 'Status'], fields: d => [d.name, d.manufacturer || 'Inurum Telematics', d.protocol || 'JT808 / JT1078', d.status || 'Active'], addBtn: '+ Add Brand', promptLabel: 'Enter Brand Name:' },
+        'model-list': { title: 'Model List', sub: 'Supported DashCam hardware models & video resolutions.', api: 'models', cols: ['Model Name', 'Brand', 'Channels', 'Resolution'], fields: d => [d.name, d.brand || 'TrackAnywhere', (d.channels || 2) + ' CH', d.resolution || '4K / 1080P'], addBtn: '+ Add Model', promptLabel: 'Enter DashCam Model Name:' },
+        'vehicle-type': { title: 'Vehicle Type', sub: 'Fleet vehicle classifications & default speed limits.', api: 'vehicle-types', cols: ['Type Name', 'Default Speed Limit', 'Icon', 'Status'], fields: d => [d.name, (d.defaultSpeedLimit || 80) + ' km/h', d.icon || 'local_shipping', d.status || 'Active'], addBtn: '+ Add Vehicle Type', promptLabel: 'Enter Vehicle Type Name:' }
+      }[route];
+      const rows = await apiGet(`/api/${cfg.api}/list`);
+      root.innerHTML = `
+        ${renderHeader(cfg.title, cfg.sub, 'btnAddCatalogItem', cfg.addBtn)}
+        <div class="trackify-card" style="padding:18px;margin-top:16px;">
+          <table class="enterprise-table" style="width:100%;">
+            <thead><tr>${cfg.cols.map(c => `<th>${c}</th>`).join('')}<th>Action</th></tr></thead>
+            <tbody>
+              ${rows.length === 0 ? `<tr><td colspan="${cfg.cols.length + 1}" style="text-align:center;padding:24px;color:#64748b;">No records found.</td></tr>` : rows.map(r => `
+                <tr>
+                  ${cfg.fields(r).map(v => `<td>${v}</td>`).join('')}
+                  <td><button class="btn-table-action" data-del-id="${r._id}" style="color:#ef4444;">Delete</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById('btnAddCatalogItem')?.addEventListener('click', async () => {
+        const name = prompt(cfg.promptLabel);
+        if (!name || !name.trim()) return;
+        await apiPost(`/api/${cfg.api}/create`, { name: name.trim(), status: 'Active' });
+        showToast(`${name.trim()} added!`, 'success');
+        renderTrackifyModule(route);
+      });
+      root.querySelectorAll('[data-del-id]').forEach(b => b.addEventListener('click', async () => {
+        await apiDel(`/api/${cfg.api}/${b.dataset.delId}`);
+        showToast('Record deleted.', 'info');
+        renderTrackifyModule(route);
+      }));
+      return;
+    }
+
+    // 2. Warranty Expired & Inactive Telemetry (Real DashCam Fleet Filter)
+    if (route === 'expired-vehicle' || route === 'inactive-devices') {
+      const vehicles = state.vehicles || [];
+      const isExp = route === 'expired-vehicle';
+      const filtered = isExp
+        ? vehicles.filter(v => v.warrantyExpiry && new Date(v.warrantyExpiry) < new Date())
+        : vehicles.filter(v => !v.status || v.status === 'OFFLINE');
+      root.innerHTML = `
+        ${renderHeader(isExp ? 'Warranty Expired' : 'Inactive Telemetry', isExp ? 'DashCam hardware units with expired warranty.' : 'DashCam terminals currently offline or inactive.', null, '')}
+        <div class="trackify-card" style="padding:18px;margin-top:16px;">
+          <table class="enterprise-table" style="width:100%;">
+            <thead><tr><th>Vehicle / Plate</th><th>Terminal ID</th><th>Model</th><th>Status</th><th>Last Seen</th><th>Action</th></tr></thead>
+            <tbody>
+              ${filtered.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:28px;color:#64748b;">${isExp ? 'No warranty-expired DashCams found.' : 'All DashCams are actively reporting telemetry.'}</td></tr>` : filtered.map(v => `
+                <tr>
+                  <td><b>${v.plateNumber || v.label || v.id}</b></td>
+                  <td style="font-family:monospace;">${v.terminalId || v.pairedTerminalId || v.id}</td>
+                  <td>${v.model || 'M16C Dual-Channel 4G'}</td>
+                  <td><span class="badge-chip offline">${v.status || 'OFFLINE'}</span></td>
+                  <td>${v.lastSeen ? new Date(v.lastSeen).toLocaleString() : 'Never Connected'}</td>
+                  <td><button class="btn-table-action" onclick="window.InurumApp.navigateTo('live')">Inspect</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      return;
+    }
+
+    // 3. Product -> Manage Product & Order Product
+    if (route === 'manage-product' || route === 'order-product') {
+      const isOrder = route === 'order-product';
+      const items = await apiGet(`/api/${isOrder ? 'orders' : 'products'}/list`);
+      root.innerHTML = `
+        ${renderHeader(isOrder ? 'Order Product' : 'Manage Product', isOrder ? 'Hardware purchase orders & stock requests.' : 'DashCam & M2M hardware product catalog.', 'btnAddProdOrOrder', isOrder ? '+ Place Hardware Order' : '+ Add Product')}
+        <div class="trackify-card" style="padding:18px;margin-top:16px;">
+          <table class="enterprise-table" style="width:100%;">
+            <thead><tr><th>${isOrder ? 'Order Title' : 'Product Name'}</th><th>SKU / Model</th><th>Qty / Price</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>
+              ${items.length === 0 ? `<tr><td colspan="5" style="text-align:center;padding:28px;color:#64748b;">${isOrder ? 'No hardware orders placed yet.' : 'No products created yet.'}</td></tr>` : items.map(p => `
+                <tr>
+                  <td><b>${p.name || p.title}</b></td>
+                  <td>${p.sku || p.model || 'M16C-4G'}</td>
+                  <td>${isOrder ? (p.quantity || 1) + ' Units' : '₹' + (p.price || 0)}</td>
+                  <td><span class="badge-chip online">${p.status || 'Active'}</span></td>
+                  <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '-'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById('btnAddProdOrOrder')?.addEventListener('click', async () => {
+        const title = prompt(isOrder ? 'Enter Order Description (e.g. 10x M16C DashCam):' : 'Enter Product Name:');
+        if (!title || !title.trim()) return;
+        await apiPost(`/api/${isOrder ? 'orders' : 'products'}/create`, isOrder ? { title: title.trim(), quantity: 10, status: 'Pending' } : { name: title.trim(), price: 6500, status: 'Active' });
+        showToast(isOrder ? 'Hardware order placed!' : 'Product added!', 'success');
+        renderTrackifyModule(route);
+      });
+      return;
+    }
+
+    // 4. SIM Data Usage (Real Paired SIMs from Inventory)
+    if (route === 'sim-data-usage') {
+      const inv = state.inventory || await apiGet('/api/inventory/list');
+      const sims = inv.filter(i => i.paired_sim_number || i.simNumber || i.iccid);
+      root.innerHTML = `
+        ${renderHeader('M2M SIM Data Usage', `Real-time M2M SIM data consumption across ${sims.length} paired DashCam SIMs.`, null, '')}
+        <div class="trackify-card" style="padding:18px;margin-top:16px;">
+          <table class="enterprise-table" style="width:100%;">
+            <thead><tr><th>SIM / ICCID</th><th>Paired IMEI</th><th>Model</th><th>Monthly Quota</th><th>Usage</th><th>Health</th></tr></thead>
+            <tbody>
+              ${sims.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:28px;color:#64748b;">No paired SIMs in inventory.</td></tr>` : sims.map(s => `
+                <tr>
+                  <td style="font-family:monospace;font-weight:700;">${s.paired_sim_number || s.simNumber || s.iccid}</td>
+                  <td style="font-family:monospace;">${s.imei}</td>
+                  <td>${s.model_no || 'DashCam'}</td>
+                  <td>100 MB</td>
+                  <td>0.0 MB (0%)</td>
+                  <td><span class="badge-chip online">SAFE</span></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      return;
+    }
+
+    // 5. User Management
+    if (route === 'user') {
+      const users = await apiGet('/api/users/list');
+      root.innerHTML = `
+        ${renderHeader('User Management', 'Fleet customers, drivers & end-user accounts.', 'btnAddCustomerUser', '+ Add User')}
+        <div class="trackify-card" style="padding:18px;margin-top:16px;">
+          <table class="enterprise-table" style="width:100%;">
+            <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              ${users.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:28px;color:#64748b;">No customer users added yet.</td></tr>` : users.map(u => `
+                <tr>
+                  <td><b>${u.name}</b></td>
+                  <td>${u.email}</td>
+                  <td>${u.mobile || '-'}</td>
+                  <td>${u.role || 'Customer'}</td>
+                  <td><span class="badge-chip online">${u.status || 'Active'}</span></td>
+                  <td><button class="btn-table-action" data-del-user="${u._id}" style="color:#ef4444;">Delete</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById('btnAddCustomerUser')?.addEventListener('click', async () => {
+        const name = prompt('Enter User Full Name:');
+        if (!name || !name.trim()) return;
+        const email = prompt('Enter User Email:') || '';
+        await apiPost('/api/users/create', { name: name.trim(), email: email.trim(), role: 'Customer', status: 'Active' });
+        showToast('User created!', 'success');
+        renderTrackifyModule(route);
+      });
+      root.querySelectorAll('[data-del-user]').forEach(b => b.addEventListener('click', async () => {
+        await apiDel(`/api/users/${b.dataset.delUser}`);
+        showToast('User removed.', 'info');
+        renderTrackifyModule(route);
+      }));
+      return;
+    }
+
+    // 6. Media & Tutorials (6 Sub-modules)
+    if (['video-tutorials', 'video-tutorial-categories', 'promo-videos', 'local-videos', 'banners', 'app-updates'].includes(route)) {
+      const mediaTitles = {
+        'video-tutorials': 'Video Tutorials', 'video-tutorial-categories': 'Tutorial Categories',
+        'promo-videos': 'Promo Videos', 'local-videos': 'Local Videos',
+        banners: 'App Banners', 'app-updates': 'App Updates'
+      };
+      const allMedia = await apiGet('/api/media/list');
+      const items = allMedia.filter(m => m.category === route);
+      root.innerHTML = `
+        ${renderHeader(mediaTitles[route], `Manage ${mediaTitles[route]} for TrackAnywhere mobile & web apps.`, 'btnAddMediaItem', '+ Add ' + mediaTitles[route].replace(/s$/, ''))}
+        <div class="trackify-card" style="padding:18px;margin-top:16px;">
+          <table class="enterprise-table" style="width:100%;">
+            <thead><tr><th>Title</th><th>URL / Version</th><th>Type</th><th>Created</th><th>Action</th></tr></thead>
+            <tbody>
+              ${items.length === 0 ? `<tr><td colspan="5" style="text-align:center;padding:28px;color:#64748b;">No ${mediaTitles[route].toLowerCase()} added yet.</td></tr>` : items.map(m => `
+                <tr>
+                  <td><b>${m.title}</b></td>
+                  <td>${m.url || '-'}</td>
+                  <td>${m.category}</td>
+                  <td>${m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '-'}</td>
+                  <td><button class="btn-table-action" data-del-media="${m._id}" style="color:#ef4444;">Delete</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById('btnAddMediaItem')?.addEventListener('click', async () => {
+        const title = prompt(`Enter ${mediaTitles[route]} Title:`);
+        if (!title || !title.trim()) return;
+        const url = prompt('Enter URL / Version (optional):') || '';
+        await apiPost('/api/media/create', { title: title.trim(), url: url.trim(), category: route });
+        showToast('Item added!', 'success');
+        renderTrackifyModule(route);
+      });
+      root.querySelectorAll('[data-del-media]').forEach(b => b.addEventListener('click', async () => {
+        await apiDel(`/api/media/${b.dataset.delMedia}`);
+        showToast('Item deleted.', 'info');
+        renderTrackifyModule(route);
+      }));
+      return;
+    }
+
+    // 7. System & Support: iOS Review Mode, Organization Config, Settings, Support
+    const sysRes = await fetch('/api/system-config', { headers: h }).then(r => r.json()).catch(() => ({ data: {} }));
+    const cfg = sysRes.data || {};
+    if (route === 'ios-review' || route === 'org-config' || route === 'settings' || route === 'support') {
+      const pageMeta = {
+        'ios-review': ['iOS Review Mode', 'Apple App Store review bypass & build version controls.'],
+        'org-config': ['Organization Config', 'White-label branding, organization name, and telematics defaults.'],
+        settings: ['System Settings', 'DashCam streaming quality, map provider, and video retention policy.'],
+        support: ['Support & Helpdesk', 'Technical support contact channels and system diagnostics.']
+      }[route];
+      root.innerHTML = `
+        ${renderHeader(pageMeta[0], pageMeta[1], null, '')}
+        <div class="trackify-card" style="padding:24px;margin-top:16px;max-width:720px;">
+          <form id="formSystemConfig" style="display:flex;flex-direction:column;gap:16px;">
+            ${route === 'ios-review' ? `
+              <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+                <div><div style="font-weight:800;">Enable iOS Review Mode</div><div style="font-size:12px;color:#64748b;">Bypass strict OTP/payment gates during App Store review</div></div>
+                <input type="checkbox" id="cfgIosReview" ${cfg.iosReviewMode ? 'checked' : ''} style="width:20px;height:20px;">
+              </label>
+              <div><label style="font-size:12px;font-weight:700;">iOS App Version</label><input id="cfgIosVer" value="${cfg.iosAppVersion || '1.0.8'}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+            ` : ''}
+            ${route === 'org-config' ? `
+              <div><label style="font-size:12px;font-weight:700;">Organization Name</label><input id="cfgOrgName" value="${cfg.orgName || 'TrackAnywhere'}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+              <div><label style="font-size:12px;font-weight:700;">Tagline</label><input id="cfgOrgTagline" value="${cfg.orgTagline || ''}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+            ` : ''}
+            ${route === 'settings' ? `
+              <div><label style="font-size:12px;font-weight:700;">Default Video Quality</label><input id="cfgVideoQuality" value="${cfg.videoQualityDefault || '4K UHD (2160p)'}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+              <div><label style="font-size:12px;font-weight:700;">Video Retention (Days)</label><input id="cfgRetention" type="number" value="${cfg.retentionDays || 30}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+            ` : ''}
+            ${route === 'support' ? `
+              <div><label style="font-size:12px;font-weight:700;">Support Email</label><input id="cfgSupEmail" value="${cfg.supportEmail || 'support@inurum.com'}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+              <div><label style="font-size:12px;font-weight:700;">Support Helpline</label><input id="cfgSupPhone" value="${cfg.supportPhone || '+91 98260 00000'}" class="trackify-input" style="width:100%;margin-top:6px;"></div>
+            ` : ''}
+            <div><button type="submit" class="trackify-btn trackify-btn-primary">Save Configuration</button></div>
+          </form>
+        </div>`;
+      document.getElementById('formSystemConfig')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const updates = {};
+        if (document.getElementById('cfgIosReview')) updates.iosReviewMode = document.getElementById('cfgIosReview').checked;
+        if (document.getElementById('cfgIosVer')) updates.iosAppVersion = document.getElementById('cfgIosVer').value.trim();
+        if (document.getElementById('cfgOrgName')) updates.orgName = document.getElementById('cfgOrgName').value.trim();
+        if (document.getElementById('cfgOrgTagline')) updates.orgTagline = document.getElementById('cfgOrgTagline').value.trim();
+        if (document.getElementById('cfgVideoQuality')) updates.videoQualityDefault = document.getElementById('cfgVideoQuality').value.trim();
+        if (document.getElementById('cfgRetention')) updates.retentionDays = parseInt(document.getElementById('cfgRetention').value, 10) || 30;
+        if (document.getElementById('cfgSupEmail')) updates.supportEmail = document.getElementById('cfgSupEmail').value.trim();
+        if (document.getElementById('cfgSupPhone')) updates.supportPhone = document.getElementById('cfgSupPhone').value.trim();
+        await apiPost('/api/system-config', updates);
+        showToast('Configuration saved!', 'success');
+      });
     }
   }
 

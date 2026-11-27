@@ -517,6 +517,44 @@ app.get('/api/count/trend', (req, res) => {
   }
 });
 
+// ── Trackify A-to-Z Catalog, Products, Orders, Users, Media & System Config ──
+const collectionRoutes = [
+  { base: 'brands', list: 'listBrands', create: 'createBrand', del: 'deleteBrand' },
+  { base: 'models', list: 'listModels', create: 'createModel', del: 'deleteModel' },
+  { base: 'vehicle-types', list: 'listVehicleTypes', create: 'createVehicleType', del: 'deleteVehicleType' },
+  { base: 'products', list: 'listProducts', create: 'createProduct', del: 'deleteProduct' },
+  { base: 'orders', list: 'listOrders', create: 'createOrder' },
+  { base: 'users', list: 'listUsers', create: 'createUser', del: 'deleteUser' },
+  { base: 'media', list: 'listMediaItems', create: 'createMediaItem', del: 'deleteMediaItem' }
+];
+
+collectionRoutes.forEach(cfg => {
+  app.get(`/api/${cfg.base}/list`, (req, res) => {
+    try { res.json({ success: true, data: trackifyService[cfg.list]() }); }
+    catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  });
+  app.post(`/api/${cfg.base}/create`, (req, res) => {
+    try { res.json({ success: true, data: trackifyService[cfg.create](req.body || {}) }); }
+    catch (err) { res.status(400).json({ success: false, message: err.message }); }
+  });
+  if (cfg.del) {
+    app.delete(`/api/${cfg.base}/:id`, (req, res) => {
+      try { trackifyService[cfg.del](req.params.id); res.json({ success: true }); }
+      catch (err) { res.status(400).json({ success: false, message: err.message }); }
+    });
+  }
+});
+
+app.get('/api/system-config', (req, res) => {
+  try { res.json({ success: true, data: trackifyService.getSystemConfig() }); }
+  catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+app.post('/api/system-config', (req, res) => {
+  try { res.json({ success: true, data: trackifyService.updateSystemConfig(req.body || {}) }); }
+  catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+
 // Catch-all for other /api routes
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'NOT_FOUND', message: 'API endpoint not recognized.' });

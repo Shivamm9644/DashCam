@@ -260,6 +260,8 @@ function getDashboardCounts() {
   const admins = getAdmins();
   const fleet = getFleetData();
   const vehicles = Array.isArray(fleet.vehicles) ? fleet.vehicles : [];
+  const users = readJsonFile('users.json', []);
+  const orders = readJsonFile('orders.json', []);
 
   const total = inventory.length;
   const unassigned = inventory.filter(e => e.status === 0 || (!e.assignedAdmin && !e.assignedVendor && !e.assignedCustomer && !e.assignedTo)).length;
@@ -270,8 +272,9 @@ function getDashboardCounts() {
 
   const activeAdmins = admins.filter(a => (a.status || 'Active').toLowerCase() === 'active').length;
   const activeVendors = vendors.filter(v => (v.status || 'Active').toLowerCase() === 'active').length;
-  const totalAccounts = admins.length + vendors.length;
-  const activeAccounts = activeAdmins + activeVendors;
+  const activeUsers = users.filter(u => (u.status || 'Active').toLowerCase() === 'active').length;
+  const totalAccounts = admins.length + vendors.length + users.length;
+  const activeAccounts = activeAdmins + activeVendors + activeUsers;
   const deactiveAccounts = Math.max(0, totalAccounts - activeAccounts);
 
   const simItems = inventory.filter(i => i.paired_sim_number || i.simNumber || i.iccid);
@@ -282,6 +285,8 @@ function getDashboardCounts() {
     deactiveAccounts,
     adminsCount: admins.length,
     vendorsCount: vendors.length,
+    usersCount: users.length,
+    pendingOrdersCount: orders.length,
     deployedAssets: vehicles.length,
     totalInventory: total,
     unassignedUnits: unassigned,
@@ -399,6 +404,85 @@ function deleteAdmin(id) {
   return true;
 }
 
+// ── GENERIC JSON COLLECTION HELPERS (A-to-Z Trackify Modules) ───────
+function readJsonFile(filename, defaultVal) {
+  ensureFiles();
+  const filePath = path.join(STORAGE_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, JSON.stringify(defaultVal, null, 2));
+    return defaultVal;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (_) {
+    return defaultVal;
+  }
+}
+
+function writeJsonFile(filename, data) {
+  ensureFiles();
+  fs.writeFileSync(path.join(STORAGE_DIR, filename), JSON.stringify(data, null, 2));
+}
+
+function listCollection(filename, defaultVal = []) {
+  return readJsonFile(filename, defaultVal);
+}
+
+function addCollectionItem(filename, item, prefix = 'item', defaultVal = []) {
+  const list = readJsonFile(filename, defaultVal);
+  const newItem = {
+    _id: `${prefix}_` + crypto.randomBytes(6).toString('hex'),
+    ...item,
+    createdAt: new Date().toISOString()
+  };
+  list.unshift(newItem);
+  writeJsonFile(filename, list);
+  return newItem;
+}
+
+function deleteCollectionItem(filename, id, defaultVal = []) {
+  const list = readJsonFile(filename, defaultVal);
+  const filtered = list.filter(x => x._id !== id);
+  writeJsonFile(filename, filtered);
+  return true;
+}
+
+const DEFAULT_BRANDS = [{ _id: 'brand_ta', name: 'TrackAnywhere', manufacturer: 'Inurum Telematics', protocol: 'JT808 / JT1078', status: 'Active' }];
+const DEFAULT_MODELS = [
+  { _id: 'model_m16c', name: 'M16C Dual-Channel 4G', brand: 'TrackAnywhere', channels: 2, resolution: '4K / 1080P', status: 'Active' },
+  { _id: 'model_cable', name: 'Cable-Powered DashCam', brand: 'TrackAnywhere', channels: 2, resolution: '4K / 1080P', status: 'Active' }
+];
+const DEFAULT_VEHICLE_TYPES = [
+  { _id: 'vtype_truck', name: 'Heavy Truck', icon: 'local_shipping', defaultSpeedLimit: 80, status: 'Active' },
+  { _id: 'vtype_car', name: 'Fleet Car / Sedan', icon: 'directions_car', defaultSpeedLimit: 100, status: 'Active' },
+  { _id: 'vtype_van', name: 'Delivery Van', icon: 'airport_shuttle', defaultSpeedLimit: 90, status: 'Active' },
+  { _id: 'vtype_bus', name: 'Passenger Bus', icon: 'directions_bus', defaultSpeedLimit: 80, status: 'Active' }
+];
+const DEFAULT_SYSTEM_CONFIG = {
+  iosReviewMode: false,
+  iosAppVersion: '1.0.8',
+  orgName: 'TrackAnywhere',
+  orgTagline: 'Enterprise DashCam & Fleet Telematics',
+  supportEmail: 'support@inurum.com',
+  supportPhone: '+91 98260 00000',
+  defaultLanguage: 'en',
+  timezone: 'Asia/Kolkata',
+  mapProvider: 'Google Maps',
+  videoQualityDefault: '4K UHD (2160p)',
+  retentionDays: 30
+};
+
+function getSystemConfig() {
+  return readJsonFile('system-config.json', DEFAULT_SYSTEM_CONFIG);
+}
+
+function updateSystemConfig(updates) {
+  const current = getSystemConfig();
+  const next = { ...current, ...updates, updatedAt: new Date().toISOString() };
+  writeJsonFile('system-config.json', next);
+  return next;
+}
+
 module.exports = {
   listVendors,
   createVendor,
@@ -416,5 +500,27 @@ module.exports = {
   deletePlan,
   listAdmins,
   createAdmin,
-  deleteAdmin
+  deleteAdmin,
+  listBrands: () => listCollection('brands.json', DEFAULT_BRANDS),
+  createBrand: (d) => addCollectionItem('brands.json', d, 'brand', DEFAULT_BRANDS),
+  deleteBrand: (id) => deleteCollectionItem('brands.json', id, DEFAULT_BRANDS),
+  listModels: () => listCollection('models.json', DEFAULT_MODELS),
+  createModel: (d) => addCollectionItem('models.json', d, 'model', DEFAULT_MODELS),
+  deleteModel: (id) => deleteCollectionItem('models.json', id, DEFAULT_MODELS),
+  listVehicleTypes: () => listCollection('vehicle-types.json', DEFAULT_VEHICLE_TYPES),
+  createVehicleType: (d) => addCollectionItem('vehicle-types.json', d, 'vtype', DEFAULT_VEHICLE_TYPES),
+  deleteVehicleType: (id) => deleteCollectionItem('vehicle-types.json', id, DEFAULT_VEHICLE_TYPES),
+  listProducts: () => listCollection('products.json', []),
+  createProduct: (d) => addCollectionItem('products.json', d, 'prod', []),
+  deleteProduct: (id) => deleteCollectionItem('products.json', id, []),
+  listOrders: () => listCollection('orders.json', []),
+  createOrder: (d) => addCollectionItem('orders.json', d, 'ord', []),
+  listUsers: () => listCollection('users.json', []),
+  createUser: (d) => addCollectionItem('users.json', d, 'usr', []),
+  deleteUser: (id) => deleteCollectionItem('users.json', id, []),
+  listMediaItems: () => listCollection('media-items.json', []),
+  createMediaItem: (d) => addCollectionItem('media-items.json', d, 'media', []),
+  deleteMediaItem: (id) => deleteCollectionItem('media-items.json', id, []),
+  getSystemConfig,
+  updateSystemConfig
 };
