@@ -1,8 +1,8 @@
 name: inurum_dashcam_app
-description: "GBT Dashcam Fleet & DashCam Telematics"
+description: "TrackAnywhere Fleet & DashCam Telematics"
 publish_to: 'none'
 
-version: 1.0.3+4
+version: 1.0.4+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

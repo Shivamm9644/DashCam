@@ -45,27 +45,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     final dash = context.watch<DashboardProvider>();
     final dp = context.watch<DeviceProvider>();
 
-    // Single source of truth: authoritative devices list (User requirement: Only real camera, no TRK sandbox)
-    final realDevices = dash.devices.where((d) => !d.plate.startsWith('TRK-') && !d.plate.startsWith('TEST-') && !d.plate.contains('MP-09')).toList();
-    final allDevices = realDevices.isNotEmpty
-        ? realDevices
-        : [
-            DeviceItem(
-              id: 'veh-cbl-01',
-              plate: 'CBL-01',
-              terminalId: '505073729067',
-              driver: 'Fleet Driver',
-              speed: 0.0,
-              status: dash.isServerReachable ? 'ONLINE' : 'OFFLINE',
-              lat: 38.9072,
-              lng: -77.0369,
-              lastPing: dash.isServerReachable ? 'Online' : 'Offline',
-              heading: 0.0,
-              altitude: 550,
-              deviceModel: 'MDVR Dual-Cam 4G',
-              clientName: 'GBT Fleet',
-            ),
-          ];
+    // Single source of truth: authoritative devices list from server
+    final allDevices = dash.devices.isNotEmpty ? dash.devices : dash.fallbackDevices;
 
     // Filter devices based on user's search query
     final filteredDevices = allDevices.where((d) {

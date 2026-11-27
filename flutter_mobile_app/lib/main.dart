@@ -247,7 +247,7 @@ class InurumDashcamApp extends StatelessWidget {
 
 
     return MaterialApp.router(
-      title: 'GBT Dashcam',
+      title: 'TrackAnywhere',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
@@ -341,7 +341,7 @@ class _MainShellState extends State<MainShell> {
                   Icon(Icons.touch_app_rounded, color: Colors.white, size: 18),
                   SizedBox(width: 10),
                   Text(
-                    'Press back again to exit GBT Dashcam',
+                    'Press back again to exit TrackAnywhere',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ],
@@ -667,7 +667,7 @@ class _MainShellState extends State<MainShell> {
                   const TrackifyLogo(size: 38),
                   const SizedBox(height: 6),
                   Text(
-                    user?.tenantName ?? 'GBT Dashcam Master',
+                    user?.tenantName ?? 'TrackAnywhere Master',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -937,7 +937,7 @@ class _MainShellState extends State<MainShell> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            'GBT Dashcam Profile • Manage >',
+                            'TrackAnywhere Profile • Manage >',
                             style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFF0284C7),

@@ -195,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text('👑', style: TextStyle(fontSize: 18)),
                 SizedBox(width: 8),
                 Text(
-                  'GBT Dashcam Fleet Pro • Active',
+                  'TrackAnywhere Fleet Pro • Active',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -784,7 +784,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => _confirmLogout(context, auth),
             icon: const Icon(Icons.logout_rounded, size: 18),
             label: const Text(
-              'Sign Out of GBT Dashcam',
+              'Sign Out of TrackAnywhere',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             ),
           ),
@@ -993,7 +993,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text('👑', style: TextStyle(fontSize: 22)),
             SizedBox(width: 8),
-            Text('GBT Dashcam Fleet Pro', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            Text('TrackAnywhere Fleet Pro', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
           ],
         ),
         content: const Column(
@@ -1254,7 +1254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('Sign Out?', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: const Text('Are you sure you want to log out of your GBT Dashcam session?'),
+        content: const Text('Are you sure you want to log out of your TrackAnywhere session?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

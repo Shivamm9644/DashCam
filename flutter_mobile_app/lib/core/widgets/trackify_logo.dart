@@ -18,7 +18,7 @@ class TrackifyLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Real Official GBT Dashcam Brand Logo Image
+        // Official TrackAnywhere Brand Logo Image
         Container(
           width: size,
           height: size,
@@ -35,7 +35,7 @@ class TrackifyLogo extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.asset(
-            'assets/images/logo.png',
+            'assets/images/trackanywhere_logo.png',
             fit: BoxFit.contain,
           ),
         ),
@@ -46,7 +46,7 @@ class TrackifyLogo extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'GBT Dashcam',
+                'TrackAnywhere',
                 style: TextStyle(
                   fontFamily: 'Montserrat',
                   fontSize: size * 0.42,
@@ -57,7 +57,7 @@ class TrackifyLogo extends StatelessWidget {
               ),
               const SizedBox(height: 1),
               Text(
-                'Commercial Fleet Video Telematics',
+                'Enterprise Fleet Video Telematics',
                 style: TextStyle(
                   fontSize: size * 0.25,
                   fontWeight: FontWeight.w500,

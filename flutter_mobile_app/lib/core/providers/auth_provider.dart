@@ -289,11 +289,11 @@ class AuthProvider extends ChangeNotifier {
       // 1. Any user logging into GBT Dashcam has full Enterprise access to all vehicles on 3.85.81.10
       final adminUser = UserModel(
         id: 'user-admin-01',
-        name: cleanEmail.isNotEmpty ? (cleanEmail.contains('@') ? cleanEmail.split('@')[0].toUpperCase() : cleanEmail) : 'GBT Enterprise Admin',
-        email: cleanEmail.isNotEmpty ? cleanEmail : 'admin@gbtdashcam.com',
+        name: cleanEmail.isNotEmpty ? (cleanEmail.contains('@') ? cleanEmail.split('@')[0].toUpperCase() : cleanEmail) : 'TrackAnywhere Admin',
+        email: cleanEmail.isNotEmpty ? cleanEmail : 'admin@trackanywhere.in',
         role: 'SUPER_ADMIN',
-        tenantId: 'gbt-dashcam-master',
-        tenantName: 'GBT Dashcam Enterprise',
+        tenantId: 'trackanywhere-master',
+        tenantName: 'TrackAnywhere Enterprise',
         avatar: '👑',
         assignedTerminals: const [], // Sees all fleet vehicles on 3.85.81.10
       );

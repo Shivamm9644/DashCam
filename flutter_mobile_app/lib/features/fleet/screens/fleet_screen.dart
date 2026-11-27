@@ -981,7 +981,7 @@ class _FleetScreenState extends State<FleetScreen> {
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        'GBT Fleet Terminals',
+                        'TrackAnywhere Fleet Terminals',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
