@@ -3,6 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+String resolveIndianLocation(double lat, double lng) {
+  if (lat >= 22.4 && lat <= 23.0 && lng >= 75.5 && lng <= 76.2) {
+    return 'Indore, MP (India)';
+  } else if (lat >= 23.0 && lat <= 23.5 && lng >= 75.6 && lng <= 76.2) {
+    return 'Ujjain Highway, MP (India)';
+  } else if (lat >= 23.1 && lat <= 23.5 && lng >= 77.2 && lng <= 77.7) {
+    return 'Bhopal, MP (India)';
+  } else if (lat >= 28.3 && lat <= 28.9 && lng >= 76.9 && lng <= 77.5) {
+    return 'New Delhi (India)';
+  } else if (lat >= 18.8 && lat <= 19.4 && lng >= 72.7 && lng <= 73.2) {
+    return 'Mumbai, MH (India)';
+  } else if (lat >= 18.3 && lat <= 18.8 && lng >= 73.6 && lng <= 74.1) {
+    return 'Pune, MH (India)';
+  } else if (lat >= 26.6 && lat <= 27.2 && lng >= 75.5 && lng <= 76.1) {
+    return 'Jaipur, RJ (India)';
+  } else if (lat >= 8.0 && lat <= 37.0 && lng >= 68.0 && lng <= 97.0) {
+    return '${lat.toStringAsFixed(2)}°N, ${lng.toStringAsFixed(2)}°E (India)';
+  }
+  return 'Indore, MP (India)';
+}
+
 class GoogleTruckMapView extends StatefulWidget {
   final double lat;
   final double lng;
@@ -68,8 +89,8 @@ class _GoogleTruckMapViewState extends State<GoogleTruckMapView> {
       _mapController?.animateCamera(
         CameraUpdate.newLatLng(
           LatLng(
-            widget.lat != 0.0 ? widget.lat : 38.9072,
-            widget.lng != 0.0 ? widget.lng : -77.0369,
+            widget.lat != 0.0 ? widget.lat : 22.7196,
+            widget.lng != 0.0 ? widget.lng : 75.8577,
           ),
         ),
       );
@@ -85,8 +106,8 @@ class _GoogleTruckMapViewState extends State<GoogleTruckMapView> {
       context,
       MaterialPageRoute(
         builder: (_) => FullScreenGoogleMapPage(
-          lat: widget.lat != 0.0 ? widget.lat : 38.9072,
-          lng: widget.lng != 0.0 ? widget.lng : -77.0369,
+          lat: widget.lat != 0.0 ? widget.lat : 22.7196,
+          lng: widget.lng != 0.0 ? widget.lng : 75.8577,
           heading: widget.heading,
           speedKmh: widget.speedKmh,
           plate: widget.plate,
@@ -102,8 +123,8 @@ class _GoogleTruckMapViewState extends State<GoogleTruckMapView> {
 
   @override
   Widget build(BuildContext context) {
-    final double lat = widget.lat != 0.0 ? widget.lat : 38.9072;
-    final double lng = widget.lng != 0.0 ? widget.lng : -77.0369;
+    final double lat = widget.lat != 0.0 ? widget.lat : 22.7196;
+    final double lng = widget.lng != 0.0 ? widget.lng : 75.8577;
     final pos = LatLng(lat, lng);
     final isOnline = widget.status.toUpperCase() == 'ONLINE';
 
@@ -217,9 +238,9 @@ class _GoogleTruckMapViewState extends State<GoogleTruckMapView> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Text(
-                        '• Ashburn, VA (USA)',
-                        style: TextStyle(
+                      Text(
+                        '• ${resolveIndianLocation(lat, lng)}',
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF0284C7),
@@ -420,9 +441,9 @@ class _FullScreenGoogleMapPageState extends State<FullScreenGoogleMapPage> {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            'Ashburn, Virginia (USA)',
-                            style: TextStyle(
+                          Text(
+                            resolveIndianLocation(widget.lat, widget.lng),
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF0284C7),

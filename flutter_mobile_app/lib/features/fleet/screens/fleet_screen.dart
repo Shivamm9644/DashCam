@@ -1043,8 +1043,8 @@ class _FleetScreenState extends State<FleetScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: LiveTruckMapView(
-                lat: (lat != 0.0) ? lat : 38.9072,
-                lng: (lng != 0.0) ? lng : -77.0369,
+                lat: (lat != 0.0) ? lat : 22.7196,
+                lng: (lng != 0.0) ? lng : 75.8577,
                 heading: (activeDev?.heading ?? 0).toDouble(),
                 speedKmh: (activeDev?.speed ?? 0).toDouble(),
                 plate: activeDev?.plate ?? 'Active Dashcam',

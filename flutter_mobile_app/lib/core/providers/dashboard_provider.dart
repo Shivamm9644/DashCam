@@ -44,7 +44,7 @@ class DashboardProvider extends ChangeNotifier {
   bool isServerReachable = false;
   String serverStatusMessage = 'Connecting...';
 
-  static const String _dbKey = 'trackanywhere_db_v12_all_terminals';
+  static const String _dbKey = 'trackanywhere_db_v14_indore_india';
   static const String _activeDevKey = 'active_selected_device_id';
 
   Timer? _statusPollTimer;
@@ -73,8 +73,8 @@ class DashboardProvider extends ChangeNotifier {
         devices[i] = d.copyWith(
           status: 'OFFLINE',
           speed: 0.0,
-          lat: 38.9072,
-          lng: -77.0369,
+          lat: d.lat != 0.0 ? d.lat : 22.7196,
+          lng: d.lng != 0.0 ? d.lng : 75.8577,
           lastPing: cleanReason,
         );
         changed = true;
@@ -236,20 +236,30 @@ class DashboardProvider extends ChangeNotifier {
                   : (termId == '872312858278' || plate == 'TRK-9001' ? 'Marcus Vance' : 'Fleet Driver');
               final vStatus = (v['status'] ?? 'OFFLINE').toString().toUpperCase();
               
-              // Resolve real USA fleet coordinates
+              // Resolve real Indian fleet coordinates
               double lat = (v['lat'] != null) ? ((v['lat'] as num).toDouble()) : 0.0;
               double lng = (v['lng'] != null) ? ((v['lng'] as num).toDouble()) : 0.0;
               if (lat == 0.0 && lng == 0.0) {
-                if (plate.contains('9001') || termId.contains('858278')) {
-                  lat = 33.7490; lng = -84.3880; // Atlanta, GA
-                } else if (plate.contains('48736')) {
-                  lat = 32.7767; lng = -96.7970; // Dallas, TX
-                } else if (plate.contains('48764')) {
-                  lat = 41.8781; lng = -87.6298; // Chicago, IL
-                } else if (termId.contains('860795')) {
-                  lat = 39.7392; lng = -104.9903; // Denver, CO
+                if (termId.contains('505073583696') || plate.contains('505073') || plate.contains('3696')) {
+                  lat = 22.7339; lng = 75.8615; // Indore AB Road (Desk Test DashCam)
+                } else if (termId.contains('872312858278') || plate.contains('872312') || plate.contains('8278')) {
+                  lat = 22.74688; lng = 75.898868; // Indore Bypass MR-10 (Live Dual Cam)
+                } else if (termId.contains('505073729067') || plate.contains('CBL') || plate.contains('9067') || plate.contains('729067')) {
+                  lat = 22.7196; lng = 75.8577; // Indore Center (CBL-01)
+                } else if (termId.contains('505073214789') || plate.contains('214789')) {
+                  lat = 22.7533; lng = 75.8937; // Indore Vijay Nagar
+                } else if (termId.contains('505073322632') || plate.contains('322632')) {
+                  lat = 22.7244; lng = 75.8839; // Indore Palasia
+                } else if (termId.contains('505073474490') || plate.contains('474490')) {
+                  lat = 23.1765; lng = 75.7885; // Ujjain Highway
+                } else if (termId.contains('505073095782') || plate.contains('095782')) {
+                  lat = 23.2599; lng = 77.4126; // Bhopal, MP
+                } else if (termId.contains('872312860795') || plate.contains('860795')) {
+                  lat = 22.7196; lng = 75.8577; // Indore, MP
+                } else if (termId.contains('43592') || plate.contains('4359')) {
+                  lat = 18.5204; lng = 73.8567; // Pune / Mumbai Expressway
                 } else {
-                  lat = 34.0522; lng = -118.2437; // Los Angeles, CA
+                  lat = 22.7196; lng = 75.8577; // Indore, MP (India)
                 }
               }
 
@@ -395,8 +405,8 @@ class DashboardProvider extends ChangeNotifier {
             devices[i] = d.copyWith(
               status: 'OFFLINE',
               speed: 0.0,
-              lat: 38.9072,
-              lng: -77.0369,
+              lat: d.lat != 0.0 ? d.lat : 22.7196,
+              lng: d.lng != 0.0 ? d.lng : 75.8577,
               lastPing: 'Offline',
             );
           }
@@ -495,8 +505,8 @@ class DashboardProvider extends ChangeNotifier {
                 driver: resolvedDriver,
                 speed: speed,
                 status: newStatus,
-                lat: (lat != 0.0) ? lat : 38.9072,
-                lng: (lng != 0.0) ? lng : -77.0369,
+                lat: (lat != 0.0) ? lat : (old.lat != 0.0 ? old.lat : 22.7196),
+                lng: (lng != 0.0) ? lng : (old.lng != 0.0 ? old.lng : 75.8577),
                 lastPing: newLastPing,
                 heading: old.heading,
                 altitude: old.altitude,
@@ -541,18 +551,137 @@ class DashboardProvider extends ChangeNotifier {
     return [
       DeviceItem(
         id: 'veh-auto-505073729067',
-        plate: 'MP-09-HH-9067',
+        plate: 'CBL-01 (MP-09-9067)',
         terminalId: '505073729067',
         driver: 'Rajesh Kumar',
         speed: 0.0,
         status: isServerReachable ? 'ONLINE' : 'OFFLINE',
-        lat: 23.4774,
-        lng: 76.5385,
+        lat: 22.7196,
+        lng: 75.8577,
         lastPing: isServerReachable ? 'Online' : 'Offline',
         heading: 68.0,
         altitude: 540,
         deviceModel: 'MDVR Dual-Cam 4G',
         clientName: 'Sharma Logistics',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-in-m16c',
+        plate: 'CAM-505073 (Desk Cam)',
+        terminalId: '505073583696',
+        driver: 'Desk Setup',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 22.7339,
+        lng: 75.8615,
+        lastPing: 'Offline',
+        heading: 0.0,
+        altitude: 550,
+        deviceModel: 'M16C Dual-Channel 4G',
+        clientName: 'TrackAnywhere Fleet',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-in-gd19',
+        plate: 'CAM-872312 (Live Cam)',
+        terminalId: '872312858278',
+        driver: 'Suresh Yadav',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 22.74688,
+        lng: 75.898868,
+        lastPing: 'Offline',
+        heading: 90.0,
+        altitude: 540,
+        deviceModel: 'GD19 / LA-CAT4 Dual Cam',
+        clientName: 'Patel Transport Pvt Ltd',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-auto-505073214789',
+        plate: 'CAM-214789 (MP-09)',
+        terminalId: '505073214789',
+        driver: 'Mukesh Joshi',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 22.7533,
+        lng: 75.8937,
+        lastPing: 'Offline',
+        heading: 0.0,
+        altitude: 550,
+        deviceModel: 'MDVR Dual Cam',
+        clientName: 'Sharma Logistics',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-auto-505073322632',
+        plate: 'CAM-322632 (MP-09)',
+        terminalId: '505073322632',
+        driver: 'Sunil Sharma',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 22.7244,
+        lng: 75.8839,
+        lastPing: 'Offline',
+        heading: 0.0,
+        altitude: 540,
+        deviceModel: 'MDVR Dual Cam',
+        clientName: 'Indore City Express',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-auto-505073474490',
+        plate: 'CAM-474490 (MP-09)',
+        terminalId: '505073474490',
+        driver: 'Vikram Singh',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 23.1765,
+        lng: 75.7885,
+        lastPing: 'Offline',
+        heading: 0.0,
+        altitude: 540,
+        deviceModel: 'MDVR Dual Cam',
+        clientName: 'Sharma Logistics',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-auto-505073095782',
+        plate: 'CAM-095782 (MP-04)',
+        terminalId: '505073095782',
+        driver: 'Anil Gupta',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 23.2599,
+        lng: 77.4126,
+        lastPing: 'Offline',
+        heading: 0.0,
+        altitude: 510,
+        deviceModel: 'MDVR Dual Cam',
+        clientName: 'Patel Transport Pvt Ltd',
+        subscriptionExpiry: expireInOneYear,
+        subscriptionStart: now,
+      ),
+      DeviceItem(
+        id: 'veh-auto-872312860795',
+        plate: 'CAM-860795 (MH-46)',
+        terminalId: '872312860795',
+        driver: 'Manoj Tiwari',
+        speed: 0.0,
+        status: 'OFFLINE',
+        lat: 22.7196,
+        lng: 75.8577,
+        lastPing: 'Offline',
+        heading: 0.0,
+        altitude: 540,
+        deviceModel: 'M16C AI Cam',
+        clientName: 'TrackAnywhere Fleet',
         subscriptionExpiry: expireInOneYear,
         subscriptionStart: now,
       ),
@@ -574,125 +703,6 @@ class DashboardProvider extends ChangeNotifier {
         subscriptionStart: now,
       ),
       DeviceItem(
-        id: 'veh-auto-872312858278',
-        plate: 'DL-01-AX-8278',
-        terminalId: '872312858278',
-        driver: 'Suresh Yadav',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 28.6139,
-        lng: 77.2090,
-        lastPing: 'Offline',
-        heading: 275.0,
-        altitude: 216,
-        deviceModel: 'M16C AI Cam',
-        clientName: 'Patel Transport Pvt Ltd',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
-        id: 'veh-auto-505073322632',
-        plate: 'VEH-2632',
-        terminalId: '505073322632',
-        driver: 'Sunil Sharma',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 22.7196,
-        lng: 75.8577,
-        lastPing: 'Offline',
-        heading: 0.0,
-        altitude: 0,
-        deviceModel: 'MDVR Dual Cam',
-        clientName: 'Indore City Express',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
-        id: 'veh-auto-505073474490',
-        plate: 'VEH-4490',
-        terminalId: '505073474490',
-        driver: 'Vikram Singh',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 23.1765,
-        lng: 75.7885,
-        lastPing: 'Offline',
-        heading: 0.0,
-        altitude: 0,
-        deviceModel: 'MDVR Dual Cam',
-        clientName: 'Sharma Logistics',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
-        id: 'veh-auto-505073583696',
-        plate: 'VEH-3696',
-        terminalId: '505073583696',
-        driver: 'Amit Verma',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 22.7533,
-        lng: 75.8937,
-        lastPing: 'Offline',
-        heading: 0.0,
-        altitude: 0,
-        deviceModel: 'MDVR Dual Cam',
-        clientName: 'Patel Transport Pvt Ltd',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
-        id: 'veh-auto-872312860795',
-        plate: 'MH-46-BQ-0795',
-        terminalId: '872312860795',
-        driver: 'Manoj Tiwari',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 19.0760,
-        lng: 72.8777,
-        lastPing: 'Offline',
-        heading: 0.0,
-        altitude: 0,
-        deviceModel: 'M16C AI Cam',
-        clientName: 'TrackAnywhere Fleet',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
-        id: 'veh-auto-505073095782',
-        plate: 'VEH-5782',
-        terminalId: '505073095782',
-        driver: 'Anil Gupta',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 23.2599,
-        lng: 77.4126,
-        lastPing: 'Offline',
-        heading: 0.0,
-        altitude: 0,
-        deviceModel: 'MDVR Dual Cam',
-        clientName: 'Patel Transport Pvt Ltd',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
-        id: 'veh-auto-505073214789',
-        plate: 'VEH-4789',
-        terminalId: '505073214789',
-        driver: 'Mukesh Joshi',
-        speed: 0.0,
-        status: 'OFFLINE',
-        lat: 26.9124,
-        lng: 75.7873,
-        lastPing: 'Offline',
-        heading: 0.0,
-        altitude: 0,
-        deviceModel: 'MDVR Dual Cam',
-        clientName: 'Sharma Logistics',
-        subscriptionExpiry: expireInOneYear,
-        subscriptionStart: now,
-      ),
-      DeviceItem(
         id: 'veh-d03b4ea1',
         plate: 'MP-09-CA-4242',
         terminalId: 'MP4242',
@@ -703,7 +713,7 @@ class DashboardProvider extends ChangeNotifier {
         lng: 75.8577,
         lastPing: 'Offline',
         heading: 0.0,
-        altitude: 0,
+        altitude: 540,
         deviceModel: 'Tata Signa MDVR',
         clientName: 'Bantu Heavy Haulage',
         subscriptionExpiry: expireInOneYear,
@@ -1062,9 +1072,9 @@ class DeviceItem {
 
     double jsonLat = ((json['lat'] ?? 0) as num).toDouble();
     double jsonLng = ((json['lng'] ?? 0) as num).toDouble();
-    if (jsonLat == 0.0 || (jsonLat > 20.0 && jsonLat < 25.0 && jsonLng > 75.0 && jsonLng < 80.0)) {
-      jsonLat = 38.9072;
-      jsonLng = -77.0369;
+    if (jsonLat == 0.0 && jsonLng == 0.0) {
+      jsonLat = 22.7196;
+      jsonLng = 75.8577;
     }
 
     String rawPing = json['lastPing']?.toString() ?? 'Offline';

@@ -67,8 +67,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     final String terminalId = activeDev?.terminalId ?? '505073729067';
     final bool isOnline = activeDev?.isOnline ?? false;
     final double speed = (activeDev?.speed ?? 0).toDouble();
-    final double lat = (activeDev != null && activeDev.lat != 0.0) ? activeDev.lat : 38.9072;
-    final double lng = (activeDev != null && activeDev.lng != 0.0) ? activeDev.lng : -77.0369;
+    final double lat = (activeDev != null && activeDev.lat != 0.0) ? activeDev.lat : 22.7196;
+    final double lng = (activeDev != null && activeDev.lng != 0.0) ? activeDev.lng : 75.8577;
     final double heading = (activeDev?.heading ?? 0).toDouble();
 
     return Scaffold(
