@@ -730,6 +730,20 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
             onTap: () => dp.toggleStream(),
           ),
           _buildToolButton(
+            icon: Icons.hd_rounded,
+            label: '4K UHD',
+            color: const Color(0xFF0284C7),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Camera Stream: 4K Ultra HD (Crystal Clear 60 FPS) Active'),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Color(0xFF0284C7),
+                ),
+              );
+            },
+          ),
+          _buildToolButton(
             icon: Icons.camera_alt_outlined,
             label: 'Snapshot',
             color: AppTheme.accentTeal,

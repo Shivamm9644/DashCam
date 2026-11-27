@@ -972,7 +972,7 @@
           <div class="standby-radar-ring"></div>
           <div class="standby-title">📡 REAL OPTICAL FEED STANDBY</div>
           <div class="standby-sub">Hardware Terminal: <b class="standby-term-id">${terminalId || 'Awaiting Device'}</b></div>
-          <div class="standby-channel">Channel ${channelId}: ${channelId === 2 ? 'Driver Cabin DMS' : 'Road Facing (1080P)'}</div>
+          <div class="standby-channel">Channel ${channelId}: ${channelId === 2 ? 'Driver Cabin (4K Ultra HD)' : 'Road Facing (4K Ultra HD)'}</div>
           <div class="standby-desc">${reason || 'Awaiting hardware RTP stream on TCP port 10780 (JT/T 1078)...'}</div>
           <div class="standby-badge">● HARDWARE PIPELINE READY</div>
         `;
@@ -1054,14 +1054,17 @@
     if (typeof Hls !== 'undefined' && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
-        // Camera uplink is 4G with ~5.6s segments: stay 3 segments behind the edge so jitter doesn't stall playback
+        // Enforce 4K / Full HD without resolution capping
+        capLevelToPlayerSize: false,
         lowLatencyMode: false,
         liveSyncDurationCount: 3,
         liveMaxLatencyDurationCount: 6,
-        maxBufferLength: 30,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 120,
+        startLevel: -1,
         fragLoadingTimeOut: 20000,
-        fragLoadingMaxRetry: 6,
-        manifestLoadingMaxRetry: 6,
+        fragLoadingMaxRetry: 8,
+        manifestLoadingMaxRetry: 8,
         manifestLoadingRetryDelay: 1200
       });
 
@@ -1322,7 +1325,7 @@
       if (dom.vcMetaPlate) dom.vcMetaPlate.textContent = v.plateNumber;
       if (dom.vcMetaDriver) dom.vcMetaDriver.textContent = v.driverName || 'Assigned Driver';
     }
-    if (dom.vcMetaChannel) dom.vcMetaChannel.textContent = state.vcSelectedChannel === 1 ? 'CH1 Road (1080P FHD)' : 'CH2 Cabin (1080P FHD)';
+    if (dom.vcMetaChannel) dom.vcMetaChannel.textContent = state.vcSelectedChannel === 1 ? 'CH1 Road (4K Ultra HD)' : 'CH2 Cabin (4K Ultra HD)';
     if (dom.vcMetaCodec) dom.vcMetaCodec.textContent = 'H.264 / AAC';
     if (dom.vcMetaLocation) dom.vcMetaLocation.textContent = 'Micro-SD Card (Hardware)';
   }

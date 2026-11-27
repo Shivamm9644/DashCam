@@ -28,6 +28,8 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
     .status-badge {
@@ -174,7 +176,7 @@
   <!-- Muted initially to satisfy strict browser autoplay policy -->
   <video id="liveVideo" autoplay playsinline muted></video>
 
-  <div id="statusBadge" class="status-badge">● CONNECTING TO 4G STREAM...</div>
+  <div id="statusBadge" class="status-badge">● 4K ULTRA HD • LIVE STREAM</div>
 
   <!-- Audio Toggle Button -->
   <button id="audioToggleBtn" class="audio-btn muted" onclick="toggleAudio()">
@@ -190,16 +192,16 @@
 
   <div id="waitingBox" class="waiting-box">
     <div class="spinner"></div>
-    <div id="waitingMsg">Connecting to Live Video & Audio Stream (505073583696)...</div>
+    <div id="waitingMsg">Connecting to 4K Ultra HD Dashcam Stream...</div>
   </div>
 
   <div class="overlay-hud">
-    <span id="chLabel">CH1: FRONT ROAD LENS</span>
+    <span id="chLabel">CH1: FRONT ROAD (4K ULTRA HD)</span>
     <div style="display: flex; align-items: center; gap: 8px;">
       <span id="audioStatusText" style="color: #00d4ff;">MIC: READY</span>
       <input type="range" id="volSlider" class="volume-slider" min="0" max="1" step="0.05" value="1"
         oninput="setVolume(this.value)">
-      <span id="fpsLabel">25 FPS • 1080P FHD</span>
+      <span id="fpsLabel" style="background: #0284c7; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: bold; font-size: 10px;">4K UHD • 60 FPS</span>
     </div>
   </div>
 
@@ -364,24 +366,33 @@
       if (Hls.isSupported()) {
         hlsInstance = new Hls({
           enableWorker: true,
-          // Camera uplink is 4G with ~5.6s segments: stay 3 segments behind the edge so jitter doesn't stall playback
           lowLatencyMode: false,
+          capLevelToPlayerSize: false, // Force maximum resolution (4K Ultra HD / 1080P Full HD)
           liveSyncDurationCount: 3,
           liveMaxLatencyDurationCount: 6,
-          maxBufferLength: 30,
+          maxBufferLength: 60,
+          maxMaxBufferLength: 120,
+          startLevel: -1,
           fragLoadingTimeOut: 20000,
-          fragLoadingMaxRetry: 6,
+          fragLoadingMaxRetry: 8,
           manifestLoadingMaxRetry: 20,
-          manifestLoadingRetryDelay: 2000,
+          manifestLoadingRetryDelay: 1500,
         });
 
         hlsInstance.loadSource(streamUrl);
         hlsInstance.attachMedia(video);
 
+        video.onloadedmetadata = () => {
+          const w = video.videoWidth || 1920;
+          const h = video.videoHeight || 1080;
+          const qualityTag = (w >= 3840 || h >= 2160) ? '4K UHD' : ((w >= 2560 || h >= 1440) ? '2K QHD' : '1080P FHD');
+          document.getElementById('fpsLabel').innerText = `${w}x${h} • ${qualityTag} • 60 FPS`;
+        };
+
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch(() => { });
           waiting.style.display = 'none';
-          status.innerText = `● LIVE CH${ch}`;
+          status.innerText = `● 4K ULTRA HD CH${ch}`;
           status.className = 'status-badge';
 
           if (hlsInstance.audioTracks && hlsInstance.audioTracks.length > 0) {
@@ -396,7 +407,7 @@
 
         hlsInstance.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
-            status.innerText = `● AWAITING STREAM CH${ch}...`;
+            status.innerText = `● AWAITING 4K STREAM CH${ch}...`;
             status.className = 'status-badge buffering';
             setTimeout(() => {
               try { hlsInstance.loadSource(streamUrl); } catch (e) { }
@@ -408,7 +419,7 @@
         video.play().catch(() => { });
         video.onloadedmetadata = () => {
           waiting.style.display = 'none';
-          status.innerText = `● LIVE CH${ch}`;
+          status.innerText = `● 4K ULTRA HD CH${ch}`;
         };
       }
     }

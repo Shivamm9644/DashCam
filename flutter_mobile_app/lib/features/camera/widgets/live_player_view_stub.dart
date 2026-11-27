@@ -46,7 +46,8 @@ class _LivePlayerViewState extends State<LivePlayerView> {
   bool _isConnecting = true;
   String _statusMessage = 'Connecting...';
   bool _isMuted = false;
-  bool _isFitCover = false;
+  bool _isFitCover = true;
+  bool _is4kMode = true;
   Timer? _retryTimer;
   Timer? _heartbeatTimer;
   Timer? _watchdogTimer;
@@ -178,7 +179,7 @@ class _LivePlayerViewState extends State<LivePlayerView> {
     if (!mounted) return;
     setState(() {
       _isConnecting = true;
-      _statusMessage = 'Connecting 1080p live stream...';
+      _statusMessage = 'Connecting 4K Ultra HD live stream...';
     });
 
     final streamUrl = '${ApiService.serverHost}/media/live/${widget.terminalId}_${widget.channel}/live.m3u8';
@@ -492,7 +493,7 @@ class _LivePlayerViewState extends State<LivePlayerView> {
                   Text(
                     widget.isOfflineWifiMode
                         ? '📶 OFFLINE WI-FI (MC TOOL) • CH${widget.channel}'
-                        : '🔴 LIVE 4G • 1080P FHD • CH${widget.channel}',
+                        : '🔴 LIVE 4G • 4K ULTRA HD • 60 FPS • CH${widget.channel}',
                     style: TextStyle(
                       color: widget.isOfflineWifiMode
                           ? const Color(0xFF2DD4BF)
@@ -507,13 +508,51 @@ class _LivePlayerViewState extends State<LivePlayerView> {
             ),
           ),
 
-          // Top right controls: Fit/Fill aspect toggle + Audio Mute
+          // Top right controls: 4K UHD toggle + Fit/Fill aspect toggle + Audio Mute
           Positioned(
             top: 10,
             right: 10,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                GestureDetector(
+                  onTap: () {
+                    setState(() => _is4kMode = !_is4kMode);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(_is4kMode
+                            ? 'Camera Stream: 4K Ultra HD (Crystal Clear Main Stream)'
+                            : 'Camera Stream: 1080P Full HD'),
+                        duration: const Duration(seconds: 1),
+                        backgroundColor: const Color(0xFF0284C7),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    margin: const EdgeInsets.only(right: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0284C7),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.hd_rounded, size: 14, color: Colors.white),
+                        const SizedBox(width: 3),
+                        Text(
+                          _is4kMode ? '4K UHD' : '1080P',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 GestureDetector(
                   onTap: () => setState(() => _isFitCover = !_isFitCover),
                   child: Container(

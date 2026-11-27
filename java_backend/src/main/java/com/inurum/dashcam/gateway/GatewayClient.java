@@ -115,7 +115,8 @@ public class GatewayClient {
         Long last = lastLiveDispatch.get(terminalId);
         if (last != null && now - last < LIVE_DISPATCH_DEDUP_MS) return;
         lastLiveDispatch.put(terminalId, now);
-        call("/api/video/start-live?terminalId=" + enc(terminalId) + "&channel=1&dataType=0", Duration.ofSeconds(3));
+        // Force streamType=0 for 4K / Full HD Main Stream
+        call("/api/video/start-live?terminalId=" + enc(terminalId) + "&channel=1&dataType=0&streamType=0", Duration.ofSeconds(3));
     }
 
     /** Sends JT1078 0x9102 (close live stream) */
