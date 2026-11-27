@@ -5068,73 +5068,665 @@ button, input, select, textarea {
   flex-shrink: 0;
 }
 
-/* ── Trackify Cockpit Strip ──────────────────────────────────────────────── */
-.cockpit-alert-strip {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  border-radius: 12px;
-  padding: 12px 18px;
+/* =========================================================================
+   TRACKIFY EXECUTIVE COCKPIT DASHBOARD (1:1 EXACT REPLICA)
+   ========================================================================= */
+
+.trackify-dashboard-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.trackify-page-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2px;
+}
+
+.trackify-page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.trackify-page-subtitle {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Executive Cockpit Overview Banner ── */
+.cockpit-alert-strip {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(36, 99, 235, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 .cockpit-alert-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .cockpit-check-circle {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   background: #10b981;
-  color: #fff;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
 }
 
-.cockpit-quick-ops {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
-  margin-bottom: 20px;
-}
-
-.cockpit-op-btn {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 12px 16px;
+.cockpit-alert-title {
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #0f172a;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.cockpit-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 12px;
+}
+
+.cockpit-pill.green {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.cockpit-alert-text {
+  margin: 3px 0 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.cockpit-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cockpit-action-pill {
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
   cursor: pointer;
   transition: all 0.15s ease;
-  text-align: left;
+  white-space: nowrap;
 }
 
-.cockpit-op-btn:hover {
-  border-color: #2563eb;
-  background: #f0f7ff;
+.cockpit-action-pill.orange {
+  background: #ffedd5;
+  border: 1px solid #fdba74;
+  color: #ea580c;
+}
+.cockpit-action-pill.orange:hover {
+  background: #fed7aa;
 }
 
-.cockpit-op-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+.cockpit-action-pill.red {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+}
+.cockpit-action-pill.red:hover {
+  background: #fecaca;
+}
+
+.cockpit-action-pill.blue {
+  background: #2463eb;
+  border: 1px solid #2463eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(36, 99, 235, 0.25);
+}
+.cockpit-action-pill.blue:hover {
+  background: #1d4ed8;
+}
+
+/* ── Cockpit 4-Grid Cards ── */
+.cockpit-4grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.cockpit-kpi-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 115px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cockpit-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.cockpit-kpi-card.card-blue { border-color: #dbeafe; background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%); }
+.cockpit-kpi-card.card-teal { border-color: #ccfbf1; background: linear-gradient(180deg, #ffffff 0%, #f0fdfa 100%); }
+.cockpit-kpi-card.card-purple { border-color: #f3e8ff; background: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%); }
+.cockpit-kpi-card.card-red { border-color: #ffe4e6; background: linear-gradient(180deg, #ffffff 0%, #fff1f2 100%); }
+
+.cockpit-kpi-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.cockpit-trend-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.cockpit-trend-badge.blue { background: #eff6ff; color: #2563eb; }
+.cockpit-trend-badge.teal { background: #f0fdfa; color: #0d9488; }
+.cockpit-trend-badge.purple { background: #faf5ff; color: #7c3aed; }
+.cockpit-trend-badge.red { background: #fff1f2; color: #e11d48; }
+
+.cockpit-kpi-body {
+  position: relative;
+  z-index: 2;
+}
+
+.cockpit-kpi-value {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.cockpit-kpi-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 5px;
+}
+
+.cockpit-kpi-bg-icon {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  font-size: 38px;
+  opacity: 0.18;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 16px;
+  pointer-events: none;
+}
+.cockpit-kpi-bg-icon.blue { color: #2563eb; }
+.cockpit-kpi-bg-icon.teal { color: #0d9488; }
+.cockpit-kpi-bg-icon.purple { color: #7c3aed; }
+.cockpit-kpi-bg-icon.red { color: #e11d48; }
+
+/* ── Quick Operations Strip ── */
+.cockpit-quick-ops-wrap {
+  margin-top: 4px;
+}
+
+.cockpit-ops-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: #d97706;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+
+.quick-actions-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.action-tile-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.action-tile-btn:hover {
+  transform: translateY(-2px);
+  border-color: #2563eb;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.1);
+}
+
+.tile-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+}
+
+.tile-icon.blue { background: #eff6ff; color: #2563eb; }
+.tile-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.tile-icon.green { background: #ecfdf5; color: #10b981; }
+.tile-icon.orange { background: #ffedd5; color: #ea580c; }
+.tile-icon.amber { background: #fef3c7; color: #d97706; }
+
+.tile-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.tile-subtitle {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* ── Main 2-Column Analytics Deck ── */
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+}
+
+.chart-card-container {
+  display: flex;
+  flex-direction: column;
+  height: 370px;
+  padding: 20px;
+}
+
+.chart-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trackify-card-title {
+  font-size: 15.5px;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+}
+
+.trackify-card-subtitle {
+  font-size: 11px;
+  color: #64748b;
+  margin: 2px 0 0 0;
+}
+
+.chart-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-line.blue {
+  width: 14px;
+  height: 3px;
+  background: #2563eb;
+  border-radius: 2px;
+}
+
+.legend-box.red {
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border-radius: 3px;
+}
+
+.legend-label {
+  font-size: 11px;
+  font-weight: 800;
+}
+.legend-label.blue { color: #2563eb; }
+.legend-label.red { color: #ef4444; }
+
+.trackify-select-sm {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 11.5px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.live-sync-pill {
+  font-size: 11px;
+  font-weight: 800;
+  color: #10b981;
+  background: #ecfdf5;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.donut-center-metric {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-number {
+  font-size: 34px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.donut-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.donut-legend-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.donut-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.donut-leg-item .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.donut-leg-item .dot.green { background: #10b981; }
+.donut-leg-item .dot.orange { background: #f59e0b; }
+.donut-leg-item .dot.red { background: #ef4444; }
+
+.warehouse-stock-alert-bar {
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.stock-alert-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.stock-alert-value {
+  font-size: 12px;
+  font-weight: 900;
+  color: #7c3aed;
+}
+
+/* ── Split Cards 2-Col ── */
+.split-cards-2col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 18px;
+}
+
+.card-split-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.card-split-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackify-pill-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.trackify-pill-badge.blue { background: #eff6ff; color: #2563eb; }
+.trackify-pill-badge.red { background: #fee2e2; color: #ef4444; }
+
+.trackify-link-btn {
+  background: transparent;
+  border: none;
+  font-weight: 800;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.trackify-link-btn.blue { color: #2563eb; }
+.trackify-link-btn.red { color: #ef4444; }
+
+.card-split-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty-state-text {
+  font-size: 13px;
+  color: #94a3b8;
+  padding: 16px;
+  text-align: center;
+}
+
+/* ── M2M SIM Data Usage Banner ── */
+.sim-data-usage-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(36, 99, 235, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sim-usage-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sim-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #10b981;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.sim-usage-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-usage-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #10b981;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.sim-usage-desc {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.sim-usage-thresholds {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sim-thresh-item {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+.sim-thresh-item.critical { background: #fee2e2; color: #ef4444; }
+.sim-thresh-item.warning { background: #fef3c7; color: #d97706; }
+.sim-thresh-item.safe { background: #ecfdf5; color: #10b981; }
+
+/* ── Top Header Trackify User Profile Pill ── */
+.header-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.header-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.header-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-user-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.header-user-role {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.3px;
+}
+
+/* Responsive tweaks for Trackify Cockpit */
+@media (max-width: 1200px) {
+  .cockpit-4grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .quick-actions-strip {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .trackify-dashboard-wrap {
+    padding: 12px 10px !important;
+  }
+  .cockpit-4grid {
+    grid-template-columns: 1fr !important;
+  }
+  .quick-actions-strip {
+    grid-template-columns: 1fr !important;
+  }
+  .split-cards-2col {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* ── Trackify Plans Grid & Cards ────────────────────────────────────────── */

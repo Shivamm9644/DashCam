@@ -19,6 +19,12 @@
   <!-- Google Maps JavaScript API -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBa6Sfh7UbFlueqmLXSJbWEEoIYoeIpEXs&libraries=geometry,places"></script>
 
+  <!-- Chart.js 4.4 for High-Performance Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Google Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
   <!-- hls.js for Real HLS Video Streaming -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
 
@@ -283,149 +289,287 @@
       <!-- ── Content Viewport ────────────────────────────────────── -->
       <main class="app-content-viewport" id="contentViewport">
 
-        <!-- ══ SCREEN 1: DASHBOARD OVERVIEW ════════════════════════ -->
+        <!-- ══ SCREEN 1: TRACKIFY EXECUTIVE COCKPIT DASHBOARD ═══════════════ -->
         <div class="view-container active" id="viewDashboard">
-          <div class="overview-grid">
+          <div class="trackify-dashboard-wrap">
 
-            <!-- 5-Metric Stat KPI Cards Strip -->
-            <div class="stats-strip">
-              <!-- Total Fleet -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <span>Total Fleet</span>
-                  <div class="stat-icon">🚚</div>
+            <!-- ── Dashboard Header ──────────────────────────────────────── -->
+            <div class="trackify-page-header">
+              <div>
+                <h1 class="trackify-page-title">Dashboard</h1>
+                <p class="trackify-page-subtitle">Real-time performance metrics and operational capacity.</p>
+              </div>
+            </div>
+
+            <!-- ── Executive Cockpit Overview Banner ─────────────────────── -->
+            <div class="cockpit-alert-strip">
+              <div class="cockpit-alert-left">
+                <div class="cockpit-check-circle">
+                  <span class="material-icons" style="font-size:22px;">check_circle</span>
                 </div>
-                <div class="stat-main">
-                  <span class="stat-number" id="kpiTotalCount">5</span>
-                  <span class="stat-unit">vehicles</span>
+                <div>
+                  <div class="cockpit-alert-title">
+                    <span>Executive Cockpit Overview</span>
+                    <span class="cockpit-pill green" id="cockpitAlertsCountPill">0 Alerts Logged</span>
+                  </div>
+                  <p class="cockpit-alert-text">
+                    <strong>System Status Normal:</strong> All fleet operations running smoothly. Hardware stock holds <strong id="cockpitUnassignedText">172 unassigned units</strong>.
+                  </p>
                 </div>
-                <div class="stat-subtext">
-                  <span class="badge-chip online" id="kpiOnlineCount">● 3 Online</span>
-                  <span class="badge-chip offline" id="kpiOfflineCount">1 Offline</span>
+              </div>
+              <div class="cockpit-alert-actions">
+                <button class="cockpit-action-pill orange" id="btnCockpitOrders">🛒 Orders (0)</button>
+                <button class="cockpit-action-pill red" id="btnCockpitAlerts">Review Alerts (0)</button>
+                <button class="cockpit-action-pill blue" id="btnCockpitProvision">Provision Inventory (172)</button>
+              </div>
+            </div>
+
+            <!-- ── Cockpit 4-Grid Cards ──────────────────────────────────── -->
+            <div class="cockpit-4grid">
+              <!-- Card 1: Users / Accounts -->
+              <div class="cockpit-kpi-card card-blue" id="kpiCardAccounts" style="cursor:pointer;" title="Click to view Admin Management">
+                <div class="cockpit-kpi-top">
+                  <span class="cockpit-trend-badge blue" id="kpiBadgeAccounts">30 Active • 0 Deactive</span>
+                </div>
+                <div class="cockpit-kpi-body">
+                  <div class="cockpit-kpi-value" id="cockpitTotalAccounts">30 Accounts</div>
+                  <div class="cockpit-kpi-label">TOTAL REGISTERED USERS</div>
+                </div>
+                <div class="cockpit-kpi-bg-icon blue">
+                  <span class="material-icons">groups</span>
                 </div>
               </div>
 
-              <!-- Operational State -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <span>Driving Status</span>
-                  <div class="stat-icon">⚡</div>
+              <!-- Card 2: Deployed Assets -->
+              <div class="cockpit-kpi-card card-teal" id="kpiCardDeployed" style="cursor:pointer;" title="Click to view Vehicles Directory">
+                <div class="cockpit-kpi-top">
+                  <span class="cockpit-trend-badge teal">
+                    <span class="material-icons" style="font-size:12px;vertical-align:middle;margin-right:2px;">directions_car</span>
+                    <span id="cockpitMovingStat">3 Moving • 37 Stationary • 0 Offline</span>
+                  </span>
                 </div>
-                <div class="stat-main">
-                  <span class="stat-number" id="kpiDrivingCount">3</span>
-                  <span class="stat-unit">moving</span>
+                <div class="cockpit-kpi-body">
+                  <div class="cockpit-kpi-value" id="cockpitDeployedCount">13 Deployed</div>
+                  <div class="cockpit-kpi-label">DEPLOYED FLEET ASSETS</div>
                 </div>
-                <div class="stat-subtext">
-                  <span class="badge-chip idle" id="kpiIdleCount">1 Idling</span>
-                  <span style="color:var(--text-muted);">1 Parked</span>
-                </div>
-              </div>
-
-              <!-- Active Live Streams -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <span>Active Live Streams</span>
-                  <div class="stat-icon">📹</div>
-                </div>
-                <div class="stat-main">
-                  <span class="stat-number" id="kpiLiveStreamsCount">2</span>
-                  <span class="stat-unit">channels</span>
-                </div>
-                <div class="stat-subtext">
-                  <span style="color:var(--color-success);font-weight:600;">1080P FHD (30 FPS)</span>
+                <div class="cockpit-kpi-bg-icon teal">
+                  <span class="material-icons">directions_car</span>
                 </div>
               </div>
 
-              <!-- Safety Events (24h) -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <span>Safety Events (24h)</span>
-                  <div class="stat-icon">🚨</div>
+              <!-- Card 3: Unassigned Stock -->
+              <div class="cockpit-kpi-card card-purple" id="kpiCardStock" style="cursor:pointer;" title="Click to view Device Inventory">
+                <div class="cockpit-kpi-top">
+                  <span class="cockpit-trend-badge purple">Unassigned Warehouse Stock</span>
                 </div>
-                <div class="stat-main">
-                  <span class="stat-number" id="kpiSafetyEventsCount" style="color:var(--color-danger);">1</span>
-                  <span class="stat-unit">critical</span>
+                <div class="cockpit-kpi-body">
+                  <div class="cockpit-kpi-value" id="cockpitStockUnits">172 Units</div>
+                  <div class="cockpit-kpi-label">UNASSIGNED HARDWARE STOCK</div>
                 </div>
-                <div class="stat-subtext">
-                  <span class="badge-chip critical">Forward Collision</span>
+                <div class="cockpit-kpi-bg-icon purple">
+                  <span class="material-icons">inventory_2</span>
+                  <span class="material-icons" style="font-size:14px;margin-left:4px;">arrow_forward</span>
                 </div>
               </div>
 
-              <!-- Device Health -->
-              <div class="stat-card">
-                <div class="stat-header">
-                  <span>Hardware Health</span>
-                  <div class="stat-icon">📡</div>
+              <!-- Card 4: Security Alerts -->
+              <div class="cockpit-kpi-card card-red" id="kpiCardAlerts" style="cursor:pointer;" title="Click to view Safety Inbox">
+                <div class="cockpit-kpi-top">
+                  <span class="cockpit-trend-badge red">
+                    <span class="material-icons" style="font-size:12px;vertical-align:middle;margin-right:2px;">notifications</span>
+                    System Status Normal
+                  </span>
                 </div>
-                <div class="stat-main">
-                  <span class="stat-number" id="kpiHealthRate" style="color:var(--color-success);">100%</span>
-                  <span class="stat-unit">uptime</span>
+                <div class="cockpit-kpi-body">
+                  <div class="cockpit-kpi-value" id="cockpitAlertsCount">0 Logged</div>
+                  <div class="cockpit-kpi-label">SECURITY & SYSTEM ALERTS</div>
                 </div>
-                <div class="stat-subtext">
-                  <span>TCP 7800 Sockets Active</span>
+                <div class="cockpit-kpi-bg-icon red">
+                  <span class="material-icons">notifications_active</span>
+                  <span class="material-icons" style="font-size:14px;margin-left:4px;">arrow_forward</span>
                 </div>
               </div>
             </div>
 
-            <!-- Fleet Activity Overview Map -->
-            <div class="overview-map-card">
-              <div class="card-header-bar">
-                <div class="card-title-group">
-                  <h3 class="card-title">Live Fleet Activity Map</h3>
-                  <span class="card-subtitle" id="overviewMapSubtitle">Real-time GPS telemetry via JT/T 808</span>
+            <!-- ── Quick Operations Strip ────────────────────────────────── -->
+            <div class="cockpit-quick-ops-wrap">
+              <div class="cockpit-ops-title">⚡ SUPERADMIN COCKPIT QUICK OPERATIONS</div>
+              <div class="quick-actions-strip">
+                <div class="action-tile-btn" id="opTileAllocate" style="cursor:pointer;">
+                  <div class="tile-icon blue"><span class="material-icons">devices</span></div>
+                  <div>
+                    <div class="tile-title">Allocate Stock</div>
+                    <div class="tile-subtitle">Assign to Admin</div>
+                  </div>
                 </div>
+                <div class="action-tile-btn" id="opTileProvision" style="cursor:pointer;">
+                  <div class="tile-icon purple"><span class="material-icons">inventory_2</span></div>
+                  <div>
+                    <div class="tile-title">Provision Device</div>
+                    <div class="tile-subtitle" id="opTileUnassignedSubtitle">172 Unassigned</div>
+                  </div>
+                </div>
+                <div class="action-tile-btn" id="opTileAddUser" style="cursor:pointer;">
+                  <div class="tile-icon green"><span class="material-icons">person_add</span></div>
+                  <div>
+                    <div class="tile-title">Add User Account</div>
+                    <div class="tile-subtitle">Create Admin/Cust</div>
+                  </div>
+                </div>
+                <div class="action-tile-btn" id="opTileSpeed" style="cursor:pointer;">
+                  <div class="tile-icon orange"><span class="material-icons">speed</span></div>
+                  <div>
+                    <div class="tile-title">Speed Boundary</div>
+                    <div class="tile-subtitle">Overspeed Alerts</div>
+                  </div>
+                </div>
+                <div class="action-tile-btn" id="opTileTelemetry" style="cursor:pointer;">
+                  <div class="tile-icon amber"><span class="material-icons">assessment</span></div>
+                  <div>
+                    <div class="tile-title">Fleet Telemetry</div>
+                    <div class="tile-subtitle">Usage & Fuel Stats</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Main 2-Column Analytics Deck (Height 360px each) ───────── -->
+            <div class="dashboard-main-grid">
+              <!-- Left: Data Volume & Security Alerts Trend -->
+              <div class="trackify-card hover-lift chart-card-container">
+                <div class="chart-header-bar">
+                  <div>
+                    <h3 class="trackify-card-title">Data Volume & Security Alerts Trend</h3>
+                    <p class="trackify-card-subtitle">Blue Area: Telemetry Ping Stream (Left Axis) &nbsp;•&nbsp; Red Column: Security Alert Spikes (Right Axis)</p>
+                  </div>
+                  <div class="chart-legend-row">
+                    <div class="legend-item">
+                      <span class="legend-line blue"></span>
+                      <span class="legend-label blue">Pings Stream</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-box red"></span>
+                      <span class="legend-label red">Alert Spikes</span>
+                    </div>
+                    <select class="trackify-select-sm" id="selectChartTimeframe">
+                      <option value="all">All Timeframes</option>
+                      <option value="today">Today</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="chart-canvas-box" style="height:265px;position:relative;width:100%;">
+                  <canvas id="chartDataVolumeTrend"></canvas>
+                </div>
+              </div>
+
+              <!-- Right: Deployed Fleet Real-Time Status Donut -->
+              <div class="trackify-card hover-lift chart-card-container">
+                <div class="chart-header-bar">
+                  <div>
+                    <h3 class="trackify-card-title">Deployed Fleet Real-Time Status</h3>
+                    <p class="trackify-card-subtitle" id="donutSubtitle">Live telemetry state (13 Active Assets)</p>
+                  </div>
+                  <div class="live-sync-pill">
+                    <span class="pulse-dot"></span>
+                    <span>Live Sync</span>
+                  </div>
+                </div>
+                <div class="donut-chart-box" style="flex:1;min-height:200px;position:relative;display:flex;align-items:center;justify-content:center;">
+                  <canvas id="chartFleetStatusDonut"></canvas>
+                  <div class="donut-center-metric">
+                    <div class="donut-number" id="donutCenterNumber">13</div>
+                    <div class="donut-label">FLEET VEHICLES</div>
+                  </div>
+                </div>
+                <div class="donut-legend-row">
+                  <span class="donut-leg-item" id="donutLegMoving"><span class="dot green"></span> Online / Moving (3)</span>
+                  <span class="donut-leg-item" id="donutLegStationary"><span class="dot orange"></span> Idle / Stationary (37)</span>
+                  <span class="donut-leg-item" id="donutLegOffline"><span class="dot red"></span> Offline / Disconnected (0)</span>
+                </div>
+                <div class="warehouse-stock-alert-bar">
+                  <span class="stock-alert-label">Warehouse Stock Alert:</span>
+                  <span class="stock-alert-value" id="donutStockAlertText">172 Unassigned Units</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Two Split Cards (Top Telemetry & Security Breakdown) ───── -->
+            <div class="split-cards-2col">
+              <!-- Card 1: Top Telemetry Pings by Device -->
+              <div class="trackify-card hover-lift">
+                <div class="card-split-header">
+                  <h4 class="card-split-title">
+                    <span class="material-icons" style="font-size:20px;color:#2563eb;">sensors</span>
+                    Top Telemetry Pings by Device
+                  </h4>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="trackify-pill-badge blue">Top 5</span>
+                    <button class="trackify-link-btn blue" id="btnSeeAllPings">SEE ALL &rarr;</button>
+                  </div>
+                </div>
+                <div class="card-split-body" id="listTopPingsContainer">
+                  <div class="empty-state-text">No telemetry pings recorded yet.</div>
+                </div>
+              </div>
+
+              <!-- Card 2: Security Alerts Category Breakdown -->
+              <div class="trackify-card hover-lift">
+                <div class="card-split-header">
+                  <h4 class="card-split-title">
+                    <span class="material-icons" style="font-size:20px;color:#ef4444;">warning</span>
+                    Security Alerts Category Breakdown
+                  </h4>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="trackify-pill-badge red">Total Logs</span>
+                    <button class="trackify-link-btn red" id="btnSeeAllAlerts">SEE ALL &rarr;</button>
+                  </div>
+                </div>
+                <div class="card-split-body" id="listAlertsBreakdownContainer">
+                  <div class="empty-state-text">No security alerts recorded.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── M2M SIM Data Usage Banner ─────────────────────────────── -->
+            <div class="sim-data-usage-banner">
+              <div class="sim-usage-left">
+                <div class="sim-icon-circle">
+                  <span class="material-icons">sim_card</span>
+                </div>
+                <div>
+                  <div class="sim-usage-title">
+                    <span>M2M SIM Data Usage &mdash; Per Device</span>
+                    <span class="sim-usage-pill">0 SIMs &bull; 100 MB each</span>
+                  </div>
+                  <p class="sim-usage-desc">
+                    &sim;420B/ping &bull; All SIMs are within safe usage limits
+                  </p>
+                </div>
+              </div>
+              <div class="sim-usage-thresholds">
+                <span class="sim-thresh-item critical">0 CRITICAL (&gt;80%)</span>
+                <span class="sim-thresh-item warning">0 WARNING (&gt;50%)</span>
+                <span class="sim-thresh-item safe">0 SAFE</span>
+              </div>
+            </div>
+
+            <!-- ── Live Fleet Positioning Map ────────────────────────────── -->
+            <div class="trackify-card hover-lift" style="padding:18px;margin-bottom:24px;">
+              <div class="chart-header-bar" style="margin-bottom:12px;">
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <button class="btn-ctrl btn-ctrl-outline" id="btnCenterOverviewMap" style="height:28px;">⛶ Fit Fleet</button>
-                  <button class="btn-ctrl btn-ctrl-primary" id="btnGoToLiveFromOverview" style="height:28px;">▶ Live Surveillance &rarr;</button>
+                  <span class="material-icons" style="font-size:20px;color:#0284c7;">near_me</span>
+                  <h3 class="trackify-card-title" style="margin:0;">Live Fleet Positioning Map</h3>
+                  <span class="card-subtitle" id="overviewMapSubtitle" style="margin-left:6px;">(13 In-Sync)</span>
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <button class="trackify-btn trackify-btn-primary" id="btnGoToLiveFromOverview" style="height:32px;padding:0 12px;font-size:11px;">
+                    OPEN LIVE MAP &rarr;
+                  </button>
                 </div>
               </div>
-              <div class="map-container-box" id="overviewMapContainer"></div>
-            </div>
-
-            <!-- Lower Split Deck: Recent Safety Incidents & Recent Video Captures -->
-            <div class="overview-lower-deck">
-              <!-- Left: Recent Safety Events -->
-              <div class="deck-panel-card">
-                <div class="card-header-bar">
-                  <div class="card-title-group">
-                    <h3 class="card-title">Recent Safety Incidents & ADAS Alerts</h3>
-                    <span class="card-subtitle">AI dashcam detection</span>
-                  </div>
-                  <button class="btn-table-action" id="btnViewAllSafety">View Inbox &rarr;</button>
-                </div>
-                <div class="enterprise-table-wrap">
-                  <table class="enterprise-table">
-                    <thead>
-                      <tr>
-                        <th>Severity</th>
-                        <th>Time</th>
-                        <th>Vehicle & Plate</th>
-                        <th>Driver</th>
-                        <th>Incident Classification</th>
-                        <th>Speed</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="overviewSafetyTableBody">
-                      <!-- Injected via app.js -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <!-- Right: Recent Recordings -->
-              <div class="deck-panel-card">
-                <div class="card-header-bar">
-                  <div class="card-title-group">
-                    <h3 class="card-title">Recent Video Captures</h3>
-                    <span class="card-subtitle">30s Event clips & snapshots</span>
-                  </div>
-                  <button class="btn-table-action" id="btnViewAllRecordings">Video Center &rarr;</button>
-                </div>
-                <div class="recordings-list" id="overviewRecordingsList">
-                  <!-- Injected via app.js -->
-                </div>
-              </div>
+              <div class="map-container-box" id="overviewMapContainer" style="height:350px;border-radius:10px;overflow:hidden;"></div>
             </div>
 
           </div>
