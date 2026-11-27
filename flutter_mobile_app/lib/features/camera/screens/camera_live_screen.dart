@@ -285,8 +285,7 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
             ),
           ),
           // Switch Vehicle Dropdown Button
-          if (dash.devices.length > 1)
-            PopupMenuButton<DeviceItem>(
+          PopupMenuButton<DeviceItem>(
               tooltip: 'Switch Vehicle',
               icon: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -315,7 +314,9 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                 dash.selectDevice(device);
                 dp.selectServerDevice(device.terminalId, device.plate, isOnline: device.isOnline);
               },
-              itemBuilder: (context) => dash.devices.map((device) {
+              itemBuilder: (context) {
+                final allDevs = dash.devices.isNotEmpty ? dash.devices : dash.fallbackDevices;
+                return allDevs.map((device) {
                 final isCurrent = device.terminalId == activeDevice.terminalId;
                 return PopupMenuItem<DeviceItem>(
                   value: device,
@@ -349,8 +350,9 @@ class _CameraLiveScreenState extends State<CameraLiveScreen> {
                     ],
                   ),
                 );
-              }).toList(),
-            ),
+              }).toList();
+            },
+          ),
         ],
       ),
     );

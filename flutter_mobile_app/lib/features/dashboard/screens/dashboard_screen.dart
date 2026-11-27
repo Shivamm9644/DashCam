@@ -161,6 +161,253 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       ),
                     ),
+                    const SizedBox(height: 10),
+
+                    // USER REQUIREMENT: "yeah sare device jo wo sab uppapr dekh mujye aur to elikc karo live feed chalo ho jaye dro down jaise trackify wale mein hai"
+                    // 1. DASHCAM DROPDOWN SELECTOR (Trackify Style)
+                    Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0284C7).withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: PopupMenuButton<DeviceItem>(
+                        tooltip: 'Select Dashcam for Live Feed',
+                        offset: const Offset(0, 52),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        color: Colors.white,
+                        elevation: 8,
+                        onSelected: (dev) {
+                          dash.selectDevice(dev);
+                          dp.selectServerDevice(dev.terminalId, dev.plate, isOnline: dev.isOnline);
+                          context.go('/camera'); // Click karo live feed chalu ho jaye!
+                        },
+                        itemBuilder: (context) {
+                          return allDevices.map((dev) {
+                            final isSelected = dev.terminalId == activeDev?.terminalId;
+                            return PopupMenuItem<DeviceItem>(
+                              value: dev,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: dev.isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          dev.plate,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                                            color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        Text(
+                                          'Terminal: ${dev.terminalId} • ${dev.driver}',
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0284C7).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.videocam_rounded, size: 14, color: Color(0xFF0284C7)),
+                                        SizedBox(width: 3),
+                                        Text(
+                                          'LIVE',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFF0284C7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        },
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0F2FE),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.videocam_rounded,
+                                color: Color(0xFF0284C7),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'LIVE DASHCAM SELECTOR',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0284C7),
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Container(
+                                        width: 7,
+                                        height: 7,
+                                        decoration: BoxDecoration(
+                                          color: isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    '$plate  (Tap to switch / play)',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0284C7),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Select',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  SizedBox(width: 2),
+                                  Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // 2. FAST HORIZONTAL DEVICE SCROLL STRIP (All devices visible at the top)
+                    SizedBox(
+                      height: 44,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: allDevices.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final dev = allDevices[index];
+                          final isSel = dev.terminalId == activeDev?.terminalId;
+                          return Material(
+                            color: isSel ? const Color(0xFF0284C7) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            elevation: 0,
+                            child: InkWell(
+                              onTap: () {
+                                dash.selectDevice(dev);
+                                dp.selectServerDevice(dev.terminalId, dev.plate, isOnline: dev.isOnline);
+                                context.go('/camera'); // Click karo live feed chalu ho jaye!
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSel ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                    width: isSel ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: dev.isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Icon(
+                                      Icons.videocam_rounded,
+                                      size: 16,
+                                      color: isSel ? Colors.white : const Color(0xFF0284C7),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      dev.plate,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: isSel ? Colors.white : const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.play_circle_fill_rounded,
+                                      size: 14,
+                                      color: isSel ? Colors.white70 : const Color(0xFF0284C7),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                     const SizedBox(height: 12),
 
                     // LIVE GOOGLE MAP (Embedded Native Google Map)
