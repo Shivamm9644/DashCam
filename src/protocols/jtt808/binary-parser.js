@@ -111,6 +111,9 @@ class BinaryParser {
                 case 0x0102: // Authentication
                     decoded = this.parseAuthentication(msgBody);
                     break;
+                case 0x0107: // Query Terminal Attributes Response (JT/T 808-2013 Table 16 — contains SIM ICCID)
+                    decoded = this.parseTerminalAttributes(msgBody);
+                    break;
                 
                 case 0x1205: // Terminal Media Resource List Response (JT/T 1078-2016 Table 14)
                     {
@@ -200,6 +203,8 @@ class BinaryParser {
             0x8100: 'Terminal Registration Response',
             0x0003: 'Terminal Logout',
             0x0102: 'Terminal Authentication',
+            0x0107: 'Terminal Attributes Response (SIM ICCID)',
+            0x8107: 'Query Terminal Attributes',
             0x0200: 'Location Information Report',
             0x0704: 'Positioning Data Batch Upload',
             0x0705: 'CAN Bus Data Upload',
@@ -238,6 +243,30 @@ class BinaryParser {
         }
         const authCode = body.toString('utf8').replace(/\0/g, '').trim();
         return { type: 'authentication', valid: authCode.length > 0, authCode };
+    }
+
+    /**
+     * Parses 0x0107 Terminal Attributes Response (JT/T 808-2013 Table 16)
+     * Extracts Hardware Model, Terminal ID, and 20-digit SIM Card ICCID (BCD[10] at bytes 34..43).
+     */
+    parseTerminalAttributes(body) {
+        if (!body || body.length < 44) {
+            return { type: 'terminal_attributes', valid: false, rawHex: body ? body.toString('hex') : '', iccid: null };
+        }
+        const terminalType = body.readUInt16BE(0);
+        const manufacturerId = body.subarray(2, 7).toString('ascii').replace(/\0/g, '').trim();
+        const terminalModel = body.subarray(7, 27).toString('ascii').replace(/\0/g, '').trim();
+        const terminalId = body.subarray(27, 34).toString('ascii').replace(/\0/g, '').trim();
+        const iccidRaw = binaryUtils.bcdToString(body.subarray(34, 44));
+        return {
+            type: 'terminal_attributes',
+            valid: true,
+            terminalType,
+            manufacturerId,
+            terminalModel,
+            terminalId,
+            iccid: iccidRaw
+        };
     }
 
     parseRegistration(body) {

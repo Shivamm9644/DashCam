@@ -96,6 +96,15 @@ class BinaryEncoder {
         return this._buildPacket(0x8201, terminalId, Buffer.alloc(0));
     }
 
+    /**
+     * Builds 0x8107 Query Terminal Attributes (JT/T 808-2013 Table 15)
+     * Prompts the DashCam to reply with 0x0107 containing its 20-digit SIM ICCID.
+     * @param {string} terminalId
+     */
+    buildTerminalAttributeQuery(terminalId) {
+        return this._buildPacket(0x8107, terminalId, Buffer.alloc(0));
+    }
+
 
     /**
      * Builds 0x9205 Query Terminal Media Resource List (JT/T 1078-2016 Table 13)

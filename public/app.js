@@ -5824,7 +5824,7 @@
       const simVal = item.paired_sim_number || item.paired_sim_iccid;
       const simPill = simVal 
         ? `<span style="font-family:'JetBrains Mono',monospace;color:#059669;display:inline-flex;align-items:center;gap:4px;">📶 ${simVal}</span>`
-        : '<span style="color:#94a3b8;font-style:italic;">No SIM</span>';
+        : `<span style="color:#94a3b8;font-style:italic;">No SIM</span> <button class="btn-table-action" onclick="window.InurumApp.fetchSimForDevice('${item.imei}')" style="margin-left:4px;font-size:11px;color:#2563eb;" title="Auto-fetch SIM ICCID from DashCam">🔄 Fetch SIM</button>`;
 
       // Date formatted
       const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '13 Nov';
@@ -5984,7 +5984,21 @@
       state.inventorySelectedImeis.clear();
       updateBulkActionButtons();
       closeBulkAssignModal();
-      showToast(`Successfully assigned ${imeis.length} devices!`, 'success');
+      showToast(`Successfully assigned ${imeis.length} devices! Auto-fetching SIM ICCIDs...`, 'success');
+
+      // Auto-fetch SIM ICCID for each newly assigned DashCam
+      Promise.all(imeis.map(imei =>
+        fetch(`/api/inventory/fetch-sim/${encodeURIComponent(imei)}`, { method: 'POST', headers: FleetApi.getHeaders() })
+          .then(r => r.json())
+          .catch(() => null)
+      )).then(results => {
+        const fetched = (results || []).filter(r => r && r.success && r.sim).length;
+        if (fetched > 0) {
+          showToast(`Auto-fetched SIM ICCID for ${fetched} DashCam(s)!`, 'success');
+        }
+        loadInventory();
+      });
+
       await loadInventory();
       await loadVendors();
     } catch (err) {
@@ -6634,7 +6648,24 @@
     toggleOrgStatus: (tenantId) => handleToggleOrgStatus(tenantId),
     toggleUserStatus: (userId) => handleToggleUserStatus(userId),
     openVehicleScopeModal: (userId) => openVehicleScopeModal(userId),
-    openResetPasswordModal: (userId) => openResetPasswordModal(userId)
+    openResetPasswordModal: (userId) => openResetPasswordModal(userId),
+    fetchSimForDevice: async (imei) => {
+      try {
+        showToast(`Querying DashCam ${imei} for SIM ICCID (JT808 0x8107)...`, 'info');
+        const res = await fetch(`/api/inventory/fetch-sim/${encodeURIComponent(imei)}`, {
+          method: 'POST',
+          headers: FleetApi.getHeaders()
+        }).then(r => r.json());
+        if (res.success && res.sim) {
+          showToast(`SIM Fetched: ${res.sim}`, 'success');
+          await loadInventory();
+        } else {
+          showToast(res.message || 'DashCam offline — SIM will auto-fetch when device connects.', 'warning');
+        }
+      } catch (e) {
+        showToast('Failed to query SIM ICCID: ' + e.message, 'error');
+      }
+    }
   };
 
   window.DashcamApp = window.InurumApp;

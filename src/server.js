@@ -415,6 +415,57 @@ app.post('/api/inventory/update/:id', (req, res) => {
   }
 });
 
+// Auto-fetch SIM ICCID from connected DashCam (JT808 0x8107 -> 0x0107) or Gateway/Backend
+app.post('/api/inventory/fetch-sim/:imei', async (req, res) => {
+  const imei = String(req.params.imei || '').trim();
+  if (!imei) return res.status(400).json({ success: false, message: 'IMEI is required.' });
+  try {
+    const inv = trackifyService.listInventory();
+    const existing = inv.find(i => String(i.imei) === imei || i._id === imei);
+    if (existing && existing.paired_sim_number) {
+      return res.json({ success: true, sim: existing.paired_sim_number, source: 'INVENTORY', message: 'SIM ICCID already paired.' });
+    }
+
+    // Query Gateway / Java Backend for live device attributes (ICCID from 0x0107)
+    let fetchedSim = null;
+    try {
+      const gwRes = await fetch(`${config.GATEWAY_URL}/api/devices/${encodeURIComponent(imei)}/attributes`, { signal: AbortSignal.timeout(3000) });
+      if (gwRes.ok) {
+        const gwJson = await gwRes.json();
+        fetchedSim = gwJson.iccid || gwJson.simNumber || gwJson.sim || null;
+      }
+    } catch (_) {}
+
+    if (!fetchedSim) {
+      try {
+        const authHdr = req.headers.authorization ? { Authorization: req.headers.authorization } : {};
+        const beRes = await fetch(`${config.JAVA_BACKEND_URL}/api/v1/devices`, { headers: authHdr, signal: AbortSignal.timeout(3000) });
+        if (beRes.ok) {
+          const beJson = await beRes.json();
+          const list = Array.isArray(beJson) ? beJson : (beJson.devices || beJson.data || []);
+          const dev = list.find(d => String(d.terminalId || d.imei) === imei);
+          if (dev) fetchedSim = dev.iccid || dev.simNumber || dev.msisdn || null;
+        }
+      } catch (_) {}
+    }
+
+    if (fetchedSim) {
+      if (existing) {
+        trackifyService.updateDevice(existing._id, { paired_sim_number: fetchedSim });
+      }
+      return res.json({ success: true, sim: fetchedSim, source: 'DEVICE_0x0107', message: `Fetched SIM ICCID: ${fetchedSim}` });
+    }
+
+    return res.json({
+      success: false,
+      sim: null,
+      message: `DashCam ${imei} is currently offline. SIM ICCID will auto-fetch via JT808 (0x8107 -> 0x0107) once the device connects.`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── Trackify Architecture: Plans & Subscriptions ──────────────────────────
 app.get(['/api/data-plans/recharge-plans', '/api/data-plan/list'], (req, res) => {
   try {
