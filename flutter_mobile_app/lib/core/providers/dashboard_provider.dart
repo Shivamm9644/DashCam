@@ -63,7 +63,7 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   void _markAllDevicesOffline(String reason) {
-    final cleanReason = (reason.contains('Server') || reason.contains('Unreachable') || reason.contains('98.89.19.164'))
+    final cleanReason = (reason.contains('Server') || reason.contains('Unreachable') || reason.contains('3.85.81.10'))
         ? 'Offline'
         : reason;
     bool changed = false;
@@ -1078,7 +1078,7 @@ class DeviceItem {
     }
 
     String rawPing = json['lastPing']?.toString() ?? 'Offline';
-    if (rawPing.contains('Server') || rawPing.contains('Unreachable') || rawPing.contains('98.89.19.164')) {
+    if (rawPing.contains('Server') || rawPing.contains('Unreachable') || rawPing.contains('3.85.81.10')) {
       rawPing = 'Offline';
     }
 

@@ -5,9 +5,9 @@ import '../services/api_service.dart';
 class DeviceProvider extends ChangeNotifier {
   static String resolveStreamHost(String termId) {
     if (termId.startsWith('5050') || termId.startsWith('8608') || termId.startsWith('8723')) {
-      return 'https://98.89.19.164';
+      return 'https://3.85.81.10';
     }
-    return 'https://98.89.19.164';
+    return 'https://3.85.81.10';
   }
 
   DeviceSettings settings = DeviceSettings();
@@ -96,10 +96,10 @@ class DeviceProvider extends ChangeNotifier {
         if (res.containsKey('url') && res['url'] != null) {
           customStreamUrl = res['url'].toString();
         } else {
-          customStreamUrl = 'https://98.89.19.164/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
+          customStreamUrl = 'https://3.85.81.10/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
         }
       } catch (_) {
-        customStreamUrl = 'https://98.89.19.164/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
+        customStreamUrl = 'https://3.85.81.10/api/v1/devices/${systemStatus.imei}/live-stream?cameraId=$chIndex';
       }
     } else {
       if (channel == 1) {
@@ -175,13 +175,13 @@ class DeviceProvider extends ChangeNotifier {
         if (res.containsKey('url') && res['url'] != null) {
           customStreamUrl = res['url'].toString();
         } else {
-          customStreamUrl = 'https://98.89.19.164/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
+          customStreamUrl = 'https://3.85.81.10/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
         }
       } catch (_) {
-        customStreamUrl = 'https://98.89.19.164/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
+        customStreamUrl = 'https://3.85.81.10/api/v1/devices/$terminalId/live-stream?cameraId=$chIndex';
       }
     } else {
-      customStreamUrl = 'https://98.89.19.164/media/live/${terminalId}_$activeChannel/live.m3u8';
+      customStreamUrl = 'https://3.85.81.10/media/live/${terminalId}_$activeChannel/live.m3u8';
     }
     notifyListeners();
     fetchDeviceSettings(terminalId);
@@ -340,7 +340,7 @@ class DeviceProvider extends ChangeNotifier {
 
 class DeviceSettings {
   // Platform
-  String serverIp = '98.89.19.164';
+  String serverIp = '3.85.81.10';
   int serverPort = 7800;
   String apn = 'internet';
 
