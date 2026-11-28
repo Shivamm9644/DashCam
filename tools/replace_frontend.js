@@ -8,7 +8,7 @@ c = c.replace(/const hlsUrl = `\/media\/live\//g, "const hlsUrl = `${API_BASE_UR
 
 // Add config block and dynamically load socket.io
 const configBlock = `    <script>
-        const API_BASE_URL = 'http://98.89.19.164:3000';
+        const API_BASE_URL = 'http://eld.inurum.com:3000';
         document.write('<script src="' + API_BASE_URL + '/socket.io/socket.io.js"><\\/script>');
     </script>
     <script>`;

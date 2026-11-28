@@ -389,7 +389,7 @@ class VideoCenterService {
             if (sock && !sock.destroyed) {
                 try {
                     const req = binaryEncoder.buildMediaUploadRequest(job.terminalId, {
-                        serverIp: config.MEDIA_SERVER_IP || '98.89.19.164',
+                        serverIp: config.MEDIA_SERVER_IP || 'eld.inurum.com',
                         tcpPort: config.JT1078_PORT || 10780,
                         channel: job.channel,
                         startTime: new Date(job.startTime),

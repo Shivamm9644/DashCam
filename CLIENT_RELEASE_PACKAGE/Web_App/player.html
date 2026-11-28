@@ -199,7 +199,7 @@
 
     chLabel.innerText = ch === '1' ? 'CH1: FRONT ROAD LENS' : 'CH2: REAR / CABIN LENS';
 
-    const streamUrl = `http://98.89.19.164:3000/media/live/${terminalId}_${ch}/live.m3u8`;
+    const streamUrl = `http://eld.inurum.com:3000/media/live/${terminalId}_${ch}/live.m3u8`;
 
     // Audio functions
     function enableAudio() {
@@ -261,14 +261,14 @@
     });
 
     // Dashcam audio/video trigger (0x9101 on JT808 socket)
-    fetch(`http://98.89.19.164:3000/api/video/start-live?terminalId=${terminalId}&channel=${ch}&dataType=0`).catch(()=>{
+    fetch(`http://eld.inurum.com:3000/api/video/start-live?terminalId=${terminalId}&channel=${ch}&dataType=0`).catch(()=>{
       fetch(`/api/video/start-live?terminalId=${terminalId}&channel=${ch}&dataType=0`).catch(()=>{});
     });
 
     // Check device online status on media server to give live diagnostics
     async function checkDeviceStatus() {
       try {
-        const res = await fetch('http://98.89.19.164:3000/api/devices');
+        const res = await fetch('http://eld.inurum.com:3000/api/devices');
         if (res.ok) {
           const list = await res.json();
           const dev = list.find(d => d.deviceId === terminalId);
@@ -300,7 +300,7 @@
       isPlayingDirect = true;
       console.log('[Player] Playing direct video stream feed for CH' + ch);
       
-      const directUrl = `http://98.89.19.164:3000/videos/${ch === '2' ? 'cabin_cam.mp4' : 'road_cam.mp4'}`;
+      const directUrl = `http://eld.inurum.com:3000/videos/${ch === '2' ? 'cabin_cam.mp4' : 'road_cam.mp4'}`;
       video.src = directUrl;
       video.loop = true;
       video.load();

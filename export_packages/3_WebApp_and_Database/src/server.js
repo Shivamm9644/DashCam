@@ -64,7 +64,7 @@ app.get('/api/v1/download/app.apk', (req, res) => {
   res.redirect('/download/app.apk');
 });
 
-const JAVA_BACKEND_BASE = process.env.JAVA_BACKEND_URL || 'http://98.89.19.164:8080';
+const JAVA_BACKEND_BASE = process.env.JAVA_BACKEND_URL || 'http://eld.inurum.com:8080';
 
 // Live Java Backend Proxy Middleware
 app.use('/api/v1', async (req, res, next) => {
@@ -110,7 +110,7 @@ app.use('/api/v1', async (req, res, next) => {
 
 // Proxy live camera video and HLS streams directly to production media server
 app.use('/media/live', async (req, res) => {
-  const targetUrl = `http://98.89.19.164:3000/media/live${req.url}`;
+  const targetUrl = `http://eld.inurum.com:3000/media/live${req.url}`;
   try {
     const remote = await fetch(targetUrl, { signal: AbortSignal.timeout(4000), redirect: 'manual' });
 
@@ -140,7 +140,7 @@ app.use('/media/live', async (req, res) => {
 
 // Proxy video assets from media gateway
 app.use('/videos', async (req, res) => {
-  const targetUrl = `http://98.89.19.164:3000/videos${req.url}`;
+  const targetUrl = `http://eld.inurum.com:3000/videos${req.url}`;
   try {
     const remote = await fetch(targetUrl, { signal: AbortSignal.timeout(5000) });
     res.status(remote.status);
@@ -158,7 +158,7 @@ app.use('/videos', async (req, res) => {
 
 // Proxy hardware live dispatch triggers
 app.use('/api/video', async (req, res) => {
-  const targetUrl = `http://98.89.19.164:3000/api/video${req.url}`;
+  const targetUrl = `http://eld.inurum.com:3000/api/video${req.url}`;
   try {
     const remote = await fetch(targetUrl, {
       method: req.method,
@@ -202,7 +202,7 @@ app.use('/api/v1', authMiddleware, apiRoutes);
 const db = require('./database/db');
 setInterval(async () => {
   try {
-    const res = await fetch('http://98.89.19.164:3000/api/v1/positions/latest', {
+    const res = await fetch('http://eld.inurum.com:3000/api/v1/positions/latest', {
       signal: AbortSignal.timeout(1500)
     });
     if (res.ok) {
