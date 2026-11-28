@@ -13,9 +13,9 @@ const config = {
   // This web console
   PORT: parseInt(process.env.PORT || '3001', 10),
   // Java backend: every /api/v1 call is answered there
-  JAVA_BACKEND_URL: (process.env.JAVA_BACKEND_URL || 'http://eld.inurum.com:8021').replace(/\/+$/, ''),
+  JAVA_BACKEND_URL: (process.env.JAVA_BACKEND_URL || 'http://dashcam.inurum.com:8021').replace(/\/+$/, ''),
   // JT808/JT1078 gateway: live and SD playback HLS segments are fetched from here
-  GATEWAY_URL: (process.env.GATEWAY_URL || 'http://eld.inurum.com:3000').replace(/\/+$/, '')
+  GATEWAY_URL: (process.env.GATEWAY_URL || 'http://dashcam.inurum.com:3000').replace(/\/+$/, '')
 };
 
 module.exports = config;

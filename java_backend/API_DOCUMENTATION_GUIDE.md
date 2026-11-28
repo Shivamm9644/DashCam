@@ -318,8 +318,8 @@ The backend natively manages JT/T 1078 live video distribution formatted as stan
   "sessionId": "live-860871080043592-ch1-1762064123",
   "terminalId": "860871080043592",
   "channelId": 1,
-  "streamUrl": "http://eld.inurum.com:3000/media/live/860871080043592_1/live.m3u8",
-  "streamUrlM3u8": "http://eld.inurum.com:3000/media/live/860871080043592_1/live.m3u8",
+  "streamUrl": "http://dashcam.inurum.com:3000/media/live/860871080043592_1/live.m3u8",
+  "streamUrlM3u8": "http://dashcam.inurum.com:3000/media/live/860871080043592_1/live.m3u8",
   "timeToLiveSeconds": 120,
   "remainingLiveMinutes": 28.5,
   "hasAudio": true,
@@ -346,7 +346,7 @@ Extends live session TTL by 120 seconds during active player playback.
 {
   "deviceId": "860871080043592",
   "cameraId": 0,
-  "snapshotUrl": "http://eld.inurum.com:3000/media/live/860871080043592_1/snapshot.jpg",
+  "snapshotUrl": "http://dashcam.inurum.com:3000/media/live/860871080043592_1/snapshot.jpg",
   "timestamp": "2026-11-02T06:15:30Z"
 }
 ```
@@ -387,9 +387,9 @@ Extends live session TTL by 120 seconds during active player playback.
       "longitude": 75.8577,
       "mediaState": "READY",
       "triageStatus": "COACHED",
-      "mediaUrl": "http://eld.inurum.com:3000/media/860871080043592_evt-1028-02.mp4",
-      "roadCamVideoUrl": "http://eld.inurum.com:3000/media/live/860871080043592_1/live.m3u8",
-      "cabinCamVideoUrl": "http://eld.inurum.com:3000/media/live/860871080043592_2/live.m3u8"
+      "mediaUrl": "http://dashcam.inurum.com:3000/media/860871080043592_evt-1028-02.mp4",
+      "roadCamVideoUrl": "http://dashcam.inurum.com:3000/media/live/860871080043592_1/live.m3u8",
+      "cabinCamVideoUrl": "http://dashcam.inurum.com:3000/media/live/860871080043592_2/live.m3u8"
     }
   ]
 }
@@ -469,7 +469,7 @@ Directly updates dashcam hardware firmware registers via JT/T 808 parameter comm
   "settings": {
     "entityId": "860871080043592",
     "apn": "iot.airtel.in",
-    "platformServer": "eld.inurum.com",
+    "platformServer": "dashcam.inurum.com",
     "platformPort": 7800,
     "gbPlatformId": "3101150000",
     "wlanSsid": "DASHCAM_AP_4359",

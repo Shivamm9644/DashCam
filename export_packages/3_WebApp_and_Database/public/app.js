@@ -4305,7 +4305,7 @@
             <td>${escapeHtml(r.plateNumber)}</td>
             <td><span class="badge-chip ${r.status === 'ONLINE' ? 'online' : 'offline'}">${r.status}</span></td>
             <td>${new Date(r.lastHeartbeat).toLocaleString()}</td>
-            <td>${r.remoteIp || 'eld.inurum.com'}</td>
+            <td>${r.remoteIp || 'dashcam.inurum.com'}</td>
             <td>${r.remotePort || '7800'}</td>
           </tr>
         `).join('');

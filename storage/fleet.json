@@ -114,7 +114,7 @@
           "audio": true
         }
       ],
-      "ipAddress": "eld.inurum.com",
+      "ipAddress": "dashcam.inurum.com",
       "deviceLocalIp": "192.168.1.1",
       "lastSeen": "2026-10-28T11:14:34.224Z",
       "status": "OFFLINE"

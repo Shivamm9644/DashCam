@@ -5,7 +5,7 @@ simulator.start({
     channel: 1,
     scenario: "indore-demo",
     telemetryCount: 100,
-    serverHost: "eld.inurum.com"
+    serverHost: "dashcam.inurum.com"
 }).then(() => {
     console.log('Simulation running...');
 });

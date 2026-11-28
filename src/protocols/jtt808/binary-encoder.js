@@ -155,7 +155,7 @@ class BinaryEncoder {
      * Builds 0x9206 Media File Upload Request (JT/T 1078-2016 Table 15)
      */
     buildMediaUploadRequest(terminalId, {
-        serverIp = 'eld.inurum.com',
+        serverIp = 'dashcam.inurum.com',
         tcpPort = 10780,
         udpPort = 0,
         channel = 1,
