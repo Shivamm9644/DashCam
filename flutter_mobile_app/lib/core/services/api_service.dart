@@ -8,9 +8,9 @@ class ApiService {
   /// Real Google Maps API Key
   static const String googleMapsApiKey = 'AIzaSyBa6Sfh7UbFlueqmLXSJbWEEoIYoeIpEXs';
 
-  // Production Live Server (100.31.90.51)
-  static const String serverHost = 'https://100.31.90.51.sslip.io';
-  static const String liveServerBaseUrl = 'https://100.31.90.51.sslip.io/api/v1';
+  // Production Live Server (98.89.19.164)
+  static const String serverHost = 'https://98.89.19.164.sslip.io';
+  static const String liveServerBaseUrl = 'https://98.89.19.164.sslip.io/api/v1';
 
   static String get defaultBaseUrl {
     return liveServerBaseUrl;

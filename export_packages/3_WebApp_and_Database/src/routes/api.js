@@ -195,7 +195,7 @@ router.put('/devices/:id/settings', (req, res) => {
 // 4. Real-Time Telemetry & Latest Positions (Ingested live from remote gateway)
 router.get('/positions/latest', async (req, res) => {
   try {
-    const remoteRes = await fetch('http://100.31.90.51:3000/api/v1/positions/latest', {
+    const remoteRes = await fetch('http://98.89.19.164:3000/api/v1/positions/latest', {
       signal: AbortSignal.timeout(1500)
     });
     if (remoteRes.ok) {
@@ -365,7 +365,7 @@ router.post('/live-sessions', async (req, res) => {
 
   // Dispatch JT808 0x9101 live video start signal to remote gateway
   try {
-    fetch(`http://100.31.90.51:3000/api/video/start-live?terminalId=${terminalId}&channel=${channelId || 1}&dataType=0`).catch(() => {});
+    fetch(`http://98.89.19.164:3000/api/video/start-live?terminalId=${terminalId}&channel=${channelId || 1}&dataType=0`).catch(() => {});
   } catch (_) {}
 
   const sessionId = 'live-' + terminalId + '-ch' + (channelId || 1) + '-' + Date.now();
@@ -375,7 +375,7 @@ router.post('/live-sessions', async (req, res) => {
     sessionId,
     terminalId,
     channelId: channelId || 1,
-    streamUrl: `http://100.31.90.51:3000/media/live/${terminalId}_${channelId || 1}/live.m3u8`,
+    streamUrl: `http://98.89.19.164:3000/media/live/${terminalId}_${channelId || 1}/live.m3u8`,
     timeToLiveSeconds: config.MAX_LIVE_SESSION_SECONDS,
     remainingLiveMinutes: quota ? (quota.maxLiveMinutes - quota.liveMinutesUsed).toFixed(1) : 30,
     hasAudio: true,
@@ -387,7 +387,7 @@ router.post('/live-sessions', async (req, res) => {
 router.post('/live-sessions/stop', (req, res) => {
   const { sessionId, terminalId } = req.body;
   try {
-    fetch(`http://100.31.90.51:3000/api/video/stop-live?terminalId=${terminalId}`).catch(() => {});
+    fetch(`http://98.89.19.164:3000/api/video/stop-live?terminalId=${terminalId}`).catch(() => {});
   } catch (_) {}
   db.recordAudit(req.user.id, req.user.tenantId, 'STOP_LIVE_VIEW', terminalId, { sessionId });
   res.json({ message: 'Live stream stopped and bounded spool purged' });
@@ -401,7 +401,7 @@ router.post('/live/start', async (req, res) => {
   }
 
   try {
-    fetch(`http://100.31.90.51:3000/api/video/start-live?terminalId=${terminalId}&channel=${channelId || 1}&dataType=0`).catch(() => {});
+    fetch(`http://98.89.19.164:3000/api/video/start-live?terminalId=${terminalId}&channel=${channelId || 1}&dataType=0`).catch(() => {});
   } catch (_) {}
 
   const sessionId = 'live-' + terminalId + '-ch' + (channelId || 1) + '-' + Date.now();
@@ -410,7 +410,7 @@ router.post('/live/start', async (req, res) => {
     sessionId,
     terminalId,
     channelId: channelId || 1,
-    streamUrl: `http://100.31.90.51:3000/media/live/${terminalId}_${channelId || 1}/live.m3u8`,
+    streamUrl: `http://98.89.19.164:3000/media/live/${terminalId}_${channelId || 1}/live.m3u8`,
     timeToLiveSeconds: config.MAX_LIVE_SESSION_SECONDS,
     maxDurationSeconds: config.MAX_LIVE_SESSION_SECONDS,
     hasAudio: true
@@ -420,7 +420,7 @@ router.post('/live/start', async (req, res) => {
 router.post('/live/stop', (req, res) => {
   const { sessionId, terminalId } = req.body;
   try {
-    fetch(`http://100.31.90.51:3000/api/video/stop-live?terminalId=${terminalId}`).catch(() => {});
+    fetch(`http://98.89.19.164:3000/api/video/stop-live?terminalId=${terminalId}`).catch(() => {});
   } catch (_) {}
   db.recordAudit(req.user.id, req.user.tenantId, 'STOP_LIVE_VIEW', terminalId, { sessionId });
   res.json({ message: 'Live stream stopped and bounded spool purged' });
@@ -429,7 +429,7 @@ router.post('/live/stop', (req, res) => {
 // Hardware Live Video Dispatch Direct Routes
 router.get('/video/start-live', async (req, res) => {
   try {
-    const remote = await fetch(`http://100.31.90.51:3000${req.originalUrl}`);
+    const remote = await fetch(`http://98.89.19.164:3000${req.originalUrl}`);
     const data = await remote.json();
     return res.json(data);
   } catch (err) {
@@ -439,7 +439,7 @@ router.get('/video/start-live', async (req, res) => {
 
 router.post('/video/stop-live', async (req, res) => {
   try {
-    const remote = await fetch(`http://100.31.90.51:3000${req.originalUrl}`, { method: 'POST' });
+    const remote = await fetch(`http://98.89.19.164:3000${req.originalUrl}`, { method: 'POST' });
     const data = await remote.json();
     return res.json(data);
   } catch (err) {

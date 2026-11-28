@@ -249,7 +249,7 @@ class MultiTenantDB {
         serialNumber: 'SN-' + v.terminalId,
         firmwareVersion: 'v2.4.18-rel',
         channels: v.channels,
-        ipAddress: '100.31.90.51',
+        ipAddress: '98.89.19.164',
         deviceLocalIp: '192.168.1.1',
         lastSeen: new Date().toISOString(),
         status: v.status
@@ -271,7 +271,7 @@ class MultiTenantDB {
       });
 
       this.deviceParams.set(v.terminalId, {
-        platform: { serverIp: '100.31.90.51', port808: 7800, port1078: 10780, heartbeatIntervalSec: 30 },
+        platform: { serverIp: '98.89.19.164', port808: 7800, port1078: 10780, heartbeatIntervalSec: 30 },
         apn: { name: 'airtelgprs.com', auth: 'NONE', user: '', pass: '' },
         camera: { ch1Resolution: '1080P', ch2Resolution: '720P', fps: 25, mirror: false },
         stream: { mainBitrateKbps: 2048, subBitrateKbps: 512, subFps: 25, audioEnabled: true },
@@ -555,7 +555,7 @@ class MultiTenantDB {
         { channelId: 1, name: 'Road Facing (CH1)', codec: 'H.264', resolution: '1080p', audio: true },
         { channelId: 2, name: 'Driver Cabin (CH2)', codec: 'H.264', resolution: '720p', audio: true }
       ],
-      ipAddress: '100.31.90.51',
+      ipAddress: '98.89.19.164',
       deviceLocalIp: '192.168.1.1',
       lastSeen: new Date().toISOString(),
       status: 'ONLINE',

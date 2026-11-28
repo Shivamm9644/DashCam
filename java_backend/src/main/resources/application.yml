@@ -36,9 +36,9 @@ security:
 
 # The Node JT808/JT1078 gateway (same server). It owns the camera sockets, live HLS and SD playback.
 gateway:
-  url: ${GATEWAY_URL:http://100.31.90.51:3000}
+  url: ${GATEWAY_URL:http://98.89.19.164:3000}
   # Host and ports the cameras are configured with (shown on device status screens)
-  public-host: ${GATEWAY_PUBLIC_HOST:100.31.90.51}
+  public-host: ${GATEWAY_PUBLIC_HOST:98.89.19.164}
   jt808-port: ${JT808_PORT:7800}
   jt1078-port: ${JT1078_PORT:10780}
 

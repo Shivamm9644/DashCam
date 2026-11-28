@@ -1,0 +1,9 @@
+[
+  {
+    "_id": "brand_ta",
+    "name": "TrackAnywhere",
+    "manufacturer": "Inurum Telematics",
+    "protocol": "JT808 / JT1078",
+    "status": "Active"
+  }
+]

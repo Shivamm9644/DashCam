@@ -63,7 +63,7 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   void _markAllDevicesOffline(String reason) {
-    final cleanReason = (reason.contains('Server') || reason.contains('Unreachable') || reason.contains('3.85.81.10'))
+    final cleanReason = (reason.contains('Server') || reason.contains('Unreachable') || reason.contains('98.89.19.164'))
         ? 'Offline'
         : reason;
     bool changed = false;
@@ -131,7 +131,7 @@ class DashboardProvider extends ChangeNotifier {
       }
     } catch (_) {}
 
-    for (final host in [ApiService.serverHost, 'https://100.31.90.51.sslip.io', 'http://100.31.90.51']) {
+    for (final host in [ApiService.serverHost, 'https://98.89.19.164.sslip.io', 'http://98.89.19.164']) {
       try {
         final loginRes = await http.post(
           Uri.parse('$host/api/v1/auth/login'),
@@ -180,7 +180,7 @@ class DashboardProvider extends ChangeNotifier {
         devices = _fallbackDevices();
       }
 
-      // Ensure all fallback devices are included so all terminals from 100.31.90.51 are visible
+      // Ensure all fallback devices are included so all terminals from 98.89.19.164 are visible
       final fallback = _fallbackDevices();
       for (final f in fallback) {
         if (!devices.any((d) => d.terminalId == f.terminalId || d.id == f.id)) {
@@ -194,11 +194,11 @@ class DashboardProvider extends ChangeNotifier {
       final headers = <String, String>{'Content-Type': 'application/json'};
       if (token != null) headers['Authorization'] = 'Bearer $token';
 
-      // 1. Fetch Authoritative Vehicles from TrackAnywhere server (100.31.90.51)
+      // 1. Fetch Authoritative Vehicles from TrackAnywhere server (98.89.19.164)
       List<DeviceItem> serverDevices = [];
       Set<String> seenDeviceIds = {};
 
-      for (final host in [ApiService.serverHost, 'https://100.31.90.51.sslip.io', 'http://100.31.90.51']) {
+      for (final host in [ApiService.serverHost, 'https://98.89.19.164.sslip.io', 'http://98.89.19.164']) {
         try {
           final hostHeaders = <String, String>{
             'Content-Type': 'application/json',
@@ -301,7 +301,7 @@ class DashboardProvider extends ChangeNotifier {
       }
 
       // 2. Fetch Latest Positions & merge telemetry from both servers
-      for (final host in [ApiService.serverHost, 'https://100.31.90.51.sslip.io', 'http://100.31.90.51']) {
+      for (final host in [ApiService.serverHost, 'https://98.89.19.164.sslip.io', 'http://98.89.19.164']) {
         try {
           final posRes = await http.get(
             Uri.parse('$host/api/v1/positions/latest'),
@@ -1078,7 +1078,7 @@ class DeviceItem {
     }
 
     String rawPing = json['lastPing']?.toString() ?? 'Offline';
-    if (rawPing.contains('Server') || rawPing.contains('Unreachable') || rawPing.contains('3.85.81.10')) {
+    if (rawPing.contains('Server') || rawPing.contains('Unreachable') || rawPing.contains('98.89.19.164')) {
       rawPing = 'Offline';
     }
 

@@ -1,0 +1,14 @@
+{
+  "iosReviewMode": false,
+  "iosAppVersion": "1.0.8",
+  "orgName": "TrackAnywhere",
+  "orgTagline": "Enterprise DashCam & Fleet Telematics",
+  "supportEmail": "support@inurum.com",
+  "supportPhone": "+91 98260 00000",
+  "defaultLanguage": "en",
+  "timezone": "Asia/Kolkata",
+  "mapProvider": "Google Maps",
+  "videoQualityDefault": "4K UHD (2160p)",
+  "retentionDays": 30,
+  "updatedAt": "2026-11-27T13:20:16.361Z"
+}

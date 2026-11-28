@@ -1,6 +1,6 @@
 # Inurum Dashcam Java backend
 
-Spring Boot 3 / Java 17 REST API for the web console (`public/`). It runs on the gateway server (100.31.90.51) on port **8021**.
+Spring Boot 3 / Java 17 REST API for the web console (`public/`). It runs on the gateway server (98.89.19.164) on port **8021**.
 
 ```
 browser ──> web console (src/server.js, :3001)

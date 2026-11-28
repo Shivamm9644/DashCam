@@ -155,7 +155,7 @@ class BinaryEncoder {
      * Builds 0x9206 Media File Upload Request (JT/T 1078-2016 Table 15)
      */
     buildMediaUploadRequest(terminalId, {
-        serverIp = '100.31.90.51',
+        serverIp = '98.89.19.164',
         tcpPort = 10780,
         udpPort = 0,
         channel = 1,
